@@ -13,7 +13,10 @@ type Product = {
 }
 
 const categories = [
-  { value: 'camisetas', label: 'Camiseta' },
+  { value: 'camisetas', label: 'Camiseta Algodão' },
+  { value: 'estonada', label: 'Camiseta Estonada' },
+  { value: 'dryfit', label: 'Dry Fit' },
+  { value: 'modal', label: 'Modal Tech' },
   { value: 'canecas', label: 'Caneca' },
   { value: 'ecobags', label: 'Ecobag' },
   { value: 'bottoms', label: 'Bottom' },

@@ -14,7 +14,15 @@ interface Props {
   siteConfig: Record<string, string>
 }
 
-const catLabel = (cat: string) => ({ camisetas: 'Camiseta', canecas: 'Caneca', ecobags: 'Ecobag', bottoms: 'Bottom' }[cat] || cat)
+const catLabel = (cat: string) => ({
+  camisetas: 'Camiseta Algodão',
+  estonada: 'Camiseta Estonada',
+  dryfit: 'Dry Fit',
+  modal: 'Modal Tech',
+  canecas: 'Caneca',
+  ecobags: 'Ecobag',
+  bottoms: 'Bottom'
+}[cat] || cat)
 const platformLabel = (p: string) => ({ instagram: 'INSTAGRAM', tiktok: 'TIKTOK' }[p] || p.toUpperCase())
 
 function getEmbedHTML(post: SocialPost) {
@@ -38,7 +46,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
   const [activeCategory, setActiveCategory] = useState('todos')
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const categories = ['todos', 'camisetas', 'canecas', 'ecobags', 'bottoms']
+  const categories = ['todos', 'camisetas', 'estonada', 'dryfit', 'modal', 'canecas', 'ecobags', 'bottoms']
 
   const filteredProducts = activeCategory === 'todos'
     ? products
@@ -380,7 +388,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
           </blockquote>
           <div style={{ fontSize:'1.05rem', lineHeight:1.9, color:'#2a2a2a', maxWidth:700 }}>
             <p>A Ô bicha! não nasceu para passar despercebida. Nós surgimos da urgência de ressignificar. Unimos a estética clássica do design tipográfico, a vibração da Pop Art e a paixão pela cultura geek para criar mais do que roupas e acessórios: criamos <strong>manifestos portáteis.</strong></p>
-            <p style={{ marginTop:'1.2rem' }}>Nossas camisetas, ecobags, canecas e bottoms são feitos para quem ocupa as ruas com marra, representatividade e muito deboche fino.</p>
+            <p style={{ marginTop:'1.2rem' }}>Nossas camisetas, ecobags, canecas e bottoms são feitos para quem ocupa as ruas com marra, representatividade e muito deboche fino. Em algodão, estonada, dry fit ou modal tech — sempre com estampa que tem algo a dizer.</p>
           </div>
         </div>
       </section>
