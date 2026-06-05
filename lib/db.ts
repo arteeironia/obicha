@@ -152,6 +152,56 @@ export async function deleteBlogPost(id: number) {
   await sql`DELETE FROM blog_posts WHERE id = ${id}`
 }
 
+// ===== COLLECTIONS =====
+export async function getCollections(onlyActive = true) {
+  if (onlyActive) {
+    return sql`SELECT * FROM collections WHERE active = true ORDER BY position ASC, created_at DESC`
+  }
+  return sql`SELECT * FROM collections ORDER BY position ASC, created_at DESC`
+}
+
+export async function createCollection(data: {
+  title: string
+  description?: string
+  image_url?: string
+  link: string
+  position?: number
+  active?: boolean
+}) {
+  const [col] = await sql`
+    INSERT INTO collections (title, description, image_url, link, position, active)
+    VALUES (${data.title}, ${data.description || null}, ${data.image_url || null}, ${data.link}, ${data.position ?? 0}, ${data.active ?? true})
+    RETURNING *
+  `
+  return col
+}
+
+export async function updateCollection(id: number, data: Partial<{
+  title: string
+  description: string
+  image_url: string
+  link: string
+  position: number
+  active: boolean
+}>) {
+  const [col] = await sql`
+    UPDATE collections SET
+      title = COALESCE(${data.title ?? null}, title),
+      description = COALESCE(${data.description ?? null}, description),
+      image_url = COALESCE(${data.image_url ?? null}, image_url),
+      link = COALESCE(${data.link ?? null}, link),
+      position = COALESCE(${data.position ?? null}, position),
+      active = COALESCE(${data.active ?? null}, active)
+    WHERE id = ${id}
+    RETURNING *
+  `
+  return col
+}
+
+export async function deleteCollection(id: number) {
+  await sql`DELETE FROM collections WHERE id = ${id}`
+}
+
 // ===== SITE CONFIG =====
 export async function getSiteConfig() {
   const rows = await sql`SELECT key, value FROM site_config`

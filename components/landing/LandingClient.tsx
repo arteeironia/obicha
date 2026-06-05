@@ -6,12 +6,14 @@ import Link from 'next/link'
 type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null }
 type SocialPost = { id: number; platform: string; url: string }
 type PinterestPin = { id: number; image_url: string; pin_url: string | null }
+type Collection = { id: number; title: string; description: string | null; image_url: string | null; link: string }
 
 interface Props {
   products: Product[]
   socialPosts: SocialPost[]
   pinterestPins: PinterestPin[]
   siteConfig: Record<string, string>
+  collections: Collection[]
 }
 
 const catLabel = (cat: string) => ({
@@ -37,7 +39,7 @@ function getEmbedHTML(post: SocialPost) {
   return `<a href="${post.url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--gold);font-family:var(--font-bebas);letter-spacing:2px;">VER POST ↗</a>`
 }
 
-export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig }: Props) {
+export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, collections }: Props) {
   const lojaUrl = siteConfig.loja_url || 'https://umapenca.com/obicha/'
   const instagramUrl = siteConfig.instagram_url || 'https://www.instagram.com/obicha_camisetas/'
   const tiktokUrl = siteConfig.tiktok_url || 'https://www.tiktok.com/@obicha_camisetas'
@@ -46,7 +48,17 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
   const [activeCategory, setActiveCategory] = useState('todos')
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(0)
   const categories = ['todos', 'camisetas', 'estonada', 'dryfit', 'modal', 'canecas', 'ecobags', 'bottoms']
+
+  // Auto-advance carrossel
+  useEffect(() => {
+    if (collections.length <= 1) return
+    const timer = setInterval(() => {
+      setCurrentSlide(s => (s + 1) % collections.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [collections.length])
 
   const filteredProducts = activeCategory === 'todos'
     ? products
@@ -257,7 +269,21 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .section-divider { display:flex; align-items:center; gap:1rem; justify-content:center; margin:1.5rem 0; }
         .section-divider::before,.section-divider::after { content:''; height:1px; width:80px; }
 
-        /* Lightbox */
+        /* Carrossel */
+        .carousel-wrap { position:relative; overflow:hidden; }
+        .carousel-track { display:flex; transition:transform .6s cubic-bezier(.25,.46,.45,.94); }
+        .carousel-slide { min-width:100%; position:relative; }
+        .carousel-slide img { width:100%; height:480px; object-fit:cover; display:block; }
+        .carousel-overlay { position:absolute; inset:0; background:linear-gradient(to right, rgba(26,39,68,.9) 0%, rgba(26,39,68,.5) 50%, transparent 100%); display:flex; align-items:center; }
+        .carousel-content { padding:3rem 4rem; max-width:520px; }
+        .carousel-btn { position:absolute; top:50%; transform:translateY(-50%); background:rgba(26,39,68,.7); border:1px solid rgba(212,168,67,.4); color:var(--gold); width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.2rem; transition:all .3s; z-index:2; }
+        .carousel-btn:hover { background:var(--gold); color:var(--navy); }
+        .carousel-btn.prev { left:1rem; }
+        .carousel-btn.next { right:1rem; }
+        .carousel-dots { position:absolute; bottom:1rem; left:50%; transform:translateX(-50%); display:flex; gap:.5rem; }
+        .carousel-dot { width:8px; height:8px; border-radius:50%; background:rgba(242,235,217,.3); border:none; cursor:pointer; transition:all .3s; padding:0; }
+        .carousel-dot.active { background:var(--gold); transform:scale(1.3); }
+        @media(max-width:600px) { .carousel-slide img { height:280px; } .carousel-content { padding:1.5rem; } .carousel-overlay { background:linear-gradient(to top, rgba(26,39,68,.95) 0%, rgba(26,39,68,.4) 60%, transparent 100%); align-items:flex-end; } }
         .lightbox-overlay { position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
         .lightbox-overlay.open { opacity:1; pointer-events:all; }
         .lightbox-overlay img { max-width:90vw; max-height:90vh; object-fit:contain; border-radius:4px; box-shadow:0 0 60px rgba(212,168,67,.2); }
@@ -392,6 +418,55 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
           </div>
         </div>
       </section>
+
+      {/* COLEÇÕES EM DESTAQUE */}
+      {collections.length > 0 && (
+        <section id="colecoes" style={{ background:'var(--navy)', padding:'4rem 0 0' }}>
+          <div style={{ textAlign:'center', marginBottom:'2rem', padding:'0 2rem' }}>
+            <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--gold)', display:'block', marginBottom:'.5rem' }}>★ Em Destaque ★</span>
+            <h2 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(2rem,5vw,3rem)', fontWeight:900, lineHeight:1.1 }}>
+              Coleções <em style={{ color:'var(--red)' }}>especiais.</em>
+            </h2>
+          </div>
+
+          <div className="carousel-wrap">
+            <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+              {collections.map((col, i) => (
+                <div key={col.id} className="carousel-slide">
+                  {col.image_url
+                    ? <img src={col.image_url} alt={col.title} />
+                    : <div style={{ width:'100%', height:480, background:'rgba(255,255,255,.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <span style={{ fontFamily:'var(--font-bebas)', fontSize:'3rem', color:'rgba(212,168,67,.2)', letterSpacing:'5px' }}>COLEÇÃO</span>
+                      </div>
+                  }
+                  <div className="carousel-overlay">
+                    <div className="carousel-content">
+                      <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.8rem', letterSpacing:'4px', color:'var(--gold)', opacity:.8 }}>★ COLEÇÃO ESPECIAL ★</span>
+                      <h3 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(1.8rem,4vw,3rem)', fontWeight:900, lineHeight:1.1, margin:'.5rem 0 1rem', color:'var(--creme)' }}>{col.title}</h3>
+                      {col.description && (
+                        <p style={{ fontSize:'1rem', lineHeight:1.7, color:'rgba(242,235,217,.8)', marginBottom:'1.5rem' }}>{col.description}</p>
+                      )}
+                      <a href={col.link} target="_blank" className="btn-primary">Ver Coleção</a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {collections.length > 1 && (
+              <>
+                <button className="carousel-btn prev" onClick={() => setCurrentSlide(s => (s - 1 + collections.length) % collections.length)}>‹</button>
+                <button className="carousel-btn next" onClick={() => setCurrentSlide(s => (s + 1) % collections.length)}>›</button>
+                <div className="carousel-dots">
+                  {collections.map((_, i) => (
+                    <button key={i} className={`carousel-dot ${i === currentSlide ? 'active' : ''}`} onClick={() => setCurrentSlide(i)} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* PRODUTOS */}
       <section id="produtos" style={{ background:'var(--navy)', padding:'6rem 2rem' }}>
