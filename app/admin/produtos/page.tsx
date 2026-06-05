@@ -10,6 +10,8 @@ type Product = {
   link: string
   image_url: string | null
   description: string | null
+  featured: boolean
+  collection_name: string | null
 }
 
 const categories = [
@@ -27,7 +29,7 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '' })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '' })
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -42,14 +44,14 @@ export default function AdminProdutos() {
 
   function openAdd() {
     setEditProduct(null)
-    setForm({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '' })
+    setForm({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '' })
     setImagePreview(null)
     setShowForm(true)
   }
 
   function openEdit(p: Product) {
     setEditProduct(p)
-    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '' })
+    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '' })
     setImagePreview(p.image_url)
     setShowForm(true)
   }
@@ -191,6 +193,14 @@ export default function AdminProdutos() {
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
               </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Coleção (ex: Raça, São Jorge)</label>
+                <input style={inputStyle} placeholder="Nome da coleção — opcional" value={form.collection_name} onChange={e => setForm(f => ({ ...f, collection_name: e.target.value }))} />
+              </div>
+              <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
+                <input type="checkbox" checked={form.featured} onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))} />
+                <span className="text-sm opacity-70">⭐ Destacar no carrossel da página</span>
+              </label>
             </div>
 
             <div className="flex gap-3 mt-6">

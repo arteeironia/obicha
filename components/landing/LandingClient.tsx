@@ -3,17 +3,16 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
-type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null }
+type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null }
 type SocialPost = { id: number; platform: string; url: string }
 type PinterestPin = { id: number; image_url: string; pin_url: string | null }
-type Collection = { id: number; title: string; description: string | null; image_url: string | null; link: string }
 
 interface Props {
   products: Product[]
   socialPosts: SocialPost[]
   pinterestPins: PinterestPin[]
   siteConfig: Record<string, string>
-  collections: Collection[]
+  featuredProducts: Product[]
 }
 
 const catLabel = (cat: string) => ({
@@ -39,7 +38,7 @@ function getEmbedHTML(post: SocialPost) {
   return `<a href="${post.url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--gold);font-family:var(--font-bebas);letter-spacing:2px;">VER POST ↗</a>`
 }
 
-export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, collections }: Props) {
+export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, featuredProducts }: Props) {
   const lojaUrl = siteConfig.loja_url || 'https://umapenca.com/obicha/'
   const instagramUrl = siteConfig.instagram_url || 'https://www.instagram.com/obicha_camisetas/'
   const tiktokUrl = siteConfig.tiktok_url || 'https://www.tiktok.com/@obicha_camisetas'
@@ -53,12 +52,12 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
 
   // Auto-advance carrossel
   useEffect(() => {
-    if (collections.length <= 1) return
+    if (featuredProducts.length <= 1) return
     const timer = setInterval(() => {
-      setCurrentSlide(s => (s + 1) % collections.length)
+      setCurrentSlide(s => (s + 1) % featuredProducts.length)
     }, 5000)
     return () => clearInterval(timer)
-  }, [collections.length])
+  }, [featuredProducts.length])
 
   const filteredProducts = activeCategory === 'todos'
     ? products
@@ -420,7 +419,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
       </section>
 
       {/* COLEÇÕES EM DESTAQUE */}
-      {collections.length > 0 && (
+      {featuredProducts.length > 0 && (
         <section id="colecoes" style={{ background:'var(--navy)', padding:'4rem 0 0' }}>
           <div style={{ textAlign:'center', marginBottom:'2rem', padding:'0 2rem' }}>
             <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--gold)', display:'block', marginBottom:'.5rem' }}>★ Em Destaque ★</span>
@@ -431,34 +430,38 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
 
           <div className="carousel-wrap">
             <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
-              {collections.map((col, i) => (
-                <div key={col.id} className="carousel-slide">
-                  {col.image_url
-                    ? <img src={col.image_url} alt={col.title} />
+              {featuredProducts.map((p, i) => (
+                <div key={p.id} className="carousel-slide">
+                  {p.image_url
+                    ? <img src={p.image_url} alt={p.name} />
                     : <div style={{ width:'100%', height:480, background:'rgba(255,255,255,.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        <span style={{ fontFamily:'var(--font-bebas)', fontSize:'3rem', color:'rgba(212,168,67,.2)', letterSpacing:'5px' }}>COLEÇÃO</span>
+                        <span style={{ fontFamily:'var(--font-bebas)', fontSize:'3rem', color:'rgba(212,168,67,.2)', letterSpacing:'5px' }}>DESTAQUE</span>
                       </div>
                   }
                   <div className="carousel-overlay">
                     <div className="carousel-content">
-                      <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.8rem', letterSpacing:'4px', color:'var(--gold)', opacity:.8 }}>★ COLEÇÃO ESPECIAL ★</span>
-                      <h3 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(1.8rem,4vw,3rem)', fontWeight:900, lineHeight:1.1, margin:'.5rem 0 1rem', color:'var(--creme)' }}>{col.title}</h3>
-                      {col.description && (
-                        <p style={{ fontSize:'1rem', lineHeight:1.7, color:'rgba(242,235,217,.8)', marginBottom:'1.5rem' }}>{col.description}</p>
+                      {p.collection_name && (
+                        <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.8rem', letterSpacing:'4px', color:'var(--gold)', opacity:.8 }}>★ {p.collection_name.toUpperCase()} ★</span>
                       )}
-                      <a href={col.link} target="_blank" className="btn-primary">Ver Coleção</a>
+                      <h3 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(1.8rem,4vw,3rem)', fontWeight:900, lineHeight:1.1, margin:'.5rem 0 1rem', color:'var(--creme)' }}>{p.name}</h3>
+                      {p.description && (
+                        <p style={{ fontSize:'1rem', lineHeight:1.7, color:'rgba(242,235,217,.8)', marginBottom:'1.5rem' }}>{p.description}</p>
+                      )}
+                      <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap' }}>
+                        <a href={p.link} target="_blank" className="btn-primary">Comprar</a>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {collections.length > 1 && (
+            {featuredProducts.length > 1 && (
               <>
-                <button className="carousel-btn prev" onClick={() => setCurrentSlide(s => (s - 1 + collections.length) % collections.length)}>‹</button>
-                <button className="carousel-btn next" onClick={() => setCurrentSlide(s => (s + 1) % collections.length)}>›</button>
+                <button className="carousel-btn prev" onClick={() => setCurrentSlide(s => (s - 1 + featuredProducts.length) % featuredProducts.length)}>‹</button>
+                <button className="carousel-btn next" onClick={() => setCurrentSlide(s => (s + 1) % featuredProducts.length)}>›</button>
                 <div className="carousel-dots">
-                  {collections.map((_, i) => (
+                  {featuredProducts.map((_, i) => (
                     <button key={i} className={`carousel-dot ${i === currentSlide ? 'active' : ''}`} onClick={() => setCurrentSlide(i)} />
                   ))}
                 </div>

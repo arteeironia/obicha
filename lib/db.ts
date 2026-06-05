@@ -7,6 +7,10 @@ if (!process.env.DATABASE_URL) {
 export const sql = neon(process.env.DATABASE_URL)
 
 // ===== PRODUTOS =====
+export async function getFeaturedProducts() {
+  return sql`SELECT * FROM products WHERE featured = true ORDER BY collection_name ASC, created_at DESC`
+}
+
 export async function getProducts(category?: string) {
   if (category && category !== 'todos') {
     return sql`SELECT * FROM products WHERE category = ${category} ORDER BY created_at DESC`
@@ -21,10 +25,12 @@ export async function createProduct(data: {
   link: string
   image_url?: string
   description?: string
+  featured?: boolean
+  collection_name?: string
 }) {
   const [product] = await sql`
-    INSERT INTO products (name, category, price, link, image_url, description)
-    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null})
+    INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name)
+    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null})
     RETURNING *
   `
   return product
@@ -37,6 +43,8 @@ export async function updateProduct(id: number, data: Partial<{
   link: string
   image_url: string
   description: string
+  featured: boolean
+  collection_name: string
 }>) {
   const [product] = await sql`
     UPDATE products SET
@@ -46,6 +54,8 @@ export async function updateProduct(id: number, data: Partial<{
       link = COALESCE(${data.link ?? null}, link),
       image_url = COALESCE(${data.image_url ?? null}, image_url),
       description = COALESCE(${data.description ?? null}, description),
+      featured = COALESCE(${data.featured ?? null}, featured),
+      collection_name = COALESCE(${data.collection_name ?? null}, collection_name),
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
