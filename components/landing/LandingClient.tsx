@@ -272,17 +272,23 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .carousel-wrap { position:relative; overflow:hidden; }
         .carousel-track { display:flex; transition:transform .6s cubic-bezier(.25,.46,.45,.94); }
         .carousel-slide { min-width:100%; position:relative; }
-        .carousel-slide img { width:100%; height:480px; object-fit:cover; display:block; }
-        .carousel-overlay { position:absolute; inset:0; background:linear-gradient(to right, rgba(26,39,68,.9) 0%, rgba(26,39,68,.5) 50%, transparent 100%); display:flex; align-items:center; }
-        .carousel-content { padding:3rem 4rem; max-width:520px; }
-        .carousel-btn { position:absolute; top:50%; transform:translateY(-50%); background:rgba(26,39,68,.7); border:1px solid rgba(212,168,67,.4); color:var(--gold); width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.2rem; transition:all .3s; z-index:2; }
+        .carousel-slide img { width:100%; height:500px; object-fit:cover; display:block; }
+        .carousel-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(15,26,46,.95) 0%, rgba(15,26,46,.4) 40%, transparent 70%); display:flex; align-items:flex-end; }
+        .carousel-content { padding:2rem 2.5rem; width:100%; }
+        .carousel-content h3 { font-family:var(--font-playfair); font-size:clamp(1.4rem,3vw,2.2rem); font-weight:900; line-height:1.1; margin:.3rem 0 1rem; color:var(--creme); }
+        .carousel-content .col-label { font-family:var(--font-bebas); font-size:.75rem; letter-spacing:4px; color:var(--gold); opacity:.8; display:block; }
+        .carousel-btn { position:absolute; top:50%; transform:translateY(-50%); background:rgba(26,39,68,.7); border:1px solid rgba(212,168,67,.4); color:var(--gold); width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.2rem; transition:all .3s; z-index:2; }
         .carousel-btn:hover { background:var(--gold); color:var(--navy); }
-        .carousel-btn.prev { left:1rem; }
-        .carousel-btn.next { right:1rem; }
-        .carousel-dots { position:absolute; bottom:1rem; left:50%; transform:translateX(-50%); display:flex; gap:.5rem; }
-        .carousel-dot { width:8px; height:8px; border-radius:50%; background:rgba(242,235,217,.3); border:none; cursor:pointer; transition:all .3s; padding:0; }
+        .carousel-btn.prev { left:.8rem; }
+        .carousel-btn.next { right:.8rem; }
+        .carousel-dots { position:absolute; bottom:.8rem; right:1rem; display:flex; gap:.4rem; }
+        .carousel-dot { width:6px; height:6px; border-radius:50%; background:rgba(242,235,217,.3); border:none; cursor:pointer; transition:all .3s; padding:0; }
         .carousel-dot.active { background:var(--gold); transform:scale(1.3); }
-        @media(max-width:600px) { .carousel-slide img { height:280px; } .carousel-content { padding:1.5rem; } .carousel-overlay { background:linear-gradient(to top, rgba(26,39,68,.95) 0%, rgba(26,39,68,.4) 60%, transparent 100%); align-items:flex-end; } }
+        @media(max-width:768px) {
+          .carousel-slide img { height:340px; }
+          .carousel-content { padding:1.2rem 1.5rem; }
+          .carousel-content h3 { font-size:1.3rem; margin-bottom:.8rem; }
+        }
         .lightbox-overlay { position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
         .lightbox-overlay.open { opacity:1; pointer-events:all; }
         .lightbox-overlay img { max-width:90vw; max-height:90vh; object-fit:contain; border-radius:4px; box-shadow:0 0 60px rgba(212,168,67,.2); }
@@ -441,15 +447,10 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                   <div className="carousel-overlay">
                     <div className="carousel-content">
                       {p.collection_name && (
-                        <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.8rem', letterSpacing:'4px', color:'var(--gold)', opacity:.8 }}>★ {p.collection_name.toUpperCase()} ★</span>
+                        <span className="col-label">★ {p.collection_name.toUpperCase()} ★</span>
                       )}
-                      <h3 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(1.8rem,4vw,3rem)', fontWeight:900, lineHeight:1.1, margin:'.5rem 0 1rem', color:'var(--creme)' }}>{p.name}</h3>
-                      {p.description && (
-                        <p style={{ fontSize:'1rem', lineHeight:1.7, color:'rgba(242,235,217,.8)', marginBottom:'1.5rem' }}>{p.description}</p>
-                      )}
-                      <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap' }}>
-                        <a href={p.link} target="_blank" className="btn-primary">Comprar</a>
-                      </div>
+                      <h3>{p.name}</h3>
+                      <a href={p.link} target="_blank" className="btn-primary" style={{ fontSize:'.9rem', padding:'.7rem 2rem' }}>Comprar</a>
                     </div>
                   </div>
                 </div>
