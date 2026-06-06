@@ -333,13 +333,13 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             {/* Grid quadrado — igual aos produtos */}
             <div className="highlights-grid" style={{ padding:'0 2rem' }}>
               {slides.map((slide, i) => (
-                <a
-                  key={i}
-                  href={slide.link || lojaUrl}
-                  target="_blank"
-                  className="highlight-card"
-                >
-                  <img src={slide.image_url} alt={slide.title} />
+                <div key={i} className="highlight-card">
+                  <div style={{ position:'relative', cursor:'zoom-in', overflow:'hidden' }} onClick={() => setLightboxImg(slide.image_url)}>
+                    <img src={slide.image_url} alt={slide.title} style={{ transition:'transform .4s ease' }}
+                      onMouseEnter={e => (e.target as HTMLElement).style.transform='scale(1.06)'}
+                      onMouseLeave={e => (e.target as HTMLElement).style.transform='scale(1)'}
+                    />
+                  </div>
                   <div className="highlight-card-info">
                     <div className="highlight-card-label">
                       {slide.type === 'promotion' ? '🏷 PROMOÇÃO' : `★ ${slide.title.toUpperCase()}`}
@@ -355,8 +355,13 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                         )}
                       </>
                     )}
+                    {slide.link && (
+                      <a href={slide.link} target="_blank" style={{ display:'inline-block', marginTop:'.6rem', padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2 }}>
+                        Ver na loja
+                      </a>
+                    )}
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           </section>
