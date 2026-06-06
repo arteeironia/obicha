@@ -330,39 +330,72 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
               </h2>
             </div>
 
-            {/* Grid quadrado — igual aos produtos */}
-            <div className="highlights-grid" style={{ padding:'0 2rem' }}>
-              {slides.map((slide, i) => (
-                <div key={i} className="highlight-card">
-                  <div style={{ position:'relative', cursor:'zoom-in', overflow:'hidden' }} onClick={() => setLightboxImg(slide.image_url)}>
-                    <img src={slide.image_url} alt={slide.title} style={{ transition:'transform .4s ease' }}
-                      onMouseEnter={e => (e.target as HTMLElement).style.transform='scale(1.06)'}
-                      onMouseLeave={e => (e.target as HTMLElement).style.transform='scale(1)'}
-                    />
-                  </div>
-                  <div className="highlight-card-info">
-                    <div className="highlight-card-label">
-                      {slide.type === 'promotion' ? '🏷 PROMOÇÃO' : `★ ${slide.title.toUpperCase()}`}
-                    </div>
-                    {slide.type === 'promotion' && (
-                      <>
-                        <div className="highlight-card-title">{slide.title}</div>
-                        {(slide.original_price || slide.promo_price) && (
-                          <div className="highlight-card-prices">
-                            {slide.original_price && <span className="highlight-price-old">{slide.original_price}</span>}
-                            {slide.promo_price && <span className="highlight-price-new">{slide.promo_price}</span>}
-                          </div>
+            <div style={{ position:'relative', maxWidth:480, margin:'0 auto', padding:'0 2rem' }}>
+              {/* Track */}
+              <div style={{ overflow:'hidden', borderRadius:4, border:'1px solid rgba(212,168,67,.15)' }}>
+                <div style={{ display:'flex', transition:'transform .6s cubic-bezier(.25,.46,.45,.94)', transform:`translateX(-${currentSlide * 100}%)` }}>
+                  {slides.map((slide, i) => (
+                    <div key={i} style={{ minWidth:'100%' }}>
+                      {/* Imagem quadrada com zoom no lightbox */}
+                      <div
+                        style={{ position:'relative', cursor:'zoom-in', overflow:'hidden', aspectRatio:1 }}
+                        onClick={() => setLightboxImg(slide.image_url)}
+                      >
+                        <img
+                          src={slide.image_url}
+                          alt={slide.title}
+                          style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', transition:'transform .4s ease' }}
+                          onMouseEnter={e => (e.target as HTMLElement).style.transform='scale(1.06)'}
+                          onMouseLeave={e => (e.target as HTMLElement).style.transform='scale(1)'}
+                        />
+                        {/* Badge */}
+                        <span style={{ position:'absolute', top:'.8rem', left:'.8rem', background:'rgba(15,26,46,.9)', border:'1px solid rgba(212,168,67,.3)', padding:'.2rem .7rem', fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:slide.type==='promotion'?'var(--red)':'var(--gold)' }}>
+                          {slide.type === 'promotion' ? 'PROMOÇÃO' : slide.title.toUpperCase()}
+                        </span>
+                      </div>
+                      {/* Info abaixo da imagem */}
+                      <div style={{ padding:'.8rem 1rem', background:'rgba(15,26,46,.95)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem' }}>
+                        <div>
+                          {slide.type === 'promotion' && (
+                            <div style={{ fontFamily:'var(--font-playfair)', fontSize:'.9rem', fontWeight:700, color:'var(--creme)', marginBottom:'.3rem' }}>{slide.title}</div>
+                          )}
+                          {slide.type === 'promotion' && (slide.original_price || slide.promo_price) && (
+                            <div style={{ display:'flex', alignItems:'center', gap:'.6rem' }}>
+                              {slide.original_price && <span style={{ fontSize:'.75rem', color:'rgba(242,235,217,.4)', textDecoration:'line-through' }}>{slide.original_price}</span>}
+                              {slide.promo_price && <span style={{ fontFamily:'var(--font-bebas)', fontSize:'1rem', color:'var(--red)', letterSpacing:'1px' }}>{slide.promo_price}</span>}
+                            </div>
+                          )}
+                        </div>
+                        {slide.link && (
+                          <a href={slide.link} target="_blank" style={{ flexShrink:0, padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', whiteSpace:'nowrap' }}>
+                            Ver na loja
+                          </a>
                         )}
-                      </>
-                    )}
-                    {slide.link && (
-                      <a href={slide.link} target="_blank" style={{ display:'inline-block', marginTop:'.6rem', padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2 }}>
-                        Ver na loja
-                      </a>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Setas */}
+              {slides.length > 1 && (
+                <>
+                  <button onClick={() => setCurrentSlide(s => (s - 1 + slides.length) % slides.length)}
+                    style={{ position:'absolute', top:'40%', left:0, transform:'translateY(-50%)', background:'rgba(26,39,68,.8)', border:'1px solid rgba(212,168,67,.4)', color:'var(--gold)', width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'1.1rem', zIndex:2 }}>‹</button>
+                  <button onClick={() => setCurrentSlide(s => (s + 1) % slides.length)}
+                    style={{ position:'absolute', top:'40%', right:0, transform:'translateY(-50%)', background:'rgba(26,39,68,.8)', border:'1px solid rgba(212,168,67,.4)', color:'var(--gold)', width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'1.1rem', zIndex:2 }}>›</button>
+                </>
+              )}
+
+              {/* Dots */}
+              {slides.length > 1 && (
+                <div style={{ display:'flex', justifyContent:'center', gap:'.4rem', marginTop:'.8rem' }}>
+                  {slides.map((_, i) => (
+                    <button key={i} onClick={() => setCurrentSlide(i)}
+                      style={{ width:6, height:6, borderRadius:'50%', border:'none', cursor:'pointer', padding:0, background: i === currentSlide ? 'var(--gold)' : 'rgba(242,235,217,.25)', transform: i === currentSlide ? 'scale(1.3)' : 'scale(1)', transition:'all .3s' }} />
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         )}
