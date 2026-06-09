@@ -9,7 +9,8 @@ const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' })
 
 // ===== CACHE =====
 const cache = new Map<string, { data: any; expires: number }>()
-const TTL = 5 * 60 * 1000 // 5 minutos
+const TTL = 5 * 60 * 1000      // 5 minutos — padrão
+const TTL_SHORT = 30 * 1000    // 30 segundos — produtos e destaques
 
 function getCache(key: string) {
   const entry = cache.get(key)
@@ -18,8 +19,8 @@ function getCache(key: string) {
   return entry.data
 }
 
-function setCache(key: string, data: any) {
-  cache.set(key, { data, expires: Date.now() + TTL })
+function setCache(key: string, data: any, short = false) {
+  cache.set(key, { data, expires: Date.now() + (short ? TTL_SHORT : TTL) })
 }
 
 function invalidateCache(...keys: string[]) {
@@ -31,7 +32,7 @@ export async function getFeaturedProducts() {
   const cached = getCache('featured_products')
   if (cached) return cached
   const data = await sql`SELECT * FROM products WHERE featured = true ORDER BY collection_name ASC, created_at DESC`
-  setCache('featured_products', data)
+  setCache('featured_products', data, true)
   return data
 }
 
@@ -42,7 +43,7 @@ export async function getProducts(category?: string) {
   const data = category && category !== 'todos'
     ? await sql`SELECT * FROM products WHERE category = ${category} ORDER BY created_at DESC`
     : await sql`SELECT * FROM products ORDER BY created_at DESC`
-  setCache(key, data)
+  setCache(key, data, true)
   return data
 }
 
@@ -197,7 +198,7 @@ export async function getHighlights(onlyActive = true) {
         FROM highlights h
         LEFT JOIN highlight_images hi ON hi.highlight_id = h.id
         GROUP BY h.id ORDER BY h.position ASC, h.created_at DESC`
-  setCache(key, data)
+  setCache(key, data, true)
   return data
 }
 
