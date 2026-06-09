@@ -1,5 +1,5 @@
 // v2 - postgres client
-import postgres from 'postgres'import postgres from 'postgres'
+import postgres from 'postgres'
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL não configurada')
