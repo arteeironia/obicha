@@ -20,11 +20,11 @@ export default async function Home() {
 
   return (
     <LandingClient
-      products={products as Product[]}
-      socialPosts={socialPosts as SocialPost[]}
-      pinterestPins={pinterestPins as PinterestPin[]}
+      products={products as unknown as Product[]}
+      socialPosts={socialPosts as unknown as SocialPost[]}
+      pinterestPins={pinterestPins as unknown as PinterestPin[]}
       siteConfig={siteConfig}
-      highlights={highlights as Highlight[]}
+      highlights={highlights as unknown as Highlight[]}
     />
   )
 }
