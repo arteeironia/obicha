@@ -96,6 +96,8 @@ export default function AdminProdutos() {
     width: '100%',
     padding: '0.7rem 1rem',
     outline: 'none',
+    fontFamily: 'inherit',
+    fontSize: '0.9rem',
   }
 
   return (
@@ -110,7 +112,6 @@ export default function AdminProdutos() {
         </button>
       </div>
 
-      {/* Grid de produtos */}
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : (
@@ -143,10 +144,18 @@ export default function AdminProdutos() {
         </div>
       )}
 
-      {/* Modal form */}
+      {/* Modal form — responsivo ao zoom do browser */}
       {showForm && (
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-md p-8 border" style={{ background: 'var(--navy)', borderColor: 'var(--gold)' }}>
+          <div style={{
+            background: 'var(--navy)',
+            border: '1px solid var(--gold)',
+            width: '90vw',
+            maxWidth: 480,
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2rem',
+          }}>
             <h2 className="font-playfair text-2xl font-bold mb-6" style={{ color: 'var(--gold)' }}>
               {editProduct ? 'Editar Produto' : 'Novo Produto'}
             </h2>
@@ -182,13 +191,12 @@ export default function AdminProdutos() {
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Imagem</label>
                 <div
-                  className="w-full aspect-video flex items-center justify-center cursor-pointer border-2 border-dashed overflow-hidden"
-                  style={{ borderColor: 'rgba(212,168,67,0.3)' }}
+                  style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', border:'2px dashed rgba(212,168,67,0.3)', overflow:'hidden' }}
                   onClick={() => fileRef.current?.click()}
                 >
                   {imagePreview
-                    ? <img src={imagePreview} alt="" className="w-full h-full object-cover" />
-                    : <span className="opacity-30 text-sm">Clique para selecionar imagem</span>
+                    ? <img src={imagePreview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : <span style={{ opacity:.3, fontSize:'.85rem' }}>Clique para selecionar imagem</span>
                   }
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
