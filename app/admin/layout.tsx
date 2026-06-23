@@ -1,5 +1,4 @@
 'use client'
-
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -10,7 +9,9 @@ const navItems = [
   { href: '/admin/social', label: 'Posts Sociais', icon: '📱' },
   { href: '/admin/pinterest', label: 'Pinterest', icon: '📌' },
   { href: '/admin/blog', label: 'Blog', icon: '✍️' },
-  { href: '/admin/site-config', label: 'Links do Site', icon: '🔗' },
+  { href: '/admin/links', label: 'Links', icon: '🔗' },
+  { href: '/admin/auditoria-cliques', label: 'Auditoria de Cliques', icon: '📊' },
+  { href: '/admin/site-config', label: 'Links do Site', icon: '⚙️' },
   { href: '/admin/configuracoes', label: 'Configurações', icon: '⚙' },
 ]
 
@@ -32,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <p className="text-xs opacity-40 tracking-widest uppercase mt-1">Painel Admin</p>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map(item => (
             <Link key={item.href} href={item.href}
               className="flex items-center gap-3 px-4 py-3 rounded transition-all text-sm tracking-wide"
