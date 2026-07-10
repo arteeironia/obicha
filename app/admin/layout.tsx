@@ -9,6 +9,7 @@ const navItems = [
   { href: '/admin/social', label: 'Posts Sociais', icon: '📱' },
   { href: '/admin/pinterest', label: 'Pinterest', icon: '📌' },
   { href: '/admin/blog', label: 'Blog', icon: '✍️' },
+  { href: '/admin/comentarios', label: 'Comentários', icon: '💬' },
   { href: '/admin/links', label: 'Links', icon: '🔗' },
   { href: '/admin/auditoria-cliques', label: 'Auditoria de Cliques', icon: '📊' },
   { href: '/admin/site-config', label: 'Links do Site', icon: '⚙️' },
