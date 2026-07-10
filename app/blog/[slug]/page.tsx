@@ -34,7 +34,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         :root { --creme:#F2EBD9; --navy:#1A2744; --red:#C0281C; --gold:#D4A843; --sidebar:220px; }
         *, *::before, *::after { box-sizing:border-box; }
         body { margin:0; background:var(--navy); color:var(--creme); font-family:var(--font-dm),sans-serif; }
-
         .sidebar { position:fixed; top:0; left:0; bottom:0; width:var(--sidebar); background:rgba(15,26,46,.97); border-right:1px solid rgba(212,168,67,.2); display:flex; flex-direction:column; z-index:200; }
         .sidebar-logo { padding:1.8rem 1.5rem 1.5rem; border-bottom:1px solid rgba(212,168,67,.15); }
         .sidebar-logo img { width:100%; max-width:160px; height:auto; display:block; }
@@ -45,20 +44,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .sidebar-bottom { padding:1.5rem; border-top:1px solid rgba(212,168,67,.15); }
         .sidebar-cta { display:block; text-align:center; padding:.75rem 1rem; background:var(--red); color:var(--creme); font-family:var(--font-bebas); letter-spacing:2px; font-size:.9rem; text-decoration:none; transition:all .3s; }
         .sidebar-cta:hover { background:var(--gold); color:var(--navy); }
-
         .main { margin-left:var(--sidebar); min-height:100vh; padding:5rem 4rem; max-width:calc(var(--sidebar) + 800px); }
-
         .back-link { display:inline-flex; align-items:center; gap:.5rem; font-family:var(--font-bebas); font-size:.85rem; letter-spacing:2px; color:var(--gold); text-decoration:none; opacity:.7; transition:opacity .3s; margin-bottom:3rem; }
         .back-link:hover { opacity:1; }
-
         .post-cover { width:100%; max-height:480px; object-fit:cover; border-radius:4px; margin-bottom:3rem; display:block; }
-
         .post-eyebrow { font-family:var(--font-bebas); font-size:.8rem; letter-spacing:4px; color:var(--gold); opacity:.7; margin-bottom:.8rem; display:block; }
-
         .post-title { font-family:var(--font-playfair); font-size:clamp(2rem,5vw,3.5rem); font-weight:900; line-height:1.1; margin:0 0 1.5rem; }
-
         .post-divider { height:1px; background:linear-gradient(to right, var(--gold), transparent); margin:2rem 0; opacity:.3; }
-
         .post-content { font-size:1.05rem; line-height:1.9; color:rgba(242,235,217,.85); }
         .post-content p { margin:0 0 1.4rem; }
         .post-content h2 { font-family:var(--font-playfair); font-size:1.6rem; font-weight:700; color:var(--gold); margin:2.5rem 0 1rem; }
@@ -68,7 +60,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .post-content a { color:var(--gold); }
         .post-content blockquote { border-left:4px solid var(--gold); padding-left:1.5rem; margin:2rem 0; font-family:var(--font-playfair); font-style:italic; font-size:1.15rem; color:var(--gold); opacity:.9; }
         .post-content img { max-width:100%; border-radius:4px; margin:1.5rem 0; }
-
         .share-section { margin-top:4rem; padding-top:2rem; border-top:1px solid rgba(212,168,67,.15); }
         .share-label { font-family:var(--font-bebas); font-size:.85rem; letter-spacing:3px; color:var(--gold); opacity:.7; display:block; margin-bottom:1rem; }
         .share-btns { display:flex; gap:1rem; flex-wrap:wrap; }
@@ -77,7 +68,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .share-btn.whatsapp:hover { background:#25D366; color:white; }
         .share-btn.copy { color:var(--gold); border-color:var(--gold); }
         .share-btn.copy:hover { background:var(--gold); color:var(--navy); }
-
         @media(max-width:900px) { .sidebar { display:none; } .main { margin-left:0; padding:2rem 1.5rem; } }
       `}</style>
 
@@ -113,27 +103,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         <div className="post-divider" />
 
-        <div
-          className="post-content"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
+        <div className="post-content" dangerouslySetInnerHTML={{ __html: post.content }} />
 
-        {/* Compartilhar */}
         <div className="share-section">
           <span className="share-label">★ Compartilhar ★</span>
           <div className="share-btns">
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`${post.title} — ${typeof window !== 'undefined' ? window.location.href : `https://obicha.com.br/blog/${post.slug}`}`)}`}
-              target="_blank"
-              className="share-btn whatsapp"
-            >
-              WhatsApp
-            </a>
+            <a href={`https://wa.me/?text=${encodeURIComponent(`${post.title} — ${typeof window !== 'undefined' ? window.location.href : `https://obicha.com.br/blog/${post.slug}`}`)}`}
+              target="_blank" className="share-btn whatsapp">WhatsApp</a>
             <ShareCopyBtn slug={post.slug} />
           </div>
         </div>
+
+        <BlogComments slug={post.slug} />
       </main>
-      <BlogComments slug={post.slug} />
     </>
   )
 }
