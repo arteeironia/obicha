@@ -42,8 +42,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 background: pathname === item.href ? 'rgba(212,168,67,.1)' : 'transparent',
                 color: pathname === item.href ? 'var(--gold)' : 'rgba(242,235,217,.6)',
                 borderLeft: pathname === item.href ? '3px solid var(--gold)' : '3px solid transparent',
-              }}
-            >
+              }}>
               <span>{item.icon}</span>{item.label}
             </Link>
           ))}
