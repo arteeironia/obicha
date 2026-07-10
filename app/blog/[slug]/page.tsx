@@ -1,3 +1,4 @@
+import BlogComments from '@/components/blog/BlogComments'
 import { getBlogPostBySlug } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -132,6 +133,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
       </main>
+      <BlogComments slug={post.slug} />
     </>
   )
 }
