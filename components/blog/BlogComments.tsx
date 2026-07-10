@@ -191,7 +191,7 @@ export default function BlogComments({ slug }: { slug: string }) {
     setLoginLoading(true)
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/blog/${slug}` },
+      options: { redirectTo: `${window.location.origin}/api/auth/callback?next=/blog/${slug}` },
     })
   }
 
