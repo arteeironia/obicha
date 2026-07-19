@@ -61,6 +61,14 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
         .main { margin-left:var(--sidebar); min-height:100vh; padding:5rem 4rem; }
         .product-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; transition:all .4s; }
         .product-card:hover { border-color:var(--gold); transform:translateY(-6px); box-shadow:0 20px 40px rgba(0,0,0,.4); }
+        .btn-loja { padding:.4rem 1rem; background:var(--red); color:var(--creme); font-family:var(--font-bebas); letter-spacing:1px; font-size:.8rem; text-decoration:none; border-radius:2px; transition:background .3s; }
+        .btn-loja:hover { background:var(--gold); }
+        .back-link { display:inline-flex; align-items:center; gap:.5rem; font-family:var(--font-bebas); font-size:.85rem; letter-spacing:2px; color:var(--gold); text-decoration:none; opacity:.7; transition:opacity .3s; margin-bottom:3rem; }
+        .back-link:hover { opacity:1; }
+        .col-tag { font-size:.68rem; color:rgba(212,168,67,.5); text-decoration:none; letter-spacing:1px; transition:color .3s; }
+        .col-tag:hover { color:var(--gold); }
+        .other-col-link { padding:.5rem 1.2rem; border:1px solid rgba(212,168,67,.3); color:rgba(242,235,217,.6); text-decoration:none; font-family:var(--font-bebas); letter-spacing:2px; font-size:.85rem; transition:all .25s; }
+        .other-col-link:hover { border-color:var(--gold); color:var(--gold); }
         @media(max-width:900px) { .sidebar { display:none; } .main { margin-left:0; padding:2rem 1.5rem; } }
       `}</style>
 
@@ -79,14 +87,16 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
       </aside>
 
       <main className="main">
-        <Link href="/" style={{ display:'inline-flex', alignItems:'center', gap:'.5rem', fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'2px', color:'var(--gold)', textDecoration:'none', opacity:.7, marginBottom:'3rem' }}>← Voltar</Link>
+        <Link href="/" className="back-link">← Voltar</Link>
 
         <div style={{ marginBottom:'4rem' }}>
           <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--gold)', display:'block', marginBottom:'.5rem', opacity:.7 }}>★ Coleção ★</span>
           <h1 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(2.5rem,6vw,4rem)', fontWeight:900, lineHeight:1, marginBottom:'1rem' }}>
             {collection.name}
           </h1>
-          <p style={{ opacity:.5, fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>{products.length} {products.length === 1 ? 'produto' : 'produtos'} nesta coleção</p>
+          <p style={{ opacity:.5, fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>
+            {products.length} {products.length === 1 ? 'produto' : 'produtos'} nesta coleção
+          </p>
         </div>
 
         {products.length === 0 ? (
@@ -107,7 +117,7 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
                   <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                     <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                    <a href={p.link} target="_blank" style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', borderRadius:2 }}>Ver na loja</a>
+                    <a href={p.link} target="_blank" className="btn-loja">Ver na loja</a>
                   </div>
                 </div>
               </div>
@@ -115,15 +125,11 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
           </div>
         )}
 
-        {/* Outras coleções */}
         <div style={{ marginTop:'6rem', paddingTop:'3rem', borderTop:'1px solid rgba(212,168,67,.15)' }}>
           <p style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'4px', color:'var(--gold)', opacity:.6, marginBottom:'1.5rem' }}>★ Outras coleções ★</p>
           <div style={{ display:'flex', flexWrap:'wrap', gap:'.75rem' }}>
             {collections.filter((c: any) => c.slug !== slug).map((c: any) => (
-              <Link key={c.id} href={`/colecao/${c.slug}`} style={{ padding:'.5rem 1.2rem', border:'1px solid rgba(212,168,67,.3)', color:'rgba(242,235,217,.6)', textDecoration:'none', fontFamily:'var(--font-bebas)', letterSpacing:'2px', fontSize:'.85rem', transition:'all .25s' }}
-                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor='var(--gold)'; el.style.color='var(--gold)' }}
-                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor='rgba(212,168,67,.3)'; el.style.color='rgba(242,235,217,.6)' }}
-              >{c.name}</Link>
+              <Link key={c.id} href={`/colecao/${c.slug}`} className="other-col-link">{c.name}</Link>
             ))}
           </div>
         </div>
