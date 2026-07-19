@@ -4,50 +4,47 @@ import { useState, useEffect, useRef } from 'react'
 
 type Product = {
   id: number; name: string; category: string; price: string; link: string
-  image_url: string | null; description: string | null; featured: boolean; collection_name: string | null
+  image_url: string | null; description: string | null; featured: boolean
+  collection_name: string | null; supplier: string | null
 }
-
+type Category = { id: number; value: string; label: string; active: boolean }
 type Collection = { id: number; name: string; slug: string }
 
-const categories = [
-  { value: 'camisetas', label: 'Camiseta Algodão' },
-  { value: 'estonada', label: 'Camiseta Estonada' },
-  { value: 'dryfit', label: 'Dry Fit' },
-  { value: 'modal', label: 'Modal Tech' },
-  { value: 'canecas', label: 'Caneca' },
-  { value: 'ecobags', label: 'Ecobag' },
-  { value: 'bottoms', label: 'Bottom' },
+const SHIRT_CATEGORIES = ['camisetas','estonada','dryfit','modal','peruano','oversized','regata','cropped','cropped-moletom','infantil','hoodie','sueter']
+
+const suppliers = [
+  { value: '', label: 'Nenhum' },
+  { value: 'reserva-ink-dtf', label: 'Reserva INK — DTF (Qualidade Reserva)' },
+  { value: 'uma-penca-dtg', label: 'Uma Penca — DTG (Qualidade Chico Rei)' },
 ]
 
 const inputStyle = {
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(212,168,67,0.3)',
-  color: 'var(--creme)',
-  width: '100%',
-  padding: '0.7rem 1rem',
-  outline: 'none',
-  fontFamily: 'inherit',
-  fontSize: '0.9rem',
+  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(212,168,67,0.3)',
+  color: 'var(--creme)', width: '100%', padding: '0.7rem 1rem',
+  outline: 'none', fontFamily: 'inherit', fontSize: '0.9rem',
 }
 
 export default function AdminProdutos() {
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '' })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '' })
   const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function load() {
-    const [prodRes, colRes] = await Promise.all([
+    const [prodRes, catRes, colRes] = await Promise.all([
       fetch('/api/products'),
+      fetch('/api/categories?all=true'),
       fetch('/api/collections'),
     ])
     setProducts(await prodRes.json())
+    setCategories(await catRes.json())
     setCollections(await colRes.json())
     setLoading(false)
   }
@@ -56,7 +53,7 @@ export default function AdminProdutos() {
 
   async function openAdd() {
     setEditProduct(null)
-    setForm({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '' })
+    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '' })
     setSelectedCollections([])
     setImagePreview(null)
     setShowForm(true)
@@ -64,9 +61,8 @@ export default function AdminProdutos() {
 
   async function openEdit(p: Product) {
     setEditProduct(p)
-    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '' })
+    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '', supplier: p.supplier || '' })
     setImagePreview(p.image_url)
-    // Buscar coleções do produto
     const res = await fetch(`/api/collections?product_id=${p.id}`)
     const data = await res.json()
     setSelectedCollections(data.map((c: any) => c.collection_id))
@@ -83,30 +79,17 @@ export default function AdminProdutos() {
   }
 
   function toggleCollection(id: number) {
-    setSelectedCollections(prev =>
-      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
-    )
+    setSelectedCollections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
   }
 
   async function handleSave() {
     setSaving(true)
     const method = editProduct ? 'PATCH' : 'POST'
     const body = editProduct ? { id: editProduct.id, ...form } : form
-    const res = await fetch('/api/products', {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    const res = await fetch('/api/products', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const product = await res.json()
     const productId = editProduct ? editProduct.id : product.id
-
-    // Salvar coleções
-    await fetch('/api/collections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_id: productId, collection_ids: selectedCollections }),
-    })
-
+    await fetch('/api/collections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: productId, collection_ids: selectedCollections }) })
     await load()
     setShowForm(false)
     setSaving(false)
@@ -114,13 +97,11 @@ export default function AdminProdutos() {
 
   async function handleDelete(id: number) {
     if (!confirm('Remover este produto?')) return
-    await fetch('/api/products', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
+    await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     await load()
   }
+
+  const isShirt = SHIRT_CATEGORIES.includes(form.category)
 
   return (
     <div className="p-8">
@@ -134,9 +115,7 @@ export default function AdminProdutos() {
         </button>
       </div>
 
-      {loading ? (
-        <p className="opacity-50">Carregando...</p>
-      ) : (
+      {loading ? <p className="opacity-50">Carregando...</p> : (
         <div className="grid grid-cols-4 gap-4">
           {products.map(p => (
             <div key={p.id} className="border rounded overflow-hidden" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
@@ -146,12 +125,13 @@ export default function AdminProdutos() {
                   : <div className="w-full h-full flex items-center justify-center opacity-20 text-4xl">👕</div>
                 }
                 <span className="absolute top-2 left-2 text-xs px-2 py-1 font-bebas tracking-widest" style={{ background: 'var(--navy)', color: 'var(--gold)', border: '1px solid rgba(212,168,67,0.3)' }}>
-                  {categories.find(c => c.value === p.category)?.label}
+                  {categories.find(c => c.value === p.category)?.label || p.category}
                 </span>
               </div>
               <div className="p-3">
                 <p className="font-bold text-sm truncate">{p.name}</p>
                 <p className="text-xs opacity-50 mt-1">{p.price}</p>
+                {p.supplier && <p className="text-xs mt-1" style={{ color: 'rgba(212,168,67,.5)' }}>{suppliers.find(s => s.value === p.supplier)?.label}</p>}
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => openEdit(p)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,0.15)', color: 'var(--gold)' }}>Editar</button>
                   <button onClick={() => handleDelete(p.id)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,0.15)', color: 'var(--red)' }}>Remover</button>
@@ -177,9 +157,20 @@ export default function AdminProdutos() {
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Categoria</label>
                 <select style={{ ...inputStyle }} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                  {categories.map(c => <option key={c.value} value={c.value} style={{ background: 'var(--navy)' }}>{c.label}</option>)}
+                  {categories.map(c => <option key={c.value} value={c.value} style={{ background: 'var(--navy)' }}>{c.label}{!c.active ? ' (inativa)' : ''}</option>)}
                 </select>
               </div>
+
+              {/* Fornecedor — só para camisetas */}
+              {isShirt && (
+                <div>
+                  <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Produção</label>
+                  <select style={{ ...inputStyle }} value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}>
+                    {suppliers.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--navy)' }}>{s.label}</option>)}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Preço</label>
                 <input style={inputStyle} placeholder="R$ 89,90" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
@@ -190,20 +181,16 @@ export default function AdminProdutos() {
               </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Descrição (para SEO)</label>
-                <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Descreva o produto — essa descrição aparece no Google" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Descreva o produto" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Imagem</label>
                 <div style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', border:'2px dashed rgba(212,168,67,0.3)', overflow:'hidden' }} onClick={() => fileRef.current?.click()}>
-                  {imagePreview
-                    ? <img src={imagePreview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                    : <span style={{ opacity:.3, fontSize:'.85rem' }}>Clique para selecionar imagem</span>
-                  }
+                  {imagePreview ? <img src={imagePreview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <span style={{ opacity:.3, fontSize:'.85rem' }}>Clique para selecionar imagem</span>}
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
               </div>
 
-              {/* Coleções */}
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-3">Coleções</label>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.5rem' }}>

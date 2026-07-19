@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 
-type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; collections?: { id: number; name: string; slug: string }[] }
+type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; collections?: { id: number; name: string; slug: string }[] }
+type Category = { id: number; value: string; label: string; active: boolean }
 type SocialPost = { id: number; platform: string; url: string }
 type PinterestPin = { id: number; image_url: string; pin_url: string | null }
 type HImage = { id: number; image_url: string; position: number }
@@ -14,12 +15,10 @@ interface Props {
   pinterestPins: PinterestPin[]
   siteConfig: Record<string, string>
   highlights: Highlight[]
+  categories: Category[]
 }
 
-const catLabel = (cat: string) => ({
-  camisetas: 'Camiseta Algodão', estonada: 'Camiseta Estonada', dryfit: 'Dry Fit',
-  modal: 'Modal Tech', canecas: 'Caneca', ecobags: 'Ecobag', bottoms: 'Bottom'
-}[cat] || cat)
+
 
 const platformLabel = (p: string) => ({ instagram: 'INSTAGRAM', tiktok: 'TIKTOK' }[p] || p.toUpperCase())
 
@@ -37,7 +36,7 @@ function getEmbedHTML(post: SocialPost) {
   return `<a href="${post.url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--gold);font-family:var(--font-bebas);letter-spacing:2px;">VER POST ↗</a>`
 }
 
-export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, highlights }: Props) {
+export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, highlights, categories }: Props) {
   const lojaUrl = siteConfig.loja_url || 'https://umapenca.com/obicha/'
   const instagramUrl = siteConfig.instagram_url || 'https://www.instagram.com/obicha_camisetas/'
   const tiktokUrl = siteConfig.tiktok_url || 'https://www.tiktok.com/@obicha_camisetas'
@@ -48,7 +47,8 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
-  const categories = ['todos', 'camisetas', 'estonada', 'dryfit', 'modal', 'canecas', 'ecobags', 'bottoms']
+  const catLabel = (cat: string) => categories.find(c => c.value === cat)?.label || cat
+  const categoryValues = ['todos', ...categories.map(c => c.value)]
 
   const slides: { image_url: string; title: string; type: string; original_price: string | null; promo_price: string | null; link: string | null }[] = []
   highlights.forEach(h => {
@@ -306,7 +306,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <p style={{ opacity:.6, fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>Camisetas · Canecas · Ecobags · Bottoms</p>
           </div>
           <div style={{ display:'flex', justifyContent:'center', gap:'.5rem', marginBottom:'3rem', flexWrap:'wrap' }}>
-            {categories.map(cat => (
+            {categoryValues.map(cat => (
               <button key={cat} onClick={() => setActiveCategory(cat)}
                 style={{ padding:'.5rem 1.5rem', border:'1px solid', borderColor:activeCategory===cat?'var(--gold)':'rgba(212,168,67,.4)', background:activeCategory===cat?'var(--gold)':'transparent', color:activeCategory===cat?'var(--navy)':'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'2px', fontSize:'.9rem', cursor:'pointer', transition:'all .3s', borderRadius:2 }}>
                 {cat === 'todos' ? 'Todos' : catLabel(cat)}
@@ -335,8 +335,13 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                       onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
                     >Ver na loja</a>
                   </div>
+                  {p.supplier && (
+                    <p style={{ marginTop:'.5rem', fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>
+                      {p.supplier === 'reserva-ink-dtf' ? '✦ Reserva INK · DTF · Qualidade Reserva' : '✦ Uma Penca · DTG · Qualidade Chico Rei'}
+                    </p>
+                  )}
                   {p.collections && p.collections.length > 0 && (
-                    <div style={{ marginTop:'.6rem', display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
+                    <div style={{ marginTop:'.4rem', display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
                       {p.collections.map(c => (
                         <a key={c.id} href={`/colecao/${c.slug}`} style={{ fontSize:'.68rem', color:'rgba(212,168,67,.5)', textDecoration:'none', letterSpacing:'1px', transition:'color .3s' }}
                           onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'}
