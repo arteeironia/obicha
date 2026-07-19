@@ -3,16 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 
 type Product = {
-  id: number
-  name: string
-  category: string
-  price: string
-  link: string
-  image_url: string | null
-  description: string | null
-  featured: boolean
-  collection_name: string | null
+  id: number; name: string; category: string; price: string; link: string
+  image_url: string | null; description: string | null; featured: boolean; collection_name: string | null
 }
+
+type Collection = { id: number; name: string; slug: string }
 
 const categories = [
   { value: 'camisetas', label: 'Camiseta Algodão' },
@@ -24,35 +19,57 @@ const categories = [
   { value: 'bottoms', label: 'Bottom' },
 ]
 
+const inputStyle = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(212,168,67,0.3)',
+  color: 'var(--creme)',
+  width: '100%',
+  padding: '0.7rem 1rem',
+  outline: 'none',
+  fontFamily: 'inherit',
+  fontSize: '0.9rem',
+}
+
 export default function AdminProdutos() {
   const [products, setProducts] = useState<Product[]>([])
+  const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '' })
+  const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function load() {
-    const res = await fetch('/api/products')
-    setProducts(await res.json())
+    const [prodRes, colRes] = await Promise.all([
+      fetch('/api/products'),
+      fetch('/api/collections'),
+    ])
+    setProducts(await prodRes.json())
+    setCollections(await colRes.json())
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
 
-  function openAdd() {
+  async function openAdd() {
     setEditProduct(null)
     setForm({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '' })
+    setSelectedCollections([])
     setImagePreview(null)
     setShowForm(true)
   }
 
-  function openEdit(p: Product) {
+  async function openEdit(p: Product) {
     setEditProduct(p)
     setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '' })
     setImagePreview(p.image_url)
+    // Buscar coleções do produto
+    const res = await fetch(`/api/collections?product_id=${p.id}`)
+    const data = await res.json()
+    setSelectedCollections(data.map((c: any) => c.collection_id))
     setShowForm(true)
   }
 
@@ -65,15 +82,31 @@ export default function AdminProdutos() {
     setForm(f => ({ ...f, image_url: url }))
   }
 
+  function toggleCollection(id: number) {
+    setSelectedCollections(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    )
+  }
+
   async function handleSave() {
     setSaving(true)
     const method = editProduct ? 'PATCH' : 'POST'
     const body = editProduct ? { id: editProduct.id, ...form } : form
-    await fetch('/api/products', {
+    const res = await fetch('/api/products', {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    const product = await res.json()
+    const productId = editProduct ? editProduct.id : product.id
+
+    // Salvar coleções
+    await fetch('/api/collections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId, collection_ids: selectedCollections }),
+    })
+
     await load()
     setShowForm(false)
     setSaving(false)
@@ -87,17 +120,6 @@ export default function AdminProdutos() {
       body: JSON.stringify({ id }),
     })
     await load()
-  }
-
-  const inputStyle = {
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(212,168,67,0.3)',
-    color: 'var(--creme)',
-    width: '100%',
-    padding: '0.7rem 1rem',
-    outline: 'none',
-    fontFamily: 'inherit',
-    fontSize: '0.9rem',
   }
 
   return (
@@ -131,12 +153,8 @@ export default function AdminProdutos() {
                 <p className="font-bold text-sm truncate">{p.name}</p>
                 <p className="text-xs opacity-50 mt-1">{p.price}</p>
                 <div className="flex gap-2 mt-3">
-                  <button onClick={() => openEdit(p)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,0.15)', color: 'var(--gold)' }}>
-                    Editar
-                  </button>
-                  <button onClick={() => handleDelete(p.id)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,0.15)', color: 'var(--red)' }}>
-                    Remover
-                  </button>
+                  <button onClick={() => openEdit(p)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,0.15)', color: 'var(--gold)' }}>Editar</button>
+                  <button onClick={() => handleDelete(p.id)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,0.15)', color: 'var(--red)' }}>Remover</button>
                 </div>
               </div>
             </div>
@@ -144,18 +162,9 @@ export default function AdminProdutos() {
         </div>
       )}
 
-      {/* Modal form — responsivo ao zoom do browser */}
       {showForm && (
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
-          <div style={{
-            background: 'var(--navy)',
-            border: '1px solid var(--gold)',
-            width: '90vw',
-            maxWidth: 480,
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '2rem',
-          }}>
+          <div style={{ background: 'var(--navy)', border: '1px solid var(--gold)', width: '90vw', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }}>
             <h2 className="font-playfair text-2xl font-bold mb-6" style={{ color: 'var(--gold)' }}>
               {editProduct ? 'Editar Produto' : 'Novo Produto'}
             </h2>
@@ -181,19 +190,11 @@ export default function AdminProdutos() {
               </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Descrição (para SEO)</label>
-                <textarea
-                  style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
-                  placeholder="Descreva o produto — essa descrição aparece no Google"
-                  value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                />
+                <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Descreva o produto — essa descrição aparece no Google" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Imagem</label>
-                <div
-                  style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', border:'2px dashed rgba(212,168,67,0.3)', overflow:'hidden' }}
-                  onClick={() => fileRef.current?.click()}
-                >
+                <div style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', border:'2px dashed rgba(212,168,67,0.3)', overflow:'hidden' }} onClick={() => fileRef.current?.click()}>
                   {imagePreview
                     ? <img src={imagePreview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                     : <span style={{ opacity:.3, fontSize:'.85rem' }}>Clique para selecionar imagem</span>
@@ -201,10 +202,20 @@ export default function AdminProdutos() {
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
               </div>
+
+              {/* Coleções */}
               <div>
-                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Coleção (ex: Raça, São Jorge)</label>
-                <input style={inputStyle} placeholder="Nome da coleção — opcional" value={form.collection_name} onChange={e => setForm(f => ({ ...f, collection_name: e.target.value }))} />
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-3">Coleções</label>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.5rem' }}>
+                  {collections.map(c => (
+                    <label key={c.id} style={{ display:'flex', alignItems:'center', gap:'.6rem', cursor:'pointer', padding:'.5rem .8rem', border:'1px solid', borderColor: selectedCollections.includes(c.id) ? 'var(--gold)' : 'rgba(212,168,67,.2)', background: selectedCollections.includes(c.id) ? 'rgba(212,168,67,.1)' : 'transparent', borderRadius:2, transition:'all .2s' }}>
+                      <input type="checkbox" checked={selectedCollections.includes(c.id)} onChange={() => toggleCollection(c.id)} style={{ accentColor:'var(--gold)' }} />
+                      <span style={{ fontSize:'.85rem', color: selectedCollections.includes(c.id) ? 'var(--gold)' : 'rgba(242,235,217,.6)' }}>{c.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
+
               <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
                 <input type="checkbox" checked={form.featured} onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))} />
                 <span className="text-sm opacity-70">⭐ Destacar no carrossel da página</span>
@@ -212,9 +223,7 @@ export default function AdminProdutos() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,0.2)', color: 'rgba(242,235,217,0.5)' }}>
-                Cancelar
-              </button>
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,0.2)', color: 'rgba(242,235,217,0.5)' }}>Cancelar</button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>
                 {saving ? 'Salvando...' : 'Salvar'}
               </button>

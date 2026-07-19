@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null }
+type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; collections?: { id: number; name: string; slug: string }[] }
 type SocialPost = { id: number; platform: string; url: string }
 type PinterestPin = { id: number; image_url: string; pin_url: string | null }
 type HImage = { id: number; image_url: string; position: number }
@@ -23,11 +23,7 @@ const catLabel = (cat: string) => ({
 
 const platformLabel = (p: string) => ({ instagram: 'INSTAGRAM', tiktok: 'TIKTOK' }[p] || p.toUpperCase())
 
-function getCategoryLink(cat: string): { href: string; label: string } | null {
-  if (['camisetas', 'estonada', 'dryfit', 'modal'].includes(cat)) return { href: '/camisetas-lgbt', label: 'Ver coleção LGBT →' }
-  if (['canecas', 'ecobags', 'bottoms'].includes(cat)) return { href: '/moda-queer', label: 'Ver moda queer →' }
-  return null
-}
+
 
 function getEmbedHTML(post: SocialPost) {
   if (post.platform === 'instagram') {
@@ -323,34 +319,35 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                 <p style={{ fontSize:'3rem' }}>👕</p>
                 <p style={{ marginTop:'1rem' }}>Produtos em breve</p>
               </div>
-            ) : filteredProducts.map(p => {
-              const seoLink = getCategoryLink(p.category)
-              return (
-                <div key={p.id} className="product-card">
-                  {p.image_url
-                    ? <div className="product-card-img-wrap" onClick={() => setLightboxImg(p.image_url!)}><img src={p.image_url} alt={p.name} style={{ width:'100%', aspectRatio:1, objectFit:'cover', display:'block' }} /></div>
-                    : <div style={{ width:'100%', aspectRatio:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', gap:'.5rem' }}><span style={{ fontSize:'3rem', opacity:.3 }}>👕</span></div>
-                  }
-                  <div style={{ padding:'1.2rem' }}>
-                    <div style={{ fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:'var(--gold)', marginBottom:'.3rem' }}>{catLabel(p.category)}</div>
-                    <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                      <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                      <a href={p.link} target="_blank" style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
-                        onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
-                        onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
-                      >Ver na loja</a>
-                    </div>
-                    {seoLink && (
-                      <a href={seoLink.href} style={{ display:'block', marginTop:'.6rem', fontSize:'.72rem', color:'rgba(212,168,67,.5)', textDecoration:'none', letterSpacing:'1px', transition:'color .3s' }}
-                        onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'}
-                        onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(212,168,67,.5)'}
-                      >{seoLink.label}</a>
-                    )}
+            ) : filteredProducts.map(p => (
+              <div key={p.id} className="product-card">
+                {p.image_url
+                  ? <div className="product-card-img-wrap" onClick={() => setLightboxImg(p.image_url!)}><img src={p.image_url} alt={p.name} style={{ width:'100%', aspectRatio:1, objectFit:'cover', display:'block' }} /></div>
+                  : <div style={{ width:'100%', aspectRatio:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', gap:'.5rem' }}><span style={{ fontSize:'3rem', opacity:.3 }}>👕</span></div>
+                }
+                <div style={{ padding:'1.2rem' }}>
+                  <div style={{ fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:'var(--gold)', marginBottom:'.3rem' }}>{catLabel(p.category)}</div>
+                  <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
+                    <a href={p.link} target="_blank" style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                      onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
+                      onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
+                    >Ver na loja</a>
                   </div>
+                  {p.collections && p.collections.length > 0 && (
+                    <div style={{ marginTop:'.6rem', display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
+                      {p.collections.map(c => (
+                        <a key={c.id} href={`/colecao/${c.slug}`} style={{ fontSize:'.68rem', color:'rgba(212,168,67,.5)', textDecoration:'none', letterSpacing:'1px', transition:'color .3s' }}
+                          onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'}
+                          onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(212,168,67,.5)'}
+                        >Ver coleção {c.name} →</a>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </section>
 
