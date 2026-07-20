@@ -18,11 +18,7 @@ interface Props {
   categories: Category[]
 }
 
-
-
 const platformLabel = (p: string) => ({ instagram: 'INSTAGRAM', tiktok: 'TIKTOK' }[p] || p.toUpperCase())
-
-
 
 function getEmbedHTML(post: SocialPost) {
   if (post.platform === 'instagram') {
@@ -37,7 +33,6 @@ function getEmbedHTML(post: SocialPost) {
 }
 
 export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, highlights, categories }: Props) {
-  const lojaUrl = siteConfig.loja_url || 'https://umapenca.com/obicha/'
   const instagramUrl = siteConfig.instagram_url || 'https://www.instagram.com/obicha_camisetas/'
   const tiktokUrl = siteConfig.tiktok_url || 'https://www.tiktok.com/@obicha_camisetas'
   const pinterestUrl = siteConfig.pinterest_url || 'https://br.pinterest.com/Obicha_camisetas/'
@@ -111,9 +106,6 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .sidebar-link .sl-icon { display:flex; align-items:center; width:20px; flex-shrink:0; opacity:.7; transition:opacity .25s; }
         .sidebar-link:hover .sl-icon { opacity:1; }
         .sidebar-link .sl-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
-        .sidebar-bottom { padding:1.5rem; border-top:1px solid rgba(212,168,67,.15); }
-        .sidebar-cta { display:block; text-align:center; padding:.75rem 1rem; background:var(--red); color:var(--creme); font-family:var(--font-bebas); letter-spacing:2px; font-size:.9rem; text-decoration:none; border:2px solid var(--red); transition:all .3s; }
-        .sidebar-cta:hover { background:var(--gold); border-color:var(--gold); color:var(--navy); }
         .main-content { margin-left:var(--sidebar); }
         .hamburger { display:none; position:fixed; top:1rem; left:1rem; z-index:300; background:rgba(15,26,46,.95); border:1px solid rgba(212,168,67,.3); width:44px; height:44px; align-items:center; justify-content:center; cursor:pointer; flex-direction:column; gap:5px; padding:10px; }
         .hamburger span { display:block; width:22px; height:2px; background:var(--gold); transition:all .3s; }
@@ -200,9 +192,6 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             Projeto Social
           </a>
         </nav>
-        <div className="sidebar-bottom">
-          <a href={lojaUrl} target="_blank" className="sidebar-cta">Entrar na Loja</a>
-        </div>
       </aside>
 
       <div className="main-content">
@@ -221,7 +210,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <p style={{ fontFamily:'var(--font-playfair)', fontStyle:'italic', fontSize:'clamp(1.2rem,3vw,1.8rem)', color:'var(--creme)', marginBottom:'2.5rem', opacity:.9 }}>
               Desde sempre, <strong style={{ color:'var(--gold)', fontStyle:'normal' }}>um grito de liberdade.</strong>
             </p>
-            <a href={lojaUrl} target="_blank" className="btn-primary">Entrar na Loja</a>
+            <a href="#produtos" className="btn-primary">Ver Produtos</a>
             <a href="#manifesto" className="btn-secondary">Nossa História</a>
           </div>
         </section>
@@ -433,7 +422,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
               Vista o deboche.<br /><em style={{ color:'var(--red)' }}>Espalhe o amor.</em><br /><strong style={{ color:'var(--gold)' }}>Carregue a resistência.</strong>
             </h2>
             <p style={{ fontSize:'1.1rem', opacity:.7, marginBottom:'3rem', fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>Deboche, amor e resistência. Feito no Brasil.</p>
-            <a href={lojaUrl} target="_blank" className="btn-primary" style={{ fontSize:'1.3rem', padding:'1.2rem 4rem' }}>Entrar na Loja</a>
+            <a href="#produtos" className="btn-primary" style={{ fontSize:'1.3rem', padding:'1.2rem 4rem' }}>Ver Produtos</a>
           </div>
         </section>
 
@@ -450,10 +439,8 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             {[['#manifesto','Manifesto'],['#produtos','Produtos'],['#compromissos','Missão'],['#amargen','Causa'],['#social','Redes']].map(([href,label]) => (
               <a key={href} href={href} style={{ color:'rgba(242,235,217,.5)', textDecoration:'none', fontSize:'.8rem', letterSpacing:'1px', textTransform:'uppercase', transition:'color .3s' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.5)'}>{label}</a>
             ))}
-            <a href={lojaUrl} target="_blank" style={{ color:'rgba(242,235,217,.5)', textDecoration:'none', fontSize:'.8rem', letterSpacing:'1px', textTransform:'uppercase', transition:'color .3s' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.5)'}>Loja</a>
             <a href="https://institutoamargen.com.br" target="_blank" style={{ color:'rgba(242,235,217,.5)', textDecoration:'none', fontSize:'.8rem', letterSpacing:'1px', textTransform:'uppercase', transition:'color .3s' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.5)'}>Instituto Amargen</a>
           </div>
-          {/* Links SEO — visíveis para o Google */}
           <div style={{ display:'flex', justifyContent:'center', gap:'1.5rem', flexWrap:'wrap', marginBottom:'1.5rem' }}>
             <a href="/camisetas-lgbt" style={{ color:'rgba(242,235,217,.2)', textDecoration:'none', fontSize:'.7rem', letterSpacing:'1px' }}>Camisetas LGBT</a>
             <span style={{ color:'rgba(242,235,217,.1)' }}>·</span>
