@@ -321,7 +321,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                   </div>
                   {p.supplier && (
                     <p style={{ marginTop:'.5rem', fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>
-                      {p.supplier === 'reserva-ink-dtf' ? '✦ Reserva INK · DTF · Qualidade Reserva' : '✦ Uma Penca · DTG · Qualidade Chico Rei'}
+                      {p.supplier === 'reserva-ink-dtf' ? '✦ Reserva INK · DTG · Qualidade Reserva' : '✦ Uma Penca · DTF · Qualidade Chico Rei'}
                     </p>
                   )}
                   {p.collections && p.collections.length > 0 && (
