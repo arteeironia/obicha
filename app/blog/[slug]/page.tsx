@@ -3,7 +3,7 @@ import { getBlogPostBySlug } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { ShareCopyBtn } from '@/components/blog/ShareButtons'
+import { ShareButtons, ShareCopyBtn } from '@/components/blog/ShareButtons'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,8 +42,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .sidebar-link:hover, .sidebar-link.active { color:var(--gold); border-left-color:var(--gold); background:rgba(212,168,67,.06); }
         .sidebar-link svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; opacity:.7; }
         .sidebar-bottom { padding:1.5rem; border-top:1px solid rgba(212,168,67,.15); }
-        .sidebar-cta { display:block; text-align:center; padding:.75rem 1rem; background:var(--red); color:var(--creme); font-family:var(--font-bebas); letter-spacing:2px; font-size:.9rem; text-decoration:none; transition:all .3s; }
-        .sidebar-cta:hover { background:var(--gold); color:var(--navy); }
         .main { margin-left:var(--sidebar); min-height:100vh; padding:5rem 4rem; max-width:calc(var(--sidebar) + 800px); }
         .back-link { display:inline-flex; align-items:center; gap:.5rem; font-family:var(--font-bebas); font-size:.85rem; letter-spacing:2px; color:var(--gold); text-decoration:none; opacity:.7; transition:opacity .3s; margin-bottom:3rem; }
         .back-link:hover { opacity:1; }
@@ -62,12 +60,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .post-content img { max-width:100%; border-radius:4px; margin:1.5rem 0; }
         .share-section { margin-top:4rem; padding-top:2rem; border-top:1px solid rgba(212,168,67,.15); }
         .share-label { font-family:var(--font-bebas); font-size:.85rem; letter-spacing:3px; color:var(--gold); opacity:.7; display:block; margin-bottom:1rem; }
-        .share-btns { display:flex; gap:1rem; flex-wrap:wrap; }
-        .share-btn { padding:.6rem 1.4rem; font-family:var(--font-bebas); letter-spacing:2px; font-size:.85rem; text-decoration:none; border:1px solid; transition:all .3s; cursor:pointer; background:transparent; }
+        .share-btns { display:flex; gap:.75rem; flex-wrap:wrap; }
+        .share-btn { padding:.6rem 1.4rem; font-family:var(--font-bebas); letter-spacing:2px; font-size:.85rem; text-decoration:none; border:1px solid; transition:all .3s; cursor:pointer; background:transparent; display:inline-block; }
         .share-btn.whatsapp { color:#25D366; border-color:#25D366; }
         .share-btn.whatsapp:hover { background:#25D366; color:white; }
+        .share-btn.threads { color:#F2EBD9; border-color:rgba(242,235,217,.4); }
+        .share-btn.threads:hover { background:#F2EBD9; color:#1A2744; }
+        .share-btn.facebook { color:#1877F2; border-color:#1877F2; }
+        .share-btn.facebook:hover { background:#1877F2; color:white; }
         .share-btn.copy { color:var(--gold); border-color:var(--gold); }
         .share-btn.copy:hover { background:var(--gold); color:var(--navy); }
+        .share-btn.story { color:var(--red); border-color:var(--red); }
+        .share-btn.story:hover { background:var(--red); color:white; }
+        .share-btn:disabled { opacity:.5; cursor:wait; }
         @media(max-width:900px) { .sidebar { display:none; } .main { margin-left:0; padding:2rem 1.5rem; } }
       `}</style>
 
@@ -83,9 +88,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <Link href="/#social" className="sidebar-link"><svg viewBox="0 0 20 20"><circle cx="5" cy="10" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="15" cy="15" r="2"/><path d="M7 9l6-3M7 11l6 3"/></svg>Redes</Link>
           <Link href="/blog" className="sidebar-link active"><svg viewBox="0 0 20 20"><path d="M4 4h12v2H4zM4 8h8v2H4zM4 12h10v2H4zM4 16h6v2H4z"/></svg>Blog</Link>
         </nav>
-        <div className="sidebar-bottom">
-          <a href="https://umapenca.com/obicha/" target="_blank" className="sidebar-cta">Entrar na Loja</a>
-        </div>
       </aside>
 
       <main className="main">
@@ -108,9 +110,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <div className="share-section">
           <span className="share-label">★ Compartilhar ★</span>
           <div className="share-btns">
-            <a href={`https://wa.me/?text=${encodeURIComponent(`${post.title} — ${typeof window !== 'undefined' ? window.location.href : `https://obicha.com.br/blog/${post.slug}`}`)}`}
-              target="_blank" className="share-btn whatsapp">WhatsApp</a>
-            <ShareCopyBtn slug={post.slug} />
+            <ShareButtons slug={post.slug} title={post.title} excerpt={post.excerpt || ''} />
           </div>
         </div>
 
