@@ -14,8 +14,8 @@ const SHIRT_CATEGORIES = ['camisetas','estonada','dryfit','modal','peruano','ove
 
 const suppliers = [
   { value: '', label: 'Nenhum' },
-  { value: 'reserva-ink-dtf', label: 'Reserva INK — DTF (Qualidade Reserva)' },
-  { value: 'uma-penca-dtg', label: 'Uma Penca — DTG (Qualidade Chico Rei)' },
+  { value: 'reserva-ink-dtg', label: 'Reserva INK — DTG (Qualidade Reserva)' },
+  { value: 'uma-penca-dtf', label: 'Uma Penca — DTF (Qualidade Chico Rei)' },
 ]
 
 const inputStyle = {
