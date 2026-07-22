@@ -19,8 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 const supplierLabel = (s: string | null) => {
-  if (s === 'reserva-ink-dtf') return '✦ Reserva INK · DTF · Qualidade Reserva'
-  if (s === 'uma-penca-dtg') return '✦ Uma Penca · DTG · Qualidade Chico Rei'
+  if (s === 'reserva-ink-dtf') return '✦ Reserva INK · DTG · Qualidade Reserva'
+  if (s === 'uma-penca-dtg') return '✦ Uma Penca · DTF · Qualidade Chico Rei'
   return null
 }
 
