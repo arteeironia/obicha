@@ -36,8 +36,34 @@
    iniciais (cigarros/dia, preço do maço), e cair no painel com contador, marcos de saúde e
    botão de SOS pra fissura.
 
+## Novidades desta versão
+- **Modo "vou parar" vs "já parei"**: se a pessoa ainda não parou, mostra contagem regressiva
+  até a data escolhida + checklist de preparo, em vez de contagem crescente.
+- **"Meu porquê"**: campo de texto com o motivo pessoal de parar, mostrado de novo bem na hora
+  da fissura (é o argumento mais forte contra a vontade).
+- **7 técnicas pra fissura** em vez de só respiração: respiração 4-7-8, surfar a onda (urge
+  surfing), checagem HALT, mexer o corpo, chamar alguém, ocupar a boca, reler o porquê.
+- **Header e menu lateral no estilo do site**: logo, menu hambúrguer com o mesmo drawer lateral,
+  usando Bebas Neue + Playfair Display e a paleta creme/azul-marinho/vermelho.
+
+⚠️ A paleta e as fontes foram aplicadas de memória (creme #F5EFE4, azul-marinho #101B2D,
+vermelho #C63B32, Bebas Neue + Playfair Display). Se os valores reais no seu design system
+forem diferentes, é só me passar os hex/fontes certos que eu ajusto — está tudo centralizado
+no objeto `C` no topo do arquivo `page.jsx`.
+
+## Integrar ao menu do site
+Não tenho acesso ao componente de header do repositório, então não consigo editar o menu
+principal diretamente. No `page.jsx` já criei um header próprio pra rota `/respira` (com o
+mesmo estilo), mas pra aparecer também no **menu lateral do site inteiro** (o hambúrguer que
+abre em `Manifesto / Produtos / Missão / Causa / Redes / Blog / Parcerias / Projeto Social`),
+você precisa adicionar um link pra `/respira` no array de navegação desse componente — me manda
+o arquivo (provavelmente algo como `components/Header.jsx` ou `components/Nav.jsx`) que eu edito
+direto.
+
 ## Pendências pra próxima sessão
+- Colar o link "Respira" no menu lateral principal do site (preciso do arquivo do header)
 - Apple OAuth (precisa de conta paga de developer Apple — decide se vale a pena)
 - Compartilhar progresso / ranking entre seguidores (hoje é 100% privado por design)
+- Cartão de marco compartilhável pro Instagram (ex: "30 dias sem fumar")
 - Notificações / lembretes
 - Divulgação: post ou destaque na home do site linkando pra `/respira`
