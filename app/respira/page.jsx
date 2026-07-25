@@ -252,7 +252,14 @@ export default function RespiraPage() {
         <RelapseModal
           onClose={() => setRelapseOpen(false)}
           onChoose={async (action, note) => {
-            await supabase.from("quit_relapses").insert({ user_id: session.user.id, action, note: note || null });
+            const days_reached = Math.floor(elapsedMin / 1440);
+            await supabase.from("quit_relapses").insert({
+              user_id: session.user.id,
+              note: note || null,
+              days_reached,
+              streak_reset: action === "restart",
+              occurred_at: new Date().toISOString(),
+            });
             if (action === "restart") {
               const newQuitAt = new Date().toISOString();
               await supabase.from("quit_profiles").update({ quit_at: newQuitAt }).eq("user_id", session.user.id);
