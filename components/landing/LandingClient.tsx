@@ -42,9 +42,16 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [activeSource, setActiveSource] = useState('todos')
+  const [search, setSearch] = useState('')
 
   const catLabel = (cat: string) => categories.find(c => c.value === cat)?.label || cat
   const categoryValues = ['todos', ...categories.map(c => c.value)]
+  const filteredFeed = feedProducts.filter(p => {
+    const matchSource = activeSource === 'todos' || p.source === activeSource
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase())
+    return matchSource && matchSearch
+  })
 
   const slides: { image_url: string; title: string; type: string; original_price: string | null; promo_price: string | null; link: string | null }[] = []
   highlights.forEach(h => {
