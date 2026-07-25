@@ -5,11 +5,8 @@ import { usePathname, useRouter } from 'next/navigation'
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: '◈' },
   { href: '/admin/produtos', label: 'Produtos', icon: '👕' },
-  { href: '/admin/produtos-feed', label: 'Produtos das Lojas', icon: '🛍️' },
   { href: '/admin/categorias', label: 'Categorias', icon: '🏷️' },
   { href: '/admin/destaques', label: 'Destaques', icon: '✦' },
-  { href: '/admin/social', label: 'Posts Sociais', icon: '📱' },
-  { href: '/admin/pinterest', label: 'Pinterest', icon: '📌' },
   { href: '/admin/blog', label: 'Blog', icon: '✍️' },
   { href: '/admin/comentarios', label: 'Comentários', icon: '💬' },
   { href: '/admin/links', label: 'Links', icon: '🔗' },
