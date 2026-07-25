@@ -351,7 +351,13 @@ function CountdownView({ quitAt, now }) {
     <div className="text-center mb-6">
       <p style={{ ...bebas, fontSize: "4rem", lineHeight: 0.9, color: C.cream }}>{days}</p>
       <p style={{ ...playfair }} className="italic text-sm opacity-80">dia{days !== 1 ? "s" : ""} até sua data de parar</p>
-      <p className="text-xs opacity-60 mt-1 font-mono">{String(hours).padStart(2, "0")}h {String(mins).padStart(2, "0")}m</p>
+      <p className="text-xs opacity-60 mt-1 font-mono mb-6">{String(hours).padStart(2, "0")}h {String(mins).padStart(2, "0")}m</p>
+      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 text-left">
+        <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-xs mb-2">ENQUANTO ISSO...</p>
+        <p className="text-sm opacity-80 leading-relaxed">
+          Já dá pra treinar: tenta atrasar o primeiro cigarro do dia em 15 minutos. O primeiro é o que mais reativa a dependência — atrasar ele já prepara seu corpo pra parada.
+        </p>
+      </div>
     </div>
   );
 }
@@ -435,6 +441,7 @@ function PanelTab(props) {
   const [planSub, setPlanSub] = useState(SUBSTITUTE_OPTIONS[0].key);
   const [movActivity, setMovActivity] = useState(MOVEMENT_ACTIVITIES[0].key);
   const [movMinutes, setMovMinutes] = useState(15);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const hourCounts = useMemo(() => {
     const counts = new Array(24).fill(0);
@@ -603,12 +610,13 @@ function PanelTab(props) {
         </div>
       </div>
 
-      <button
-        onClick={() => shareText(`Decidi parar de fumar 🚭\n${dayNumber} dia${dayNumber !== 1 ? "s" : ""} sem cigarro\nobicha.com.br/respira`)}
-        style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }}
-        className="w-full rounded-full py-3 mb-8 text-sm">
+      <button onClick={() => setShareOpen(true)} style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-8 text-sm">
         📲 COMPARTILHAR MINHA JORNADA
       </button>
+
+      {shareOpen && (
+        <ShareJourneyModal dayNumber={dayNumber} moneySaved={moneySaved} cigsAvoided={cigsAvoided} onClose={() => setShareOpen(false)} />
+      )}
 
       <button onClick={onOpenRelapse} style={{ color: C.cream, opacity: 0.4 }} className="w-full text-xs underline py-4">
         tive um deslize / preciso registrar uma recaída
@@ -630,6 +638,98 @@ function AprendaTab() {
           {open === i && <p className="text-sm opacity-70 mt-2 leading-relaxed">{c.text}</p>}
         </div>
       ))}
+    </div>
+  );
+}
+
+function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
+  const canvasRef = useRef(null);
+  const [generating, setGenerating] = useState(false);
+  const shareMsg = `Decidi parar de fumar 🚭\nDia ${dayNumber} sem cigarro\nobicha.com.br/respira`;
+  const encoded = encodeURIComponent(shareMsg);
+
+  async function generateImage() {
+    setGenerating(true);
+    const canvas = canvasRef.current;
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#101B2D";
+    ctx.fillRect(0, 0, 1080, 1920);
+    ctx.fillStyle = "#D4A843";
+    ctx.fillRect(0, 0, 1080, 6);
+    ctx.fillRect(0, 1914, 1080, 6);
+
+    ctx.textAlign = "center";
+    ctx.font = "bold 80px serif";
+    ctx.fillStyle = "#D4A843";
+    ctx.fillText("Ô", 400, 260);
+    ctx.fillStyle = "#C63B32";
+    ctx.fillText("bicha", 600, 260);
+    ctx.fillStyle = "#D4A843";
+    ctx.fillText("! Respira", 850, 260);
+
+    ctx.font = "30px monospace";
+    ctx.fillStyle = "rgba(212,168,67,0.6)";
+    ctx.fillText("OBICHA.COM.BR/RESPIRA", 540, 320);
+
+    ctx.font = "bold 46px serif";
+    ctx.fillStyle = "#F5EFE4";
+    ctx.fillText("Decidi parar de fumar 🚭", 540, 620);
+
+    ctx.font = "bold 280px sans-serif";
+    ctx.fillStyle = "#F5EFE4";
+    ctx.fillText(String(dayNumber), 540, 900);
+
+    ctx.font = "48px serif";
+    ctx.fillText(`dia${dayNumber !== 1 ? "s" : ""} sem cigarro`, 540, 980);
+
+    ctx.font = "bold 40px monospace";
+    ctx.fillStyle = "#C63B32";
+    ctx.fillText(`R$ ${moneySaved.toFixed(0)} economizados`, 540, 1160);
+    ctx.fillStyle = "#F5EFE4";
+    ctx.fillText(`${Math.floor(cigsAvoided)} cigarros evitados`, 540, 1230);
+
+    ctx.font = "italic 36px serif";
+    ctx.fillStyle = "rgba(245,239,228,0.7)";
+    ctx.fillText("um companheiro de jornada, não uma promessa de cura", 540, 1780);
+
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], "respira.png", { type: "image/png" });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: "Respira — Ô bicha!" }); setGenerating(false); return; } catch (e) { /* cancelou */ }
+      }
+      const link = document.createElement("a");
+      link.download = "respira.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      setGenerating(false);
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
+      <canvas ref={canvasRef} style={{ display: "none" }} />
+      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className="rounded-3xl p-6 max-w-sm w-full">
+        <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-sm mb-4">COMPARTILHAR NAS REDES</p>
+
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <a href={`https://www.threads.net/intent/post?text=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">Threads</a>
+          <a href={`https://twitter.com/intent/tweet?text=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">X</a>
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://obicha.com.br/respira")}&quote=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">Facebook</a>
+          <a href={`https://wa.me/?text=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">WhatsApp</a>
+        </div>
+
+        <p className="text-xs opacity-60 mb-3 leading-relaxed">
+          Instagram não aceita link direto de compartilhamento — baixa a imagem abaixo e posta nos Stories ou feed.
+        </p>
+
+        <button onClick={generateImage} disabled={generating} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1, opacity: generating ? 0.6 : 1 }} className="w-full rounded-full py-3 mb-2">
+          {generating ? "GERANDO..." : "📥 BAIXAR IMAGEM PRA POSTAR"}
+        </button>
+        <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2">fechar</button>
+      </div>
     </div>
   );
 }
