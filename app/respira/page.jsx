@@ -5,6 +5,7 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   WELCOME_TEXT,
   HEALTH_MILESTONES,
+  BADGE_LEVELS,
   EMOTIONAL_MILESTONES,
   MISSIONS_POOL,
   MOOD_OPTIONS,
@@ -20,6 +21,7 @@ import {
   FORUM_REACTIONS,
   getCoachMessage,
   getMissionsForDay,
+  getEsteemAffirmation,
   containsBlockedTerm,
   formatMinutesAsLifeTime,
 } from "@/lib/respira-content";
@@ -442,6 +444,7 @@ function PanelTab(props) {
   const [movActivity, setMovActivity] = useState(MOVEMENT_ACTIVITIES[0].key);
   const [movMinutes, setMovMinutes] = useState(15);
   const [shareOpen, setShareOpen] = useState(false);
+  const [showAllCravings, setShowAllCravings] = useState(false);
 
   const hourCounts = useMemo(() => {
     const counts = new Array(24).fill(0);
@@ -464,6 +467,31 @@ function PanelTab(props) {
 
   return (
     <div>
+      <div className="mb-8">
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MEDALHAS</p>
+        <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+          {BADGE_LEVELS.map((b, i) => {
+            const unlocked = dayNumber >= b.days;
+            const isNext = !unlocked && (i === 0 || dayNumber >= BADGE_LEVELS[i - 1].days);
+            return (
+              <div key={b.days} className="flex flex-col items-center flex-shrink-0" style={{ width: 76 }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: "9999px", display: "flex", alignItems: "center", justifyContent: "center",
+                  background: unlocked ? `${C.gold}22` : C.navySoft,
+                  border: `2px solid ${unlocked ? C.gold : C.line}`,
+                  fontSize: unlocked ? "1.6rem" : "1.3rem",
+                  opacity: unlocked ? 1 : 0.4,
+                }}>
+                  {unlocked ? b.icon : "🔒"}
+                </div>
+                <p className={`text-[10px] text-center mt-1.5 ${unlocked ? "" : "opacity-40"}`}>{b.label}</p>
+                {isNext && <p className="text-[9px] mt-0.5" style={{ color: C.gold }}>faltam {b.days - dayNumber}d</p>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="mb-8">
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">ESTATÍSTICAS</p>
         <div className="grid grid-cols-2 gap-3">
@@ -526,6 +554,32 @@ function PanelTab(props) {
       )}
 
       <div className="mb-8">
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">HISTÓRICO DE FISSURAS VENCIDAS</p>
+        {cravings.length === 0 ? (
+          <p className="text-xs opacity-40">nenhuma fissura registrada ainda — toda vez que você aguentar uma, ela aparece aqui</p>
+        ) : (
+          <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+            {[...cravings].reverse().slice(0, showAllCravings ? cravings.length : 8).map((c, i) => {
+              const intensityInfo = { leve: { icon: "😐", label: "Leve" }, media: { icon: "😣", label: "Média" }, forte: { icon: "😭", label: "Forte" } }[c.intensity] || {};
+              const tech = SOS_TECHNIQUES.find((t) => t.id === c.technique);
+              const date = new Date(c.created_at);
+              return (
+                <div key={c.id || i} style={{ background: C.navySoft }} className="rounded-lg px-3 py-2 flex items-center justify-between text-xs">
+                  <span>{intensityInfo.icon} {intensityInfo.label}{tech ? ` · ${tech.icon} ${tech.title}` : ""}</span>
+                  <span className="opacity-50">{date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {cravings.length > 8 && (
+          <button onClick={() => setShowAllCravings((v) => !v)} style={{ color: C.gold }} className="text-xs mt-2 underline">
+            {showAllCravings ? "ver menos" : `ver todas (${cravings.length})`}
+          </button>
+        )}
+      </div>
+
+      <div className="mb-8">
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">RECOMPENSAS</p>
         <div className="space-y-2">
           {REWARD_THRESHOLDS.map((r) => {
@@ -544,18 +598,30 @@ function PanelTab(props) {
       </div>
 
       <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">AUTOESTIMA — COMO VOCÊ SE SENTE ESSA SEMANA?</p>
+        <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-sm mb-3">🪞 AUTOESTIMA</p>
+
+        <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}` }} className="rounded-2xl p-4 mb-4">
+          <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{getEsteemAffirmation(dayNumber)}</p>
+        </div>
+
+        <p className="text-xs opacity-70 mb-2">Como você se sente essa semana, de um jeito geral?</p>
         <div className="flex justify-between mb-3">
           {SELFESTEEM_OPTIONS.map((o) => (
-            <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ fontSize: "1.6rem", opacity: thisWeekRating === o.value ? 1 : 0.4 }}>{o.icon}</button>
+            <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ fontSize: "1.8rem", opacity: thisWeekRating === o.value ? 1 : 0.35, transform: thisWeekRating === o.value ? "scale(1.15)" : "scale(1)", transition: "all .2s" }}>{o.icon}</button>
           ))}
         </div>
-        {selfesteemChecks.length > 1 && (
-          <div className="flex items-end gap-1 h-10">
-            {selfesteemChecks.slice(-12).map((c, i) => (
-              <div key={i} style={{ height: `${(c.rating / 5) * 100}%`, background: C.gold }} className="flex-1 rounded-t opacity-70" />
-            ))}
-          </div>
+
+        {selfesteemChecks.length > 1 ? (
+          <>
+            <p className="text-[11px] opacity-50 mb-1.5">sua evolução, semana a semana</p>
+            <div className="flex items-end gap-1 h-14">
+              {selfesteemChecks.slice(-12).map((c, i) => (
+                <div key={i} style={{ height: `${(c.rating / 5) * 100}%`, background: C.gold }} className="flex-1 rounded-t opacity-70" />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-[11px] opacity-40">responda toda semana pra começar a ver sua evolução aqui</p>
         )}
       </div>
 
