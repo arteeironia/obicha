@@ -32,17 +32,22 @@ export default async function Home() {
   ])
 
   // Converter produtos manuais para o formato FeedProduct
-  const manualAsFeed: FeedProduct[] = (manualProducts as any[]).map(p => ({
-    id: p.id + 100000, // offset para não colidir com IDs do feed
-    source: 'manual',
-    name: p.name,
-    description: p.description,
-    image_url: p.image_url,
-    scene_image_url: null,
-    variants: p.manual_variants?.length
-      ? p.manual_variants
-      : [{ id: 0, variant_type: 'Ver na loja', price: p.price, link: p.link }]
-  }))
+  const manualAsFeed: FeedProduct[] = (manualProducts as any[]).map(p => {
+    let mv: any = p.manual_variants
+    if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { mv = [] } }
+    if (!Array.isArray(mv)) mv = []
+    return {
+      id: p.id + 100000, // offset para não colidir com IDs do feed
+      source: 'manual',
+      name: p.name,
+      description: p.description,
+      image_url: p.image_url,
+      scene_image_url: null,
+      variants: mv.length
+        ? mv.map((v: any, i: number) => ({ id: i, variant_type: v.type || v.variant_type || 'Ver na loja', price: v.price || '', link: v.link || p.link }))
+        : [{ id: 0, variant_type: 'Ver na loja', price: p.price, link: p.link }]
+    }
+  })
 
   const allProducts = [...(feedProducts as unknown as FeedProduct[]), ...manualAsFeed]
 
