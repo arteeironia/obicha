@@ -767,18 +767,23 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
         try { await navigator.share({ files: [file], title: "Respira — Ô bicha!" }); setGenerating(false); return; } catch (e) { /* cancelou */ }
       }
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const dataUrl = canvas.toDataURL("image/png");
       if (isMobile) {
         // no celular, abre em nova aba — dá pra segurar e "Salvar imagem" direto na galeria
+        const dataUrl = canvas.toDataURL("image/png");
         window.open(dataUrl, "_blank");
       } else {
+        // no PC, baixa via blob URL (mais confiável entre navegadores que dataURL direto)
+        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.download = "respira.png";
-        link.href = dataUrl;
+        link.href = blobUrl;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
       }
       setGenerating(false);
-    });
+    }, "image/png");
   }
 
   return (
