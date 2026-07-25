@@ -762,17 +762,18 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
     ctx.fillText("um companheiro de jornada, não uma promessa de cura", 540, 1780);
 
     canvas.toBlob(async (blob) => {
-      const file = new File([blob], "respira.png", { type: "image/png" });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: "Respira — Ô bicha!" }); setGenerating(false); return; } catch (e) { /* cancelou */ }
-      }
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
       if (isMobile) {
-        // no celular, abre em nova aba — dá pra segurar e "Salvar imagem" direto na galeria
+        const file = new File([blob], "respira.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: "Respira — Ô bicha!" }); setGenerating(false); return; } catch (e) { /* cancelou, cai no fallback abaixo */ }
+        }
+        // fallback: abre em nova aba — dá pra segurar e "Salvar imagem" direto na galeria
         const dataUrl = canvas.toDataURL("image/png");
         window.open(dataUrl, "_blank");
       } else {
-        // no PC, baixa via blob URL (mais confiável entre navegadores que dataURL direto)
+        // no PC, baixa direto — nunca aciona o menu de compartilhamento do Windows/sistema
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.download = "respira.png";
