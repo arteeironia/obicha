@@ -47,13 +47,15 @@ async function syncReservaInk() {
   const groups = new Map<string, { name: string; desc: string; image: string; variants: any[] }>()
 
   for (const line of lines.slice(1)) {
+    if (!line.trim()) continue
     const cols = line.split('\t')
-    const id = cols[idx('id')]
-    const title = cols[idx('title')]?.replace(/^"|"$/g, '').trim()
-    const desc = cols[idx('description')]?.replace(/^"|"$/g, '').replace(/<[^>]+>/g, '').trim()
-    const image = cols[idx('image_link')]?.trim()
-    const link = cols[idx('link')]?.trim()
-    const price = cols[idx('price')]?.trim()
+    const id = (cols[idx('id')] || '').trim()
+    const title = (cols[idx('title')] || '').replace(/^"|"$/g, '').trim()
+    const desc = (cols[idx('description')] || '').replace(/^"|"$/g, '').replace(/<[^>]+>/g, '').trim()
+    const image = (cols[idx('image_link')] || '').trim()
+    const link = (cols[idx('link')] || '').trim()
+    const price = (cols[idx('price')] || '').trim()
+    if (!title || !link) continue
     const variantType = extractType(title)
     const cleanName = cleanTitle(title)
 
