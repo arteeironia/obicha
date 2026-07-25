@@ -16,6 +16,7 @@ const navItems = [
   { href: '/admin/auditoria-cliques', label: 'Auditoria de Cliques', icon: '📊' },
   { href: '/admin/site-config', label: 'Links do Site', icon: '⚙️' },
   { href: '/admin/configuracoes', label: 'Configurações', icon: '⚙' },
+  { href: '/respira', label: 'App Respira', icon: '🫁' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
