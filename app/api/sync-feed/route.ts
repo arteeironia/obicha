@@ -64,7 +64,7 @@ async function syncReservaInk() {
     const cleanName = cleanTitle(fullTitle)
 
     // Usar item_group_id como chave de agrupamento se disponível
-    const groupKey = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 100)
+    const groupKey = cleanName.toLowerCase().replace(/[^a-z0-9áàâãéêíóôõúüç]/g, '-').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 400)
 
     if (!groups.has(groupKey)) {
       groups.set(groupKey, { name: cleanName, desc, image, variants: [] })
@@ -116,7 +116,7 @@ async function syncUmaPenca() {
     const price = get('price')
     const variantType = extractType(title)
     const cleanName = cleanTitle(title)
-    const groupKey = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 100)
+    const groupKey = cleanName.toLowerCase().replace(/[^a-z0-9áàâãéêíóôõúüç]/g, '-').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 400)
 
     if (!groups.has(groupKey)) {
       groups.set(groupKey, { name: cleanName, desc, image, variants: [] })
