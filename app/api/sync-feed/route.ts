@@ -56,8 +56,12 @@ async function syncReservaInk() {
     const link = (cols[idx('link')] || '').trim()
     const price = (cols[idx('price')] || '').trim()
     if (!title || !link) continue
+    // Pular linhas onde o título é só número (linhas inválidas)
+    if (/^\d+$/.test(title)) continue
     const variantType = extractType(title)
-    const cleanName = cleanTitle(title)
+    // Remover "..." no final do título truncado
+    const fullTitle = title.endsWith('...') ? title.slice(0, -3).trim() : title
+    const cleanName = cleanTitle(fullTitle)
 
     // Usar item_group_id como chave de agrupamento se disponível
     const groupKey = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 100)
