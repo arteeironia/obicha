@@ -320,6 +320,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
                 </p>
               </div>
             ) : filteredFeed.map(p => {
+              const variants = Array.isArray(p.variants) ? p.variants : []
               const displayImg = p.scene_image_url || p.image_url
               const sourceLabel = p.source === 'reserva-ink' ? '✦ Reserva INK · DTG' : '✦ Uma Penca · DTF'
               return (
@@ -331,7 +332,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
                   <div style={{ padding:'1.2rem' }}>
                     <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem', marginBottom:'.6rem' }}>
-                      {(p.variants || []).map((v, i) => (
+                      {variants.map((v, i) => (
                         <a key={i} href={v.link} target="_blank"
                           style={{ padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
                           onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
