@@ -234,8 +234,6 @@ export default function AdminProdutos() {
                 {form.manual_variants.length === 0 && <p style={{ fontSize:'.78rem', opacity:.4 }}>Opcional — clique nos tipos acima se essa estampa existir em mais de um modelo.</p>}
               </div>
 
-              <label
-
               <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
                 <input type="checkbox" checked={form.featured} onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))} />
                 <span className="text-sm opacity-70">⭐ Destacar no carrossel da página</span>
