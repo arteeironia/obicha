@@ -1,6 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret-troque-isso')
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET não configurada')
+}
+
+const secret = new TextEncoder().encode(process.env.JWT_SECRET)
 
 export async function signToken(payload: Record<string, unknown>) {
   return new SignJWT(payload)

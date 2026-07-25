@@ -26,9 +26,10 @@
    Provavelmente já existem, porque os comentários do blog dependem delas. Se não existirem, adicione:
 
    ```
-   NEXT_PUBLIC_SUPABASE_URL=https://dbihqhzskcxzvkewhhtp.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiaWhxaHpza2N4enZrZXdoaHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODk1MjQsImV4cCI6MjA5NjU2NTUyNH0.aH8ZRJcUxTFa_WprjP8AQeQ-oIqMo8-azsHNuBeavAI
+   NEXT_PUBLIC_SUPABASE_URL=<pegar no painel do Supabase → Settings → API>
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<pegar no painel do Supabase → Settings → API>
    ```
+   (Essas chaves são a "anon key" pública do Supabase — normal ela ir pro bundle do navegador, protegida pelo RLS — mas evitamos deixá-la fixa em arquivo de instruções por organização.)
 
 4. Fazer o deploy (git push, a Vercel já builda automático).
 

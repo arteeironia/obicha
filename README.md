@@ -55,7 +55,7 @@ npm run db:migrate
 
 ## 🔐 Primeiro acesso ao admin
 1. Acesse `obicha.com.br/admin`
-2. Use a senha temporária: `OBicha@2025`
+2. Use a senha temporária definida na configuração inicial do banco (não fica documentada aqui por segurança)
 3. **Troque imediatamente** em Configurações → Alterar Senha
 
 ---
