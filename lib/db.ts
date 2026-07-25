@@ -50,10 +50,11 @@ export async function getProducts(category?: string) {
 export async function createProduct(data: {
   name: string; category: string; price: string; link: string
   image_url?: string; description?: string; featured?: boolean; collection_name?: string; supplier?: string
+  show_on_site?: boolean; manual_variants?: any[]
 }) {
   const [product] = await sql`
-    INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier)
-    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null})
+    INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier, show_on_site, manual_variants)
+    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${JSON.stringify(data.manual_variants || [])})
     RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)
   return product
@@ -62,6 +63,7 @@ export async function createProduct(data: {
 export async function updateProduct(id: number, data: Partial<{
   name: string; category: string; price: string; link: string
   image_url: string; description: string; featured: boolean; collection_name: string; supplier: string
+  show_on_site: boolean; manual_variants: any[]
 }>) {
   const [product] = await sql`
     UPDATE products SET
@@ -74,6 +76,8 @@ export async function updateProduct(id: number, data: Partial<{
       featured = COALESCE(${data.featured ?? null}, featured),
       collection_name = COALESCE(${data.collection_name ?? null}, collection_name),
       supplier = ${data.supplier ?? null},
+      show_on_site = COALESCE(${data.show_on_site ?? null}, show_on_site),
+      manual_variants = COALESCE(${data.manual_variants ? JSON.stringify(data.manual_variants) : null}::jsonb, manual_variants),
       updated_at = NOW()
     WHERE id = ${id} RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)
