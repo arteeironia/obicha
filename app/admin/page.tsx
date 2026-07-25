@@ -1,55 +1,243 @@
-import { getProducts, getSocialPosts, getPinterestPins } from '@/lib/db'
-import Link from 'next/link'
+'use client'
 
-export const dynamic = 'force-dynamic'
+import { useState, useEffect, useRef } from 'react'
 
-export default async function AdminDashboard() {
-  const [products, posts, pins] = await Promise.all([
-    getProducts(),
-    getSocialPosts(),
-    getPinterestPins(),
-  ])
-  const stats = [
-    { label: 'Produtos', value: products.length, href: '/admin/produtos', icon: '👕', color: 'var(--gold)' },
-    { label: 'Posts Sociais', value: posts.length, href: '/admin/social', icon: '📱', color: 'var(--red)' },
-    { label: 'Pins Pinterest', value: pins.length, href: '/admin/pinterest', icon: '📌', color: '#E60023' },
-  ]
+type Product = {
+  id: number; name: string; category: string; price: string; link: string
+  image_url: string | null; description: string | null; featured: boolean
+  collection_name: string | null; supplier: string | null
+  show_on_site: boolean; manual_variants: {type: string; price: string; link: string}[]
+}
+type Category = { id: number; value: string; label: string; active: boolean }
+type Collection = { id: number; name: string; slug: string }
+
+const SHIRT_CATEGORIES = ['camisetas','estonada','dryfit','modal','peruano','oversized','regata','cropped','cropped-moletom','infantil','hoodie','sueter']
+
+const suppliers = [
+  { value: '', label: 'Nenhum' },
+  { value: 'reserva-ink-dtg', label: 'Reserva INK — DTG (Qualidade Reserva)' },
+  { value: 'uma-penca-dtf', label: 'Uma Penca — DTF (Qualidade Chico Rei)' },
+]
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(212,168,67,0.3)',
+  color: 'var(--creme)', width: '100%', padding: '0.7rem 1rem',
+  outline: 'none', fontFamily: 'inherit', fontSize: '0.9rem',
+}
+
+export default function AdminProdutos() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '', show_on_site: false, manual_variants: [] as {type: string; price: string; link: string}[] })
+  const [selectedCollections, setSelectedCollections] = useState<number[]>([])
+  const [saving, setSaving] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function load() {
+    const [prodRes, catRes, colRes] = await Promise.all([
+      fetch('/api/products'),
+      fetch('/api/categories?all=true'),
+      fetch('/api/collections'),
+    ])
+    setProducts(await prodRes.json())
+    setCategories(await catRes.json())
+    setCollections(await colRes.json())
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function openAdd() {
+    setEditProduct(null)
+    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '', show_on_site: false, manual_variants: [] as {type: string; price: string; link: string}[] })
+    setSelectedCollections([])
+    setImagePreview(null)
+    setShowForm(true)
+  }
+
+  async function openEdit(p: Product) {
+    setEditProduct(p)
+    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '', supplier: p.supplier || '', show_on_site: p.show_on_site || false, manual_variants: p.manual_variants || [] })
+    setImagePreview(p.image_url)
+    const res = await fetch(`/api/collections?product_id=${p.id}`)
+    const data = await res.json()
+    setSelectedCollections(data.map((c: any) => c.collection_id))
+    setShowForm(true)
+  }
+
+  async function handleImageUpload(file: File) {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    const { url } = await res.json()
+    setImagePreview(url)
+    setForm(f => ({ ...f, image_url: url }))
+  }
+
+  function toggleCollection(id: number) {
+    setSelectedCollections(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const method = editProduct ? 'PATCH' : 'POST'
+    const body = editProduct ? { id: editProduct.id, ...form } : form
+    const res = await fetch('/api/products', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const product = await res.json()
+    const productId = editProduct ? editProduct.id : product.id
+    await fetch('/api/collections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: productId, collection_ids: selectedCollections }) })
+    await load()
+    setShowForm(false)
+    setSaving(false)
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm('Remover este produto?')) return
+    await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    await load()
+  }
+
+  const isShirt = SHIRT_CATEGORIES.includes(form.category)
+
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>
-          Bom dia, admin! 👋
-        </h1>
-        <p className="opacity-50 mt-1 text-sm">Gerencie o conteúdo da Ô bicha!</p>
-      </div>
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        {stats.map(stat => (
-          <Link key={stat.label} href={stat.href}
-            className="p-6 border rounded transition-all hover:scale-105"
-            style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}
-          >
-            <span className="text-3xl">{stat.icon}</span>
-            <div className="mt-3">
-              <div className="font-bebas text-5xl" style={{ color: stat.color }}>{stat.value}</div>
-              <div className="text-sm opacity-50 tracking-widest uppercase mt-1">{stat.label}</div>
-            </div>
-          </Link>
-        ))}
-      </div>
-      <div className="border rounded p-6" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
-        <h2 className="font-bebas text-xl tracking-widest mb-4" style={{ color: 'var(--gold)' }}>Ações Rápidas</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/admin/produtos" className="px-4 py-3 text-sm tracking-widest uppercase font-bebas text-center transition-all" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>+ Adicionar Produto</Link>
-          <Link href="/admin/social" className="px-4 py-3 text-sm tracking-widest uppercase font-bebas text-center transition-all border" style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}>+ Adicionar Post Social</Link>
-          <Link href="/admin/pinterest" className="px-4 py-3 text-sm tracking-widest uppercase font-bebas text-center transition-all border" style={{ borderColor: '#E60023', color: '#E60023' }}>+ Adicionar Pin Pinterest</Link>
-          <Link href="/admin/configuracoes" className="px-4 py-3 text-sm tracking-widest uppercase font-bebas text-center transition-all border" style={{ borderColor: 'rgba(242,235,217,0.2)', color: 'rgba(242,235,217,0.5)' }}>⚙ Configurações</Link>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Produtos</h1>
+          <p className="opacity-50 text-sm mt-1">{products.length} produtos cadastrados</p>
         </div>
+        <button onClick={openAdd} className="px-6 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>
+          + Adicionar Produto
+        </button>
       </div>
-      <div className="mt-6 p-4 border rounded text-sm" style={{ borderColor: 'rgba(192,40,28,0.4)', background: 'rgba(192,40,28,0.05)' }}>
-        <span style={{ color: 'var(--red)' }}>⚠️ Lembrete:</span>
-        <span className="opacity-60 ml-2">Se ainda estiver usando a senha temporária, </span>
-        <Link href="/admin/configuracoes" className="underline" style={{ color: 'var(--gold)' }}>troque agora nas configurações.</Link>
-      </div>
+
+      {loading ? <p className="opacity-50">Carregando...</p> : (
+        <div className="grid grid-cols-4 gap-4">
+          {products.map(p => (
+            <div key={p.id} className="border rounded overflow-hidden" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
+              <div className="aspect-square bg-white/5 relative">
+                {p.image_url
+                  ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center opacity-20 text-4xl">👕</div>
+                }
+                <span className="absolute top-2 left-2 text-xs px-2 py-1 font-bebas tracking-widest" style={{ background: 'var(--navy)', color: 'var(--gold)', border: '1px solid rgba(212,168,67,0.3)' }}>
+                  {categories.find(c => c.value === p.category)?.label || p.category}
+                </span>
+              </div>
+              <div className="p-3">
+                <p className="font-bold text-sm truncate">{p.name}</p>
+                <p className="text-xs opacity-50 mt-1">{p.price}</p>
+                {p.supplier && <p className="text-xs mt-1" style={{ color: 'rgba(212,168,67,.5)' }}>{suppliers.find(s => s.value === p.supplier)?.label}</p>}
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => openEdit(p)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,0.15)', color: 'var(--gold)' }}>Editar</button>
+                  <button onClick={() => handleDelete(p.id)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,0.15)', color: 'var(--red)' }}>Remover</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ background: 'var(--navy)', border: '1px solid var(--gold)', width: '90vw', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }}>
+            <h2 className="font-playfair text-2xl font-bold mb-6" style={{ color: 'var(--gold)' }}>
+              {editProduct ? 'Editar Produto' : 'Novo Produto'}
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Nome</label>
+                <input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Categoria</label>
+                <select style={{ ...inputStyle }} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                  {categories.map(c => <option key={c.value} value={c.value} style={{ background: 'var(--navy)' }}>{c.label}{!c.active ? ' (inativa)' : ''}</option>)}
+                </select>
+              </div>
+
+              {/* Fornecedor — só para camisetas */}
+              {isShirt && (
+                <div>
+                  <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Produção</label>
+                  <select style={{ ...inputStyle }} value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}>
+                    {suppliers.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--navy)' }}>{s.label}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Preço</label>
+                <input style={inputStyle} placeholder="R$ 89,90" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Link da loja</label>
+                <input style={inputStyle} value={form.link} onChange={e => setForm(f => ({ ...f, link: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Descrição (para SEO)</label>
+                <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Descreva o produto" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Imagem</label>
+                <div style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', border:'2px dashed rgba(212,168,67,0.3)', overflow:'hidden' }} onClick={() => fileRef.current?.click()}>
+                  {imagePreview ? <img src={imagePreview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <span style={{ opacity:.3, fontSize:'.85rem' }}>Clique para selecionar imagem</span>}
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+              </div>
+
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-3">Coleções</label>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.5rem' }}>
+                  {collections.map(c => (
+                    <label key={c.id} style={{ display:'flex', alignItems:'center', gap:'.6rem', cursor:'pointer', padding:'.5rem .8rem', border:'1px solid', borderColor: selectedCollections.includes(c.id) ? 'var(--gold)' : 'rgba(212,168,67,.2)', background: selectedCollections.includes(c.id) ? 'rgba(212,168,67,.1)' : 'transparent', borderRadius:2, transition:'all .2s' }}>
+                      <input type="checkbox" checked={selectedCollections.includes(c.id)} onChange={() => toggleCollection(c.id)} style={{ accentColor:'var(--gold)' }} />
+                      <span style={{ fontSize:'.85rem', color: selectedCollections.includes(c.id) ? 'var(--gold)' : 'rgba(242,235,217,.6)' }}>{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Variantes manuais */}
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Variantes (tipos disponíveis na loja)</label>
+                {(form.manual_variants || []).map((v, i) => (
+                  <div key={i} style={{ display:'flex', gap:'.5rem', marginBottom:'.5rem', alignItems:'center' }}>
+                    <input style={{ ...inputStyle, flex:1 }} placeholder="Tipo (ex: Algodão)" value={v.type} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], type: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
+                    <input style={{ ...inputStyle, flex:1 }} placeholder="Preço" value={v.price} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], price: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
+                    <input style={{ ...inputStyle, flex:2 }} placeholder="Link" value={v.link} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], link: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
+                    <button onClick={() => setForm(f => ({...f, manual_variants: f.manual_variants.filter((_,j) => j !== i)}))} style={{ color:'var(--red)', padding:'.4rem', flexShrink:0 }}>✕</button>
+                  </div>
+                ))}
+                <button onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type:'', price:'', link:''}]}))} style={{ fontSize:'.8rem', color:'var(--gold)', opacity:.7, marginTop:'.3rem' }}>+ Adicionar variante</button>
+              </div>
+
+              <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
+                <input type="checkbox" checked={form.show_on_site} onChange={e => setForm(f => ({ ...f, show_on_site: e.target.checked }))} style={{ accentColor:'var(--gold)' }} />
+                <span className="text-sm opacity-70">🌐 Exibir na landing page</span>
+              </label>
+
+              <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
+                <input type="checkbox" checked={form.featured} onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))} />
+                <span className="text-sm opacity-70">⭐ Destacar no carrossel da página</span>
+              </label>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,0.2)', color: 'rgba(242,235,217,0.5)' }}>Cancelar</button>
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>
+                {saving ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
