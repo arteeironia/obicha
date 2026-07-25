@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-type FeedVariant = { id: number; variant_type: string; price: string; link: string }
-type FeedProduct = { id: number; source: string; name: string; description: string | null; image_url: string | null; scene_image_url: string | null; variants: FeedVariant[] }
+type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; collections?: { id: number; name: string; slug: string }[] }
 type Category = { id: number; value: string; label: string; active: boolean }
 type SocialPost = { id: number; platform: string; url: string }
 type PinterestPin = { id: number; image_url: string; pin_url: string | null }
@@ -11,7 +10,7 @@ type HImage = { id: number; image_url: string; position: number }
 type Highlight = { id: number; type: string; title: string; original_price: string | null; promo_price: string | null; expires_at: string | null; link: string | null; images: HImage[] | null }
 
 interface Props {
-  feedProducts: FeedProduct[]
+  products: Product[]
   socialPosts: SocialPost[]
   pinterestPins: PinterestPin[]
   siteConfig: Record<string, string>
@@ -33,7 +32,7 @@ function getEmbedHTML(post: SocialPost) {
   return `<a href="${post.url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--gold);font-family:var(--font-bebas);letter-spacing:2px;">VER POST ↗</a>`
 }
 
-export default function LandingClient({ feedProducts, socialPosts, pinterestPins, siteConfig, highlights, categories }: Props) {
+export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, highlights, categories }: Props) {
   const instagramUrl = siteConfig.instagram_url || 'https://www.instagram.com/obicha_camisetas/'
   const tiktokUrl = siteConfig.tiktok_url || 'https://www.tiktok.com/@obicha_camisetas'
   const pinterestUrl = siteConfig.pinterest_url || 'https://br.pinterest.com/Obicha_camisetas/'
@@ -46,7 +45,8 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
 
   const catLabel = (cat: string) => categories.find(c => c.value === cat)?.label || cat
   const categoryValues = ['todos', ...categories.map(c => c.value)]
-  const filteredFeed = feedProducts.filter(p =>
+
+  const filteredProducts = products.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -71,7 +71,6 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
         const s = document.createElement('script')
         s.src = 'https://www.instagram.com/embed.js'
         s.async = true
-        s.onload = () => { if ((window as any).instgrm) (window as any).instgrm.Embeds.process() }
         document.body.appendChild(s)
       }
     }
@@ -86,10 +85,10 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
   }, [socialPosts])
 
   useEffect(() => {
-    const elements = document.querySelectorAll('.reveal')
+    const elements = document.querySelectorAll('.reveal:not(.no-observe)')
     const observer = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
-    }, { threshold: 0.15 })
+    }, { threshold: 0.1 })
     elements.forEach(el => observer.observe(el))
     return () => observer.disconnect()
   }, [])
@@ -116,6 +115,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
         @media(max-width:900px) { .sidebar { transform:translateX(-100%); transition:transform .3s; } .sidebar.open { transform:translateX(0); } .sidebar-overlay.open { display:block; } .main-content { margin-left:0; } .hamburger { display:flex; } }
         .reveal { opacity:0; transform:translateY(30px); transition:opacity .7s ease,transform .7s ease; }
         .reveal.visible { opacity:1; transform:translateY(0); }
+        .reveal.no-observe { opacity:1; transform:none; }
         @keyframes pulse-ring { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.03);opacity:.6} }
         @keyframes banner-glow { from{box-shadow:0 0 80px rgba(192,40,28,.3),0 0 30px rgba(212,168,67,.2)} to{box-shadow:0 0 120px rgba(192,40,28,.5),0 0 60px rgba(212,168,67,.35)} }
         @keyframes hero-in { to{opacity:1;transform:translateY(0)} }
@@ -136,8 +136,8 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
         .product-card-img-wrap { position:relative; cursor:zoom-in; overflow:hidden; }
         .product-card-img-wrap img { transition:transform .4s ease; }
         .product-card-img-wrap:hover img { transform:scale(1.06); }
-        .social-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; transition:all .4s; max-width:100%; }
-        .social-card:hover { border-color:var(--gold); transform:translateY(-4px); }
+        .social-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; min-height:480px; contain:layout style; }
+        .social-card blockquote { min-height:440px; }
         .commitment-card { background:var(--navy); color:var(--creme); padding:2.5rem 2rem; border-radius:4px; border-top:3px solid var(--gold); transition:transform .3s; position:relative; overflow:hidden; }
         .commitment-card::before { content:attr(data-num); position:absolute; top:-.5rem; right:1rem; font-family:var(--font-playfair); font-size:6rem; color:rgba(212,168,67,.06); font-weight:900; line-height:1; }
         .commitment-card:hover { transform:translateY(-4px); }
@@ -195,7 +195,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
             Projeto Social
           </a>
           <a href="/respira" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
-            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 3c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7-3.1-7-7-7z"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3-1.3 3-3 3"/><circle cx="10" cy="10" r="1.5"/></svg></span>
+            <span className="sl-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3-1.3 3-3 3"/></svg></span>
             Respira
           </a>
         </nav>
@@ -296,56 +296,68 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
             <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--gold)', display:'block', marginBottom:'.5rem' }}>★ Coleção ★</span>
             <h2 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(2rem,5vw,3.5rem)', fontWeight:900, lineHeight:1.1 }}>Vista o <em style={{ color:'var(--gold)' }}>deboche.</em></h2>
             <div className="section-divider"><span style={{ color:'var(--gold)' }}>✦</span></div>
-            <p style={{ opacity:.6, fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>Camisetas · Moletons · Regatas · Ecobags · Canecas</p>
+            <p style={{ opacity:.6, fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>Camisetas · Canecas · Ecobags · Bottoms</p>
           </div>
 
-          {/* Busca */}
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'.8rem', marginBottom:'3rem' }}>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'1.2rem', marginBottom:'2rem' }}>
             <input
               type="text"
-              placeholder="Buscar estampa..."
+              placeholder="Buscar produto..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{ padding:'.6rem 1.2rem', background:'rgba(255,255,255,.05)', border:'1px solid rgba(212,168,67,.3)', color:'var(--creme)', fontFamily:'var(--font-dm)', fontSize:'.9rem', outline:'none', width:'min(400px,90vw)', borderRadius:2 }}
             />
-            <p style={{ fontSize:'.78rem', opacity:.4 }}>{filteredFeed.length} estampas</p>
+          </div>
+
+          <div style={{ display:'flex', justifyContent:'center', gap:'.5rem', marginBottom:'3rem', flexWrap:'wrap' }}>
+            {categoryValues.map(cat => (
+              <a key={cat} href={cat === 'todos' ? '/#produtos' : `/categoria/${cat}`}
+                style={{ padding:'.5rem 1.5rem', border:'1px solid', borderColor:'rgba(212,168,67,.4)', background:'transparent', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'2px', fontSize:'.9rem', cursor:'pointer', transition:'all .3s', borderRadius:2, textDecoration:'none', display:'inline-block' }}>
+                {cat === 'todos' ? 'Todos' : catLabel(cat)}
+              </a>
+            ))}
           </div>
 
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:'2rem', maxWidth:1200, margin:'0 auto' }}>
-            {filteredFeed.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <div style={{ gridColumn:'1/-1', textAlign:'center', opacity:.3, padding:'4rem' }}>
                 <p style={{ fontSize:'3rem' }}>👕</p>
-                <p style={{ marginTop:'1rem' }}>
-                  {feedProducts.length === 0 ? 'Sincronize os produtos no admin para começar.' : 'Nenhuma estampa encontrada.'}
-                </p>
+                <p style={{ marginTop:'1rem' }}>{products.length === 0 ? 'Produtos em breve' : 'Nenhum produto encontrado'}</p>
               </div>
-            ) : filteredFeed.map(p => {
-              const variants = Array.isArray(p.variants) ? p.variants : []
-              const displayImg = p.scene_image_url || p.image_url
-              const sourceLabel = p.source === 'reserva-ink' ? '✦ Reserva INK · DTG' : p.source === 'uma-penca' ? '✦ Uma Penca · DTF' : ''
-              return (
-                <div key={p.id} className="product-card">
-                  {displayImg
-                    ? <div className="product-card-img-wrap" onClick={() => setLightboxImg(displayImg)}><img src={displayImg} alt={p.name} style={{ width:'100%', aspectRatio:1, objectFit:'cover', display:'block' }} /></div>
-                    : <div style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)' }}><span style={{ fontSize:'3rem', opacity:.3 }}>👕</span></div>
-                  }
-                  <div style={{ padding:'1.2rem' }}>
-                    <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem', marginBottom:'.6rem' }}>
-                      {variants.map((v, i) => (
-                        <a key={i} href={v.link} target="_blank"
-                          style={{ padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
-                          onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
-                          onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
-                          title={v.price}
-                        >{v.variant_type}</a>
+            ) : filteredProducts.map(p => (
+              <div key={p.id} className="product-card">
+                {p.image_url
+                  ? <div className="product-card-img-wrap" onClick={() => setLightboxImg(p.image_url!)}><img src={p.image_url} alt={p.name} style={{ width:'100%', aspectRatio:1, objectFit:'cover', display:'block' }} /></div>
+                  : <div style={{ width:'100%', aspectRatio:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', gap:'.5rem' }}><span style={{ fontSize:'3rem', opacity:.3 }}>👕</span></div>
+                }
+                <div style={{ padding:'1.2rem' }}>
+                  <div style={{ fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:'var(--gold)', marginBottom:'.3rem' }}>{catLabel(p.category)}</div>
+                  <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
+                    <a href={p.link} target="_blank" style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                      onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
+                      onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
+                    >Ver na loja</a>
+                  </div>
+                  {p.supplier && (
+                    <p style={{ marginTop:'.5rem', fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>
+                      {p.supplier === 'reserva-ink-dtg' ? '✦ Reserva INK · DTG · Qualidade Reserva' : '✦ Uma Penca · DTF · Qualidade Chico Rei'}
+                    </p>
+                  )}
+                  {p.collections && p.collections.length > 0 && (
+                    <div style={{ marginTop:'.4rem', display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
+                      {p.collections.map(c => (
+                        <a key={c.id} href={`/colecao/${c.slug}`} style={{ fontSize:'.68rem', color:'rgba(212,168,67,.5)', textDecoration:'none', letterSpacing:'1px', transition:'color .3s' }}
+                          onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'}
+                          onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(212,168,67,.5)'}
+                        >Ver coleção {c.name} →</a>
                       ))}
                     </div>
-                    {sourceLabel && <p style={{ fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>{sourceLabel}</p>}
-                  </div>
+                  )}
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </section>
 
@@ -392,7 +404,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
         </section>
 
         <section id="social" style={{ background:'var(--navy)', padding:'6rem 2rem' }}>
-          <div className="reveal" style={{ textAlign:'center', marginBottom:'4rem' }}>
+          <div className="reveal no-observe" style={{ textAlign:'center', marginBottom:'4rem' }}>
             <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--gold)', display:'block', marginBottom:'.5rem' }}>★ Siga a gente ★</span>
             <h2 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(2rem,5vw,3.5rem)', fontWeight:900, lineHeight:1.1 }}>A gente vive <em style={{ color:'var(--gold)' }}>nas redes.</em></h2>
             <div className="section-divider"><span style={{ color:'var(--gold)' }}>✦</span></div>
