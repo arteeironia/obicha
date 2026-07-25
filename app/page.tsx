@@ -15,7 +15,7 @@ type Highlight = { id: number; type: string; title: string; original_price: stri
 type Category = { id: number; value: string; label: string; active: boolean }
 
 export default async function Home() {
-  const [socialPosts, pinterestPins, siteConfig, highlights, categories, feedProducts] = await Promise.all([
+  const [socialPosts, pinterestPins, siteConfig, highlights, categories, feedProducts, manualProducts] = await Promise.all([
     getSocialPosts(),
     getPinterestPins(),
     getSiteConfig(),
@@ -27,12 +27,28 @@ export default async function Home() {
       LEFT JOIN feed_variants fv ON fv.feed_product_id = fp.id
       WHERE fp.active = true
       GROUP BY fp.id
-      ORDER BY fp.source ASC, fp.name ASC`,
+      ORDER BY fp.name ASC`,
+    sql`SELECT * FROM products WHERE show_on_site = true ORDER BY created_at DESC`,
   ])
+
+  // Converter produtos manuais para o formato FeedProduct
+  const manualAsFeed: FeedProduct[] = (manualProducts as any[]).map(p => ({
+    id: p.id + 100000, // offset para não colidir com IDs do feed
+    source: 'manual',
+    name: p.name,
+    description: p.description,
+    image_url: p.image_url,
+    scene_image_url: null,
+    variants: p.manual_variants?.length
+      ? p.manual_variants
+      : [{ id: 0, variant_type: 'Ver na loja', price: p.price, link: p.link }]
+  }))
+
+  const allProducts = [...(feedProducts as unknown as FeedProduct[]), ...manualAsFeed]
 
   return (
     <LandingClient
-      feedProducts={feedProducts as unknown as FeedProduct[]}
+      feedProducts={allProducts}
       socialPosts={socialPosts as unknown as SocialPost[]}
       pinterestPins={pinterestPins as unknown as PinterestPin[]}
       siteConfig={siteConfig}
