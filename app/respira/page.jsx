@@ -321,6 +321,23 @@ function SiteHeader({ menuOpen, setMenuOpen, onSignOut }) {
 }
 
 // ---------- Contador principal (topo, em ambas as abas) ----------
+function CountdownView({ quitAt, now, profile }) {
+  const remainMin = Math.max(0, (quitAt - now) / 60000);
+  const days = Math.floor(remainMin / 1440);
+  const hours = Math.floor((remainMin % 1440) / 60);
+  const mins = Math.floor(remainMin % 60);
+
+  return (
+    <div className="text-center mb-6">
+      <p style={{ ...bebas, fontSize: "4rem", lineHeight: 0.9, color: C.cream }}>{days}</p>
+      <p style={{ ...playfair }} className="italic text-sm opacity-80">
+        dia{days !== 1 ? "s" : ""} até {profile.display_name ? "sua" : "a"} data de parar
+      </p>
+      <p className="text-xs opacity-60 mt-1 font-mono">{String(hours).padStart(2, "0")}h {String(mins).padStart(2, "0")}m</p>
+    </div>
+  );
+}
+
 function HeaderCounter({ elapsedMin, cigsAvoided, moneySaved, cravingsSurvived }) {
   const days = Math.floor(elapsedMin / 1440);
   const hours = Math.floor((elapsedMin % 1440) / 60);
