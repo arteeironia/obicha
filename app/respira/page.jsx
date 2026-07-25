@@ -700,10 +700,17 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try { await navigator.share({ files: [file], title: "Respira — Ô bicha!" }); setGenerating(false); return; } catch (e) { /* cancelou */ }
       }
-      const link = document.createElement("a");
-      link.download = "respira.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const dataUrl = canvas.toDataURL("image/png");
+      if (isMobile) {
+        // no celular, abre em nova aba — dá pra segurar e "Salvar imagem" direto na galeria
+        window.open(dataUrl, "_blank");
+      } else {
+        const link = document.createElement("a");
+        link.download = "respira.png";
+        link.href = dataUrl;
+        link.click();
+      }
       setGenerating(false);
     });
   }
@@ -722,11 +729,11 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
         </div>
 
         <p className="text-xs opacity-60 mb-3 leading-relaxed">
-          Instagram não aceita link direto de compartilhamento — baixa a imagem abaixo e posta nos Stories ou feed.
+          Baixe sua imagem para compartilhar nas redes sociais. No celular, ela abre pra você salvar direto nas suas fotos; no computador, baixa na pasta de downloads.
         </p>
 
         <button onClick={generateImage} disabled={generating} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1, opacity: generating ? 0.6 : 1 }} className="w-full rounded-full py-3 mb-2">
-          {generating ? "GERANDO..." : "📥 BAIXAR IMAGEM PRA POSTAR"}
+          {generating ? "GERANDO..." : "📥 BAIXAR MINHA IMAGEM"}
         </button>
         <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2">fechar</button>
       </div>
