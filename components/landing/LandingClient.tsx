@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; collections?: { id: number; name: string; slug: string }[] }
+type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; collections?: { id: number; name: string; slug: string }[]; manual_variants?: any }
 type Category = { id: number; value: string; label: string; active: boolean }
 type SocialPost = { id: number; platform: string; url: string }
 type PinterestPin = { id: number; image_url: string; pin_url: string | null }
@@ -312,13 +312,34 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                 <div style={{ padding:'1.2rem' }}>
                   <div style={{ fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:'var(--gold)', marginBottom:'.3rem' }}>{catLabel(p.category)}</div>
                   <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                    <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                    <a href={p.link} target="_blank" style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
-                      onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
-                      onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
-                    >Ver na loja</a>
-                  </div>
+                  {(() => {
+                    let variants: any[] = p.manual_variants
+                    if (typeof variants === 'string') { try { variants = JSON.parse(variants) } catch { variants = [] } }
+                    if (!Array.isArray(variants)) variants = []
+                    if (variants.length > 0) {
+                      return (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
+                          {variants.map((v, i) => (
+                            <a key={i} href={v.link || p.link} target="_blank"
+                              style={{ padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
+                              onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
+                              onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
+                              title={v.price}
+                            >{v.type}</a>
+                          ))}
+                        </div>
+                      )
+                    }
+                    return (
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
+                        <a href={p.link} target="_blank" style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                          onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
+                          onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
+                        >Ver na loja</a>
+                      </div>
+                    )
+                  })()}
                   {p.supplier && (
                     <p style={{ marginTop:'.5rem', fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>
                       {p.supplier === 'reserva-ink-dtg' ? '✦ Reserva INK · DTG · Qualidade Reserva' : '✦ Uma Penca · DTF · Qualidade Chico Rei'}
