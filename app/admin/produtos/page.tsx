@@ -6,6 +6,7 @@ type Product = {
   id: number; name: string; category: string; price: string; link: string
   image_url: string | null; description: string | null; featured: boolean
   collection_name: string | null; supplier: string | null
+  show_on_site?: boolean; manual_variants?: any
 }
 type Category = { id: number; value: string; label: string; active: boolean }
 type Collection = { id: number; name: string; slug: string }
