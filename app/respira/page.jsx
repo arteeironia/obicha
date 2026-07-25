@@ -22,24 +22,20 @@ import {
   getMissionsForDay,
   containsBlockedTerm,
   formatMinutesAsLifeTime,
-  DISCLAIMER_TEXT,
 } from "@/lib/respira-content";
 
-function useBrandFonts() {
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Inter:wght@400;500;600&display=swap";
-    document.head.appendChild(link);
-    return () => document.head.removeChild(link);
-  }, []);
-}
-
 const C = { cream: "#F5EFE4", navy: "#101B2D", navySoft: "#1B2A42", red: "#C63B32", gold: "#D4A843", line: "#2A3B57" };
-const bebas = { fontFamily: "Bebas Neue, sans-serif" };
-const playfair = { fontFamily: "Playfair Display, serif" };
+const bebas = { fontFamily: "var(--font-bebas)" };
+const playfair = { fontFamily: "var(--font-playfair)" };
 
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
+
+async function shareText(text) {
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; } catch (e) { /* usuário cancelou */ return; }
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+}
 function weekKey(d = new Date()) {
   const dt = new Date(d);
   const day = dt.getDay();
@@ -48,7 +44,6 @@ function weekKey(d = new Date()) {
 }
 
 export default function RespiraPage() {
-  useBrandFonts();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(undefined);
@@ -144,7 +139,10 @@ export default function RespiraPage() {
 
       <div className="max-w-md mx-auto px-5 pb-32 pt-6">
         {isFuture ? (
-          <CountdownView quitAt={quitAt} now={now} />
+          <>
+            <CountdownView quitAt={quitAt} now={now} />
+            <EmphasisDisclaimer />
+          </>
         ) : (
           <>
             <div className="flex gap-1 mb-6" style={{ borderBottom: `1px solid ${C.line}` }}>
@@ -254,6 +252,8 @@ export default function RespiraPage() {
                 onSignOut={() => supabase.auth.signOut()}
               />
             )}
+
+            <EmphasisDisclaimer />
           </>
         )}
       </div>
@@ -313,9 +313,12 @@ function SiteHeader({ menuOpen, setMenuOpen, onSignOut }) {
     <header style={{ borderBottom: `1px solid ${C.line}` }} className="sticky top-0 z-40">
       <div style={{ background: C.navy }} className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
         <a href="https://www.obicha.com.br" style={{ ...bebas, color: C.cream }} className="text-xl tracking-wide">Ô BICHA<span style={{ color: C.red }}>!</span></a>
-        <button onClick={() => setMenuOpen(true)} style={{ color: C.cream }} aria-label="menu">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={onSignOut} style={{ color: C.cream, opacity: 0.5 }} className="text-[11px] underline">sair</button>
+          <button onClick={() => setMenuOpen(true)} style={{ color: C.cream }} aria-label="menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+          </button>
+        </div>
       </div>
       {menuOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -600,6 +603,13 @@ function PanelTab(props) {
         </div>
       </div>
 
+      <button
+        onClick={() => shareText(`Decidi parar de fumar 🚭\n${dayNumber} dia${dayNumber !== 1 ? "s" : ""} sem cigarro\nobicha.com.br/respira`)}
+        style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }}
+        className="w-full rounded-full py-3 mb-8 text-sm">
+        📲 COMPARTILHAR MINHA JORNADA
+      </button>
+
       <button onClick={onOpenRelapse} style={{ color: C.cream, opacity: 0.4 }} className="w-full text-xs underline py-4">
         tive um deslize / preciso registrar uma recaída
       </button>
@@ -754,7 +764,22 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onSignOut }) {
       <button onClick={onRereadWelcome} style={{ color: C.gold }} className="w-full text-sm py-2 mb-2 underline">reler minha decisão de parar</button>
       <button onClick={onSignOut} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2 mb-8 underline">sair da conta</button>
 
-      <p className="text-[11px] opacity-40 leading-relaxed">{DISCLAIMER_TEXT}</p>
+      <p className="text-[11px] opacity-30 text-center mb-2">v2 · Ô bicha!</p>
+    </div>
+  );
+}
+
+function EmphasisDisclaimer() {
+  return (
+    <div style={{ background: `${C.red}15`, border: `1.5px solid ${C.red}` }} className="rounded-2xl p-4 my-6">
+      <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-sm mb-2">⚕ APOIO PROFISSIONAL</p>
+      <p className="text-xs leading-relaxed opacity-90 mb-2">
+        Este aplicativo tem caráter educativo e de apoio. Ele <b>não substitui</b> acompanhamento médico, psicológico ou tratamento para dependência de nicotina. O Respira é um companheiro de jornada, não uma promessa de cura.
+      </p>
+      <p className="text-xs leading-relaxed opacity-90">
+        Se sentir que está difícil demais, procure orientação profissional. O SUS oferece programas gratuitos para parar de fumar —{" "}
+        <a href="tel:136" style={{ color: C.red, fontWeight: 700 }}>Disque Saúde: 136</a>.
+      </p>
     </div>
   );
 }
@@ -802,7 +827,10 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
             <button onClick={() => setIntensity("media")} style={{ background: C.navySoft }} className="w-full rounded-xl py-3.5 text-sm">😣 Média</button>
             <button onClick={() => setIntensity("forte")} style={{ background: C.navySoft }} className="w-full rounded-xl py-3.5 text-sm">😭 Muito forte</button>
           </div>
-          <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-3 mt-2">fechar</button>
+          <button onClick={() => shareText("Estou na fissura de cigarro, me ajuda? Vamos conversar..")} style={{ color: C.gold }} className="w-full text-xs underline py-3 mt-1">
+            📱 pedir ajuda a alguém agora
+          </button>
+          <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-1">fechar</button>
         </div>
       </div>
     );
@@ -952,7 +980,11 @@ function RelapseModal({ onClose, onChoose }) {
       <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className="rounded-3xl p-6 max-w-sm w-full">
         <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-sm mb-3">VAMOS AJUSTAR SEU PLANO?</p>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="quer contar mais alguma coisa? (opcional)"
-          style={{ background: C.navySoft, color: C.cream }} className="w-full rounded-xl px-3 py-2.5 mb-5 outline-none resize-none text-sm placeholder-white/40" />
+          style={{ background: C.navySoft, color: C.cream }} className="w-full rounded-xl px-3 py-2.5 mb-3 outline-none resize-none text-sm placeholder-white/40" />
+
+        <button onClick={() => shareText("Tive uma recaída. Pode conversar comigo um pouco?")} style={{ color: C.gold }} className="w-full text-xs underline py-2 mb-4">
+          📱 contar pra alguém agora
+        </button>
 
         {confirming === null && (
           <div className="space-y-2">
@@ -988,9 +1020,10 @@ function LoginScreen({ supabase }) {
       <div className="max-w-sm w-full text-center">
         <p style={{ ...bebas, color: C.cream, letterSpacing: 2 }} className="text-lg mb-1">Ô BICHA<span style={{ color: C.red }}>!</span></p>
         <h1 style={{ ...bebas, color: C.cream, letterSpacing: 1 }} className="text-5xl mb-3">RESPIRA</h1>
-        <p style={{ color: C.cream, ...playfair }} className="italic text-sm opacity-80 mb-8">Deboche não fuma mais. Acompanhe sua jornada pra parar de fumar.</p>
+        <p style={{ color: C.cream, ...playfair }} className="italic text-sm opacity-80 mb-8">Parar de fumar é um presente pra versão mais bonita de você.</p>
         <button onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/respira` } })}
           style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3.5">ENTRAR COM GOOGLE</button>
+        <EmphasisDisclaimer />
       </div>
     </div>
   );
@@ -999,6 +1032,7 @@ function LoginScreen({ supabase }) {
 function Onboarding({ supabase, session, onDone }) {
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState("already");
+  const [daysAgo, setDaysAgo] = useState(0);
   const [futureDate, setFutureDate] = useState("");
   const [cigsPerDay, setCigsPerDay] = useState(15);
   const [pricePerPack, setPricePerPack] = useState(12);
@@ -1011,7 +1045,9 @@ function Onboarding({ supabase, session, onDone }) {
   const canStart = mode === "already" || (mode === "scheduled" && futureDate);
 
   async function finish() {
-    const quit_at = mode === "scheduled" ? new Date(futureDate + "T07:00:00").toISOString() : new Date().toISOString();
+    const quit_at = mode === "scheduled"
+      ? new Date(futureDate + "T07:00:00").toISOString()
+      : new Date(Date.now() - daysAgo * 86400000).toISOString();
     const { data } = await supabase.from("quit_profiles").insert({
       user_id: session.user.id,
       display_name: session.user.user_metadata?.full_name,
@@ -1038,6 +1074,14 @@ function Onboarding({ supabase, session, onDone }) {
               <button onClick={() => setMode("already")} style={{ background: mode === "already" ? C.red : C.navySoft }} className="flex-1 rounded-xl py-2.5 text-sm">já parei</button>
               <button onClick={() => setMode("scheduled")} style={{ background: mode === "scheduled" ? C.red : C.navySoft }} className="flex-1 rounded-xl py-2.5 text-sm">vou parar</button>
             </div>
+
+            {mode === "already" && (
+              <label className="block mb-4">
+                <span className="text-xs opacity-70">há quantos dias você parou?</span>
+                <input type="number" min={0} value={daysAgo} onChange={(e) => setDaysAgo(Math.max(0, Number(e.target.value)))} style={{ background: C.navySoft, color: C.cream }} className="w-full rounded-xl px-3 py-2.5 mt-1 outline-none font-mono" />
+                <span className="text-[11px] opacity-50">0 = hoje mesmo</span>
+              </label>
+            )}
 
             {mode === "scheduled" && (
               <label className="block mb-4">
@@ -1092,6 +1136,8 @@ function Onboarding({ supabase, session, onDone }) {
             <button onClick={() => setStep(1)} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2">voltar</button>
           </>
         )}
+
+        <EmphasisDisclaimer />
       </div>
     </div>
   );
