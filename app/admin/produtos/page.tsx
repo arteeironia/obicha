@@ -66,10 +66,16 @@ export default function AdminProdutos() {
   }
 
   async function openEdit(p: Product) {
-    setEditProduct(p)
-    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '', supplier: p.supplier || '', manual_variants: parseVariants(p.manual_variants) })
-    setImagePreview(p.image_url)
-    const res = await fetch(`/api/collections?product_id=${p.id}`)
+    // busca a lista atualizada antes de editar, pra nunca sobrescrever com dado desatualizado da tela
+    const freshRes = await fetch('/api/products')
+    const freshProducts: Product[] = await freshRes.json()
+    setProducts(freshProducts)
+    const fresh = freshProducts.find(x => x.id === p.id) || p
+
+    setEditProduct(fresh)
+    setForm({ name: fresh.name, category: fresh.category, price: fresh.price, link: fresh.link, image_url: fresh.image_url || '', description: fresh.description || '', featured: fresh.featured, collection_name: fresh.collection_name || '', supplier: fresh.supplier || '', manual_variants: parseVariants(fresh.manual_variants) })
+    setImagePreview(fresh.image_url)
+    const res = await fetch(`/api/collections?product_id=${fresh.id}`)
     const data = await res.json()
     setSelectedCollections(data.map((c: any) => c.collection_id))
     setShowForm(true)
@@ -138,6 +144,11 @@ export default function AdminProdutos() {
                 <p className="font-bold text-sm truncate">{p.name}</p>
                 <p className="text-xs opacity-50 mt-1">{p.price}</p>
                 {p.supplier && <p className="text-xs mt-1" style={{ color: 'rgba(212,168,67,.5)' }}>{suppliers.find(s => s.value === p.supplier)?.label}</p>}
+                {parseVariants(p.manual_variants).length > 0 && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--gold)' }}>
+                    {parseVariants(p.manual_variants).length} variante{parseVariants(p.manual_variants).length !== 1 ? 's' : ''}
+                  </p>
+                )}
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => openEdit(p)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,0.15)', color: 'var(--gold)' }}>Editar</button>
                   <button onClick={() => handleDelete(p.id)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,0.15)', color: 'var(--red)' }}>Remover</button>
