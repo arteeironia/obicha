@@ -42,16 +42,13 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
-  const [activeSource, setActiveSource] = useState('todos')
   const [search, setSearch] = useState('')
 
   const catLabel = (cat: string) => categories.find(c => c.value === cat)?.label || cat
   const categoryValues = ['todos', ...categories.map(c => c.value)]
-  const filteredFeed = feedProducts.filter(p => {
-    const matchSource = activeSource === 'todos' || p.source === activeSource
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase())
-    return matchSource && matchSearch
-  })
+  const filteredFeed = feedProducts.filter(p =>
+    !search || p.name.toLowerCase().includes(search.toLowerCase())
+  )
 
   const slides: { image_url: string; title: string; type: string; original_price: string | null; promo_price: string | null; link: string | null }[] = []
   highlights.forEach(h => {
@@ -139,7 +136,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
         .product-card-img-wrap { position:relative; cursor:zoom-in; overflow:hidden; }
         .product-card-img-wrap img { transition:transform .4s ease; }
         .product-card-img-wrap:hover img { transform:scale(1.06); }
-        .social-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; transition:all .4s; }
+        .social-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; transition:all .4s; max-width:100%; }
         .social-card:hover { border-color:var(--gold); transform:translateY(-4px); }
         .commitment-card { background:var(--navy); color:var(--creme); padding:2.5rem 2rem; border-radius:4px; border-top:3px solid var(--gold); transition:transform .3s; position:relative; overflow:hidden; }
         .commitment-card::before { content:attr(data-num); position:absolute; top:-.5rem; right:1rem; font-family:var(--font-playfair); font-size:6rem; color:rgba(212,168,67,.06); font-weight:900; line-height:1; }
@@ -196,6 +193,10 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
           <a href="/projeto-social" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
             <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 17S3 12.5 3 7.5A4 4 0 0110 5a4 4 0 017 2.5C17 12.5 10 17 10 17z"/><path d="M10 9v4M8 11h4"/></svg></span>
             Projeto Social
+          </a>
+          <a href="/respira" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
+            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 3c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7-3.1-7-7-7z"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3-1.3 3-3 3"/><circle cx="10" cy="10" r="1.5"/></svg></span>
+            Respira
           </a>
         </nav>
       </aside>
@@ -298,16 +299,8 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
             <p style={{ opacity:.6, fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>Camisetas · Moletons · Regatas · Ecobags · Canecas</p>
           </div>
 
-          {/* Filtros e busca */}
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'1rem', marginBottom:'3rem' }}>
-            <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap', justifyContent:'center' }}>
-              {['todos','reserva-ink','uma-penca'].map(src => (
-                <button key={src} onClick={() => setActiveSource(src)}
-                  style={{ padding:'.5rem 1.5rem', border:'1px solid', borderColor: activeSource===src ? 'var(--gold)' : 'rgba(212,168,67,.4)', background: activeSource===src ? 'var(--gold)' : 'transparent', color: activeSource===src ? 'var(--navy)' : 'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'2px', fontSize:'.9rem', cursor:'pointer', transition:'all .3s', borderRadius:2 }}>
-                  {src === 'todos' ? 'Todas as lojas' : src === 'reserva-ink' ? 'Reserva INK' : 'Uma Penca'}
-                </button>
-              ))}
-            </div>
+          {/* Busca */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'.8rem', marginBottom:'3rem' }}>
             <input
               type="text"
               placeholder="Buscar estampa..."
