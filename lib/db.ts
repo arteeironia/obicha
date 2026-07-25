@@ -54,7 +54,7 @@ export async function createProduct(data: {
 }) {
   const [product] = await sql`
     INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier, show_on_site, manual_variants)
-    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${JSON.stringify(data.manual_variants || [])})
+    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${JSON.stringify(data.manual_variants || [])}::jsonb)
     RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)
   return product

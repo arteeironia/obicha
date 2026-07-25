@@ -24,6 +24,11 @@ const inputStyle = {
   outline: 'none', fontFamily: 'inherit', fontSize: '0.9rem',
 }
 
+function parseVariants(mv: any): {type: string; price: string; link: string}[] {
+  if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
+  return Array.isArray(mv) ? mv : []
+}
+
 export default function AdminProdutos() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -31,7 +36,7 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '' })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '', show_on_site: false, manual_variants: [] as {type: string; price: string; link: string}[] })
   const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -53,7 +58,7 @@ export default function AdminProdutos() {
 
   async function openAdd() {
     setEditProduct(null)
-    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '' })
+    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '', show_on_site: false, manual_variants: [] })
     setSelectedCollections([])
     setImagePreview(null)
     setShowForm(true)
@@ -61,7 +66,7 @@ export default function AdminProdutos() {
 
   async function openEdit(p: Product) {
     setEditProduct(p)
-    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '', supplier: p.supplier || '' })
+    setForm({ name: p.name, category: p.category, price: p.price, link: p.link, image_url: p.image_url || '', description: p.description || '', featured: p.featured, collection_name: p.collection_name || '', supplier: p.supplier || '', show_on_site: p.show_on_site || false, manual_variants: parseVariants(p.manual_variants) })
     setImagePreview(p.image_url)
     const res = await fetch(`/api/collections?product_id=${p.id}`)
     const data = await res.json()
@@ -202,6 +207,24 @@ export default function AdminProdutos() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Variantes / Tipos disponíveis (opcional)</label>
+                {form.manual_variants.map((v, i) => (
+                  <div key={i} style={{ display:'flex', gap:'.5rem', marginBottom:'.5rem', alignItems:'center' }}>
+                    <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:1, minWidth:0 }} placeholder="Tipo (ex: Algodão)" value={v.type} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], type: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
+                    <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:1, minWidth:0 }} placeholder="Preço" value={v.price} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], price: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
+                    <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:2, minWidth:0 }} placeholder="Link do produto" value={v.link} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], link: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
+                    <button type="button" onClick={() => setForm(f => ({...f, manual_variants: f.manual_variants.filter((_,j) => j !== i)}))} style={{ color:'var(--red)', flexShrink:0 }}>✕</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type:'', price:'', link:''}]}))} style={{ fontSize:'.8rem', color:'var(--gold)', opacity:.8 }}>+ Adicionar variante</button>
+              </div>
+
+              <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
+                <input type="checkbox" checked={form.show_on_site} onChange={e => setForm(f => ({ ...f, show_on_site: e.target.checked }))} style={{ accentColor:'var(--gold)' }} />
+                <span className="text-sm opacity-70">🌐 Exibir na landing page</span>
+              </label>
 
               <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
                 <input type="checkbox" checked={form.featured} onChange={e => setForm(f => ({ ...f, featured: e.target.checked }))} />

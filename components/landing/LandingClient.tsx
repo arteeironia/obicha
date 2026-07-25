@@ -322,7 +322,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
             ) : filteredFeed.map(p => {
               const variants = Array.isArray(p.variants) ? p.variants : []
               const displayImg = p.scene_image_url || p.image_url
-              const sourceLabel = p.source === 'reserva-ink' ? '✦ Reserva INK · DTG' : '✦ Uma Penca · DTF'
+              const sourceLabel = p.source === 'reserva-ink' ? '✦ Reserva INK · DTG' : p.source === 'uma-penca' ? '✦ Uma Penca · DTF' : ''
               return (
                 <div key={p.id} className="product-card">
                   {displayImg
@@ -341,7 +341,7 @@ export default function LandingClient({ feedProducts, socialPosts, pinterestPins
                         >{v.variant_type}</a>
                       ))}
                     </div>
-                    <p style={{ fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>{sourceLabel}</p>
+                    {sourceLabel && <p style={{ fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>{sourceLabel}</p>}
                   </div>
                 </div>
               )
