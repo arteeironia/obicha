@@ -75,7 +75,7 @@ export async function updateProduct(id: number, data: Partial<{
       description = COALESCE(${data.description ?? null}, description),
       featured = COALESCE(${data.featured ?? null}, featured),
       collection_name = COALESCE(${data.collection_name ?? null}, collection_name),
-      supplier = ${data.supplier ?? null},
+      supplier = COALESCE(${data.supplier ?? null}, supplier),
       show_on_site = COALESCE(${data.show_on_site ?? null}, show_on_site),
       manual_variants = COALESCE(${data.manual_variants ? sql.json(data.manual_variants) : null}, manual_variants),
       updated_at = NOW()

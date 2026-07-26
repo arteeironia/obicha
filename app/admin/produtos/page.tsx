@@ -11,13 +11,10 @@ type Product = {
 type Category = { id: number; value: string; label: string; active: boolean }
 type Collection = { id: number; name: string; slug: string }
 
-const SHIRT_CATEGORIES = ['camisetas','estonada','dryfit','modal','peruano','oversized','regata','cropped','cropped-moletom','infantil','hoodie','sueter']
-
-const suppliers = [
-  { value: '', label: 'Nenhum' },
-  { value: 'reserva-ink-dtg', label: 'Reserva INK — DTG (Qualidade Reserva)' },
-  { value: 'uma-penca-dtf', label: 'Uma Penca — DTF (Qualidade Chico Rei)' },
-]
+const SUPPLIER_LABELS: Record<string, string> = {
+  'reserva-ink-dtg': 'Reserva INK — DTG',
+  'uma-penca-dtf': 'Uma Penca — DTF',
+}
 
 const inputStyle = {
   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(212,168,67,0.3)',
@@ -37,7 +34,7 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '', manual_variants: [] as {type: string; price: string; link: string}[] })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string}[] })
   const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -59,7 +56,7 @@ export default function AdminProdutos() {
 
   async function openAdd() {
     setEditProduct(null)
-    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', supplier: '', manual_variants: [] })
+    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] })
     setSelectedCollections([])
     setImagePreview(null)
     setShowForm(true)
@@ -73,7 +70,7 @@ export default function AdminProdutos() {
     const fresh = freshProducts.find(x => x.id === p.id) || p
 
     setEditProduct(fresh)
-    setForm({ name: fresh.name, category: fresh.category, price: fresh.price, link: fresh.link, image_url: fresh.image_url || '', description: fresh.description || '', featured: fresh.featured, collection_name: fresh.collection_name || '', supplier: fresh.supplier || '', manual_variants: parseVariants(fresh.manual_variants) })
+    setForm({ name: fresh.name, category: fresh.category, price: fresh.price, link: fresh.link, image_url: fresh.image_url || '', description: fresh.description || '', featured: fresh.featured, collection_name: fresh.collection_name || '', manual_variants: parseVariants(fresh.manual_variants) })
     setImagePreview(fresh.image_url)
     const res = await fetch(`/api/collections?product_id=${fresh.id}`)
     const data = await res.json()
@@ -97,7 +94,12 @@ export default function AdminProdutos() {
   async function handleSave() {
     setSaving(true)
     const method = editProduct ? 'PATCH' : 'POST'
-    const body = editProduct ? { id: editProduct.id, ...form } : form
+    // quando há variantes, preço/link do produto viram apenas fallback — usa a primeira variante como referência
+    const derived = form.manual_variants.length > 0
+      ? { price: form.manual_variants[0].price || form.price, link: form.manual_variants[0].link || form.link }
+      : { price: form.price, link: form.link }
+    const payload = { ...form, ...derived }
+    const body = editProduct ? { id: editProduct.id, ...payload } : payload
     const res = await fetch('/api/products', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const product = await res.json()
     const productId = editProduct ? editProduct.id : product.id
@@ -112,8 +114,6 @@ export default function AdminProdutos() {
     await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     await load()
   }
-
-  const isShirt = SHIRT_CATEGORIES.includes(form.category)
 
   return (
     <div className="p-8">
@@ -143,7 +143,7 @@ export default function AdminProdutos() {
               <div className="p-3">
                 <p className="font-bold text-sm truncate">{p.name}</p>
                 <p className="text-xs opacity-50 mt-1">{p.price}</p>
-                {p.supplier && <p className="text-xs mt-1" style={{ color: 'rgba(212,168,67,.5)' }}>{suppliers.find(s => s.value === p.supplier)?.label}</p>}
+                {p.supplier && <p className="text-xs mt-1" style={{ color: 'rgba(212,168,67,.5)' }}>{SUPPLIER_LABELS[p.supplier] || p.supplier}</p>}
                 {parseVariants(p.manual_variants).length > 0 && (
                   <p className="text-xs mt-1" style={{ color: 'var(--gold)' }}>
                     {parseVariants(p.manual_variants).length} variante{parseVariants(p.manual_variants).length !== 1 ? 's' : ''}
@@ -178,24 +178,19 @@ export default function AdminProdutos() {
                 </select>
               </div>
 
-              {/* Fornecedor — só para camisetas */}
-              {isShirt && (
-                <div>
-                  <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Produção</label>
-                  <select style={{ ...inputStyle }} value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}>
-                    {suppliers.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--navy)' }}>{s.label}</option>)}
-                  </select>
-                </div>
+              {/* Preço e Link só aparecem quando o produto ainda não tem variantes cadastradas (ex: canecas, ecobags, itens sem modelo) */}
+              {form.manual_variants.length === 0 && (
+                <>
+                  <div>
+                    <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Preço</label>
+                    <input style={inputStyle} placeholder="R$ 89,90" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Link da loja</label>
+                    <input style={inputStyle} value={form.link} onChange={e => setForm(f => ({ ...f, link: e.target.value }))} />
+                  </div>
+                </>
               )}
-
-              <div>
-                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Preço</label>
-                <input style={inputStyle} placeholder="R$ 89,90" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Link da loja</label>
-                <input style={inputStyle} value={form.link} onChange={e => setForm(f => ({ ...f, link: e.target.value }))} />
-              </div>
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Descrição (para SEO)</label>
                 <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Descreva o produto" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
@@ -243,6 +238,7 @@ export default function AdminProdutos() {
                   </div>
                 ))}
                 {form.manual_variants.length === 0 && <p style={{ fontSize:'.78rem', opacity:.4 }}>Opcional — clique nos tipos acima se essa estampa existir em mais de um modelo.</p>}
+                {form.manual_variants.length > 0 && <p style={{ fontSize:'.78rem', opacity:.4, marginTop:'.5rem' }}>Preço e link do produto agora são definidos por cada variante acima — não há mais um único preço/link geral.</p>}
               </div>
 
               <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
