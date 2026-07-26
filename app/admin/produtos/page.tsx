@@ -27,6 +27,26 @@ function parseVariants(mv: any): {type: string; price: string; link: string}[] {
   return Array.isArray(mv) ? mv : []
 }
 
+// Preços padrão por tipo (fornecidos pelo Fernando) — preenchem automático ao adicionar, mas sempre editáveis
+const DEFAULT_PRICES: Record<string, string> = {
+  'Camiseta': 'R$ 114,90',
+  'Regata': 'R$ 99,99',
+  'Camiseta Algodão Peruano': 'R$ 149,99',
+  'Hoodie Moletom': 'R$ 239,99',
+  'Suéter Moletom': 'R$ 208,99',
+  'Camiseta Oversized': 'R$ 159,99',
+  'Cropped': 'R$ 99,99',
+  'Cropped Moletom': 'R$ 159,99',
+  'Camiseta Infantil': 'R$ 92,00',
+  'Algodão': 'R$ 90,20',
+  'Dry Fit': 'R$ 99,99',
+  'Modal Tech': 'R$ 149,99',
+  'Estonada': 'R$ 122,20',
+  'Ecobag': 'R$ 55,60',
+  'Kit de Bottons': 'R$ 28,70',
+  'Caneca': 'R$ 54,75',
+}
+
 export default function AdminProdutos() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -218,11 +238,11 @@ export default function AdminProdutos() {
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Variantes / Tipos disponíveis</label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem', marginBottom:'.8rem' }}>
-                  {['Camiseta','Regata','Cropped','Cropped Moletom','Camiseta Oversized','Camiseta Algodão Peruano','Camiseta Infantil','Hoodie Moletom','Suéter Moletom','Algodão','Dry Fit','Modal Tech','Estonada','Caneca','Ecobag','Bottom','Boné'].map(type => {
+                  {['Camiseta','Regata','Cropped','Cropped Moletom','Camiseta Oversized','Camiseta Algodão Peruano','Camiseta Infantil','Hoodie Moletom','Suéter Moletom','Algodão','Dry Fit','Modal Tech','Estonada','Caneca','Ecobag','Kit de Bottons','Boné'].map(type => {
                     const already = form.manual_variants.some(v => v.type === type)
                     return (
                       <button key={type} type="button" disabled={already}
-                        onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type, price:'', link:''}]}))}
+                        onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type, price: DEFAULT_PRICES[type] || '', link:''}]}))}
                         style={{ fontSize:'.75rem', padding:'.35rem .7rem', borderRadius:2, border:'1px solid', borderColor: already ? 'rgba(212,168,67,.15)' : 'rgba(212,168,67,.4)', background: already ? 'rgba(212,168,67,.05)' : 'transparent', color: already ? 'rgba(242,235,217,.25)' : 'var(--creme)', cursor: already ? 'default' : 'pointer' }}>
                         {already ? '✓ ' : '+ '}{type}
                       </button>
