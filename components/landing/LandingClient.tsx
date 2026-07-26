@@ -179,6 +179,10 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <span className="sl-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3-1.3 3-3 3"/></svg></span>
             Respira
           </a>
+          <a href="/quiz" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
+            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 3a7 7 0 100 14 7 7 0 000-14z"/><path d="M8 8a2 2 0 114 0c0 1.5-2 1.5-2 3"/><circle cx="10" cy="14.5" r=".3" fill="currentColor"/></svg></span>
+            Quiz
+          </a>
         </nav>
       </aside>
 
