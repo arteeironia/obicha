@@ -115,6 +115,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .product-card-img-wrap { position:relative; cursor:zoom-in; overflow:hidden; }
         .product-card-img-wrap img { transition:transform .4s ease; }
         .product-card-img-wrap:hover img { transform:scale(1.06); }
+        .variant-badge-wrap:hover .variant-price-tooltip, .variant-badge-wrap:active .variant-price-tooltip { opacity:1; }
         .social-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; min-height:480px; contain:layout style; }
         .social-card blockquote { min-height:440px; }
         .commitment-card { background:var(--navy); color:var(--creme); padding:2.5rem 2rem; border-radius:4px; border-top:3px solid var(--gold); transition:transform .3s; position:relative; overflow:hidden; }
@@ -320,12 +321,18 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                       return (
                         <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
                           {variants.map((v, i) => (
-                            <a key={i} href={v.link || p.link} target="_blank"
-                              style={{ padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
-                              onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
-                              onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
-                              title={v.price}
-                            >{v.type}</a>
+                            <div key={i} className="variant-badge-wrap" style={{ position:'relative', display:'inline-block' }}>
+                              <a href={v.link || p.link} target="_blank"
+                                style={{ display:'block', padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
+                                onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
+                                onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
+                              >{v.type}</a>
+                              {v.price && (
+                                <span className="variant-price-tooltip" style={{ position:'absolute', bottom:'calc(100% + 6px)', left:'50%', transform:'translateX(-50%)', background:'var(--navy)', border:'1px solid var(--gold)', color:'var(--gold)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', padding:'.3rem .6rem', borderRadius:2, whiteSpace:'nowrap', opacity:0, pointerEvents:'none', transition:'opacity .2s', zIndex:5 }}>
+                                  {v.price}
+                                </span>
+                              )}
+                            </div>
                           ))}
                         </div>
                       )
