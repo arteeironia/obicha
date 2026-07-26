@@ -81,7 +81,9 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .sidebar { position:fixed; top:0; left:0; bottom:0; width:var(--sidebar); background:rgba(15,26,46,.97); border-right:1px solid rgba(212,168,67,.2); display:flex; flex-direction:column; z-index:200; backdrop-filter:blur(12px); }
         .sidebar-logo { padding:1.8rem 1.5rem 1.5rem; border-bottom:1px solid rgba(212,168,67,.15); }
         .sidebar-logo img { width:100%; max-width:160px; height:auto; display:block; }
-        .sidebar-nav { flex:1; padding:2rem 0; display:flex; flex-direction:column; gap:.3rem; }
+        .sidebar-nav { flex:1; padding:2rem 0; display:flex; flex-direction:column; gap:.3rem; overflow-y:auto; min-height:0; }
+        .sidebar-nav::-webkit-scrollbar { width:4px; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background:rgba(212,168,67,.3); border-radius:2px; }
         .sidebar-link { display:flex; align-items:center; gap:.8rem; padding:.75rem 1.5rem; color:rgba(242,235,217,.55); text-decoration:none; font-family:var(--font-bebas); font-size:.95rem; letter-spacing:2.5px; text-transform:uppercase; border-left:3px solid transparent; transition:all .25s; }
         .sidebar-link:hover { color:var(--gold); border-left-color:var(--gold); background:rgba(212,168,67,.06); }
         .sidebar-link .sl-icon { display:flex; align-items:center; width:20px; flex-shrink:0; opacity:.7; transition:opacity .25s; }

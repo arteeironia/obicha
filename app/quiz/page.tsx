@@ -59,72 +59,140 @@ export default function QuizPage() {
     canvas.height = 1920
     const ctx = canvas.getContext('2d')!
 
-    ctx.fillStyle = '#1A2744'
-    ctx.fillRect(0, 0, 1080, 1920)
-    ctx.fillStyle = '#D4A843'
-    ctx.fillRect(0, 0, 1080, 6)
-    ctx.fillRect(0, 1914, 1080, 6)
+    function drawBase() {
+      ctx.fillStyle = '#1A2744'
+      ctx.fillRect(0, 0, 1080, 1920)
+      ctx.fillStyle = '#D4A843'
+      ctx.fillRect(0, 0, 1080, 6)
+      ctx.fillRect(0, 1914, 1080, 6)
 
-    ctx.textAlign = 'center'
-    ctx.font = 'bold 70px serif'
-    ctx.fillStyle = '#D4A843'
-    ctx.fillText('Ô', 430, 240)
-    ctx.fillStyle = '#C0281C'
-    ctx.fillText('bicha', 610, 240)
-    ctx.fillStyle = '#D4A843'
-    ctx.fillText('!', 800, 240)
+      ctx.textAlign = 'center'
+      ctx.font = 'bold 70px serif'
+      ctx.fillStyle = '#D4A843'
+      ctx.fillText('Ô', 430, 240)
+      ctx.fillStyle = '#C0281C'
+      ctx.fillText('bicha', 610, 240)
+      ctx.fillStyle = '#D4A843'
+      ctx.fillText('!', 800, 240)
 
-    ctx.font = '28px monospace'
-    ctx.fillStyle = 'rgba(212,168,67,0.6)'
-    ctx.fillText('QUAL ESTAMPA COMBINA COM VOCÊ', 540, 300)
+      ctx.font = '28px monospace'
+      ctx.fillStyle = 'rgba(212,168,67,0.6)'
+      ctx.fillText('QUAL ESTAMPA COMBINA COM VOCÊ', 540, 300)
 
-    ctx.font = 'italic 34px serif'
-    ctx.fillStyle = '#F2EBD9'
-    ctx.fillText('meu resultado foi', 540, 560)
+      ctx.font = 'italic 34px serif'
+      ctx.fillStyle = '#F2EBD9'
+      ctx.fillText('meu resultado foi', 540, 400)
 
-    ctx.font = 'bold 130px sans-serif'
-    ctx.fillStyle = '#D4A843'
-    // quebra o título se for grande
-    const titleWords = result.title.toUpperCase()
-    ctx.fillText(titleWords, 540, 720)
+      ctx.font = 'bold 110px sans-serif'
+      ctx.fillStyle = '#D4A843'
+      ctx.fillText(result!.title.toUpperCase(), 540, 540)
 
-    ctx.font = 'italic 40px serif'
-    ctx.fillStyle = '#F2EBD9'
-    const taglineWords = result.tagline.split(' ')
-    let lines: string[] = []
-    let cur = ''
-    taglineWords.forEach((w) => {
-      const test = cur ? `${cur} ${w}` : w
-      if (ctx.measureText(test).width > 880) { lines.push(cur); cur = w } else cur = test
-    })
-    lines.push(cur)
-    lines.forEach((line, i) => ctx.fillText(line, 540, 860 + i * 55))
+      ctx.font = 'italic 36px serif'
+      ctx.fillStyle = '#F2EBD9'
+      const taglineWords = result!.tagline.split(' ')
+      let lines: string[] = []
+      let cur = ''
+      taglineWords.forEach((w) => {
+        const test = cur ? `${cur} ${w}` : w
+        if (ctx.measureText(test).width > 880) { lines.push(cur); cur = w } else cur = test
+      })
+      lines.push(cur)
+      lines.forEach((line, i) => ctx.fillText(line, 540, 610 + i * 50))
 
-    ctx.font = 'bold 42px monospace'
-    ctx.fillStyle = '#C0281C'
-    ctx.fillText('FAÇA O TESTE TAMBÉM', 540, 1650)
-    ctx.font = '32px monospace'
-    ctx.fillStyle = 'rgba(212,168,67,0.6)'
-    ctx.fillText('OBICHA.COM.BR/QUIZ', 540, 1710)
+      ctx.font = 'bold 42px monospace'
+      ctx.fillStyle = '#C0281C'
+      ctx.fillText('FAÇA O TESTE TAMBÉM', 540, 1650)
+      ctx.font = '32px monospace'
+      ctx.fillStyle = 'rgba(212,168,67,0.6)'
+      ctx.fillText('OBICHA.COM.BR/QUIZ', 540, 1710)
+    }
 
-    canvas.toBlob((blob) => {
-      if (!blob) { setGenerating(false); return }
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-      if (isMobile) {
-        const dataUrl = canvas.toDataURL('image/png')
-        window.open(dataUrl, '_blank')
-      } else {
-        const blobUrl = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.download = `obicha-quiz-${resultSlug}.png`
-        link.href = blobUrl
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000)
+    // Tenta carregar uma imagem com CORS liberado; se falhar (rede ou bloqueio), resolve null em vez de travar
+    function loadImage(url: string): Promise<HTMLImageElement | null> {
+      return new Promise((resolve) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        const timeout = setTimeout(() => resolve(null), 4000)
+        img.onload = () => { clearTimeout(timeout); resolve(img) }
+        img.onerror = () => { clearTimeout(timeout); resolve(null) }
+        img.src = url
+      })
+    }
+
+    async function drawProductThumbs() {
+      const thumbs = products.slice(0, 3)
+      if (thumbs.length === 0) return
+      const boxSize = 300
+      const gap = 20
+      const totalWidth = thumbs.length * boxSize + (thumbs.length - 1) * gap
+      const startX = (1080 - totalWidth) / 2
+      const y = 1180
+
+      for (let i = 0; i < thumbs.length; i++) {
+        const x = startX + i * (boxSize + gap)
+        ctx.fillStyle = 'rgba(255,255,255,0.05)'
+        ctx.fillRect(x, y, boxSize, boxSize)
+        ctx.strokeStyle = 'rgba(212,168,67,0.4)'
+        ctx.strokeRect(x, y, boxSize, boxSize)
+
+        if (thumbs[i].image_url) {
+          const img = await loadImage(thumbs[i].image_url!)
+          if (img) {
+            try {
+              ctx.drawImage(img, x, y, boxSize, boxSize)
+              ctx.strokeStyle = 'rgba(212,168,67,0.4)'
+              ctx.strokeRect(x, y, boxSize, boxSize)
+            } catch {
+              // canvas ficou "contaminado" por CORS — ignora e segue sem essa foto
+            }
+          }
+        }
       }
-      setGenerating(false)
-    }, 'image/png')
+    }
+
+    drawBase()
+    try {
+      await drawProductThumbs()
+    } catch {
+      // se qualquer coisa falhar no carregamento das fotos, segue só com o texto
+    }
+
+    function finish(canUseImages: boolean) {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          if (canUseImages) {
+            // canvas contaminado por imagem sem CORS — redesenha só com texto e tenta de novo
+            drawBase()
+            finish(false)
+            return
+          }
+          setGenerating(false)
+          return
+        }
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+        if (isMobile) {
+          const dataUrl = canvas.toDataURL('image/png')
+          window.open(dataUrl, '_blank')
+        } else {
+          const blobUrl = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.download = `obicha-quiz-${resultSlug}.png`
+          link.href = blobUrl
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000)
+        }
+        setGenerating(false)
+      }, 'image/png')
+    }
+
+    try {
+      finish(true)
+    } catch {
+      drawBase()
+      finish(false)
+    }
   }
 
   return (
