@@ -8,6 +8,7 @@ type Category = { id: number; active: boolean }
 type Collection = { id: number }
 type BlogPost = { id: number; published: boolean }
 type Comment = { id: number }
+type RespiraStats = { total: number; recent: { display_name: string; quit_at: string; created_at: string }[] }
 
 const cardStyle = {
   background: 'rgba(255,255,255,0.02)',
@@ -40,6 +41,7 @@ export default function AdminDashboard() {
   const [collections, setCollections] = useState<Collection[]>([])
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [comments, setComments] = useState<Comment[]>([])
+  const [respiraStats, setRespiraStats] = useState<RespiraStats>({ total: 0, recent: [] })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -50,12 +52,14 @@ export default function AdminDashboard() {
         fetch('/api/collections').then(r => r.json()),
         fetch('/api/blog').then(r => r.json()),
         fetch('/api/comments?slug=__all__').then(r => r.json()),
+        fetch('/api/respira-stats').then(r => r.json()),
       ])
       if (results[0].status === 'fulfilled') setProducts(results[0].value)
       if (results[1].status === 'fulfilled') setCategories(results[1].value)
       if (results[2].status === 'fulfilled') setCollections(results[2].value)
       if (results[3].status === 'fulfilled') setPosts(results[3].value)
       if (results[4].status === 'fulfilled') setComments(results[4].value)
+      if (results[5].status === 'fulfilled') setRespiraStats(results[5].value)
       setLoading(false)
     }
     load()
@@ -89,6 +93,26 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-4 gap-4">
               <StatCard label="Comentários no blog" value={comments.length} />
             </div>
+          </div>
+
+          <div className="mb-8">
+            <p className="text-xs tracking-widest uppercase opacity-50 mb-3">🫁 App Respira</p>
+            <div className="grid grid-cols-4 gap-4 mb-3">
+              <StatCard label="Pessoas cadastradas" value={respiraStats.total} />
+            </div>
+            {respiraStats.recent.length > 0 && (
+              <div style={cardStyle} className="p-4">
+                <p className="text-xs opacity-50 mb-2">Últimos cadastros</p>
+                <div className="space-y-1.5">
+                  {respiraStats.recent.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span>{r.display_name || 'Sem nome'}</span>
+                      <span className="opacity-40 text-xs">{new Date(r.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

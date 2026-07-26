@@ -28,6 +28,12 @@ function invalidateCache(...keys: string[]) {
 }
 
 // ===== PRODUTOS =====
+export async function getRespiraStats() {
+  const [{ count }] = await sql`SELECT COUNT(*) FROM quit_profiles`
+  const recent = await sql`SELECT display_name, quit_at, created_at FROM quit_profiles ORDER BY created_at DESC LIMIT 5`
+  return { total: parseInt(count), recent }
+}
+
 export async function getFeaturedProducts() {
   const cached = getCache('featured_products')
   if (cached) return cached
