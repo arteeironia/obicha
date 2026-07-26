@@ -115,6 +115,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .product-card-img-wrap { position:relative; cursor:zoom-in; overflow:hidden; }
         .product-card-img-wrap img { transition:transform .4s ease; }
         .product-card-img-wrap:hover img { transform:scale(1.06); }
+        .variant-price-tooltip { opacity:0; transition:opacity .2s; }
         .variant-badge-wrap:hover .variant-price-tooltip, .variant-badge-wrap:active .variant-price-tooltip { opacity:1; }
         .social-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; min-height:480px; contain:layout style; }
         .social-card blockquote { min-height:440px; }
@@ -328,7 +329,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                                 onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
                               >{v.type}</a>
                               {v.price && (
-                                <span className="variant-price-tooltip" style={{ position:'absolute', bottom:'calc(100% + 6px)', left:'50%', transform:'translateX(-50%)', background:'var(--navy)', border:'1px solid var(--gold)', color:'var(--gold)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', padding:'.3rem .6rem', borderRadius:2, whiteSpace:'nowrap', opacity:0, pointerEvents:'none', transition:'opacity .2s', zIndex:5 }}>
+                                <span className="variant-price-tooltip" style={{ position:'absolute', bottom:'calc(100% + 6px)', left:'50%', transform:'translateX(-50%)', background:'var(--navy)', border:'1px solid var(--gold)', color:'var(--gold)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', padding:'.3rem .6rem', borderRadius:2, whiteSpace:'nowrap', pointerEvents:'none', zIndex:5 }}>
                                   {v.price}
                                 </span>
                               )}
