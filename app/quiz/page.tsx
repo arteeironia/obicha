@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { QUIZ_QUESTIONS, QUIZ_RESULTS, calculateQuizResult, type CollectionSlug } from '@/lib/quiz-content'
+import { QUIZ_RESULTS, calculateQuizResult, pickQuizQuestions, type CollectionSlug, type QuizQuestion } from '@/lib/quiz-content'
 
 const C = { cream: '#F2EBD9', navy: '#1A2744', red: '#C0281C', gold: '#D4A843', line: 'rgba(212,168,67,.2)' }
 const bebas = { fontFamily: 'var(--font-bebas)' }
@@ -12,15 +12,22 @@ type Product = { id: number; name: string; image_url: string | null; link: strin
 
 export default function QuizPage() {
   const [step, setStep] = useState(-1) // -1 = intro, 0..8 = perguntas, 9 = resultado
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [answers, setAnswers] = useState<CollectionSlug[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [generating, setGenerating] = useState(false)
 
-  const total = QUIZ_QUESTIONS.length
-  const resultSlug = step === total ? calculateQuizResult(answers) : null
+  const total = questions.length || 9
+  const resultSlug = step === total && questions.length ? calculateQuizResult(answers) : null
   const result = resultSlug ? QUIZ_RESULTS[resultSlug] : null
+
+  function startQuiz() {
+    setQuestions(pickQuizQuestions(9))
+    setAnswers([])
+    setStep(0)
+  }
 
   async function answer(collection: CollectionSlug) {
     const next = [...answers, collection]
@@ -144,7 +151,7 @@ export default function QuizPage() {
             <p style={{ opacity: .7, marginBottom: '2.5rem', fontSize: '1.05rem' }}>
               {total} perguntinhas rápidas. Zero certo ou errado. Só a sua vibe, estampada.
             </p>
-            <button onClick={() => setStep(0)} style={{ ...bebas, letterSpacing: 2, background: C.red, color: C.cream, border: 'none', padding: '1rem 3rem', fontSize: '1.1rem', borderRadius: 4, cursor: 'pointer' }}>
+            <button onClick={startQuiz} style={{ ...bebas, letterSpacing: 2, background: C.red, color: C.cream, border: 'none', padding: '1rem 3rem', fontSize: '1.1rem', borderRadius: 4, cursor: 'pointer' }}>
               COMEÇAR
             </button>
           </div>
@@ -157,9 +164,9 @@ export default function QuizPage() {
             </div>
             <span style={{ ...bebas, letterSpacing: 2, fontSize: '.8rem', color: C.gold, opacity: .7 }}>PERGUNTA {step + 1} DE {total}</span>
             <h2 style={{ ...playfair, fontSize: 'clamp(1.4rem,4vw,1.9rem)', fontWeight: 700, margin: '.8rem 0 2rem', lineHeight: 1.3 }}>
-              {QUIZ_QUESTIONS[step].text}
+              {questions[step].text}
             </h2>
-            {QUIZ_QUESTIONS[step].options.map((opt, i) => (
+            {questions[step].options.map((opt, i) => (
               <button key={i} className="quiz-option" onClick={() => answer(opt.collection)}>
                 {opt.label}
               </button>

@@ -5,7 +5,7 @@ export type CollectionSlug = 'fetiche' | 'bear' | 'queer' | 'pride' | 'raca' | '
 export type QuizOption = { label: string; collection: CollectionSlug }
 export type QuizQuestion = { id: number; text: string; options: QuizOption[] }
 
-export const QUIZ_QUESTIONS: QuizQuestion[] = [
+export const ALL_QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: 1,
     text: 'Sexta à noite. Você está...',
@@ -96,7 +96,106 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
       { label: 'Rindo de si mesmo antes de rirem de você', collection: 'ironicas' },
     ],
   },
+  {
+    id: 10,
+    text: 'Na roda de amigos, você é aquele(a) que...',
+    options: [
+      { label: 'Solta a piada mais ácida da noite', collection: 'ironicas' },
+      { label: 'Puxa o assunto de resistência e história', collection: 'raca' },
+      { label: 'Não se define, e adora ver todo mundo tentando', collection: 'queer' },
+      { label: 'Chega com o look mais provocante', collection: 'fetiche' },
+    ],
+  },
+  {
+    id: 11,
+    text: 'Qual filme/série resume seu gosto?',
+    options: [
+      { label: 'Algo trash noventista que virou cult', collection: 'cultura-pop' },
+      { label: 'Um documentário sobre movimentos sociais', collection: 'raca' },
+      { label: 'Comédia com humor negro e sem filtro', collection: 'ironicas' },
+      { label: 'Um drama sobre gente que não se encaixa', collection: 'queer' },
+    ],
+  },
+  {
+    id: 12,
+    text: 'Seu tipo de festa favorita é...',
+    options: [
+      { label: 'Fetiche night, dress code liberado', collection: 'fetiche' },
+      { label: 'Parada do orgulho, calor de multidão', collection: 'pride' },
+      { label: 'Uma reunião tranquila de barba e cerveja', collection: 'bear' },
+      { label: 'Qualquer uma, contanto que ninguém julgue', collection: 'diversidade' },
+    ],
+  },
+  {
+    id: 13,
+    text: 'O que mais te define hoje?',
+    options: [
+      { label: 'Minha ancestralidade e de onde eu vim', collection: 'raca' },
+      { label: 'Minha recusa em ser categorizado(a)', collection: 'queer' },
+      { label: 'Meu orgulho, sem filtro nenhum', collection: 'pride' },
+      { label: 'Minha capacidade de rir de tudo, inclusive de mim', collection: 'ironicas' },
+    ],
+  },
+  {
+    id: 14,
+    text: 'Sua estampa ideal tem que ter...',
+    options: [
+      { label: 'Referência pop que só quem é da cena entende', collection: 'cultura-pop' },
+      { label: 'Algo com couro, corrente ou provocação', collection: 'fetiche' },
+      { label: 'Cor forte que não passa despercebida', collection: 'pride' },
+      { label: 'Uma mistura de tudo, sem regra fixa', collection: 'diversidade' },
+    ],
+  },
+  {
+    id: 15,
+    text: 'Qual desses papos você puxaria primeiro?',
+    options: [
+      { label: 'Cultura ursina e a comunidade bear', collection: 'bear' },
+      { label: 'Política de representatividade racial', collection: 'raca' },
+      { label: 'Aquele meme/ícone pop que ninguém esquece', collection: 'cultura-pop' },
+      { label: 'A última cena que te tirou do armário mental', collection: 'queer' },
+    ],
+  },
+  {
+    id: 16,
+    text: 'Como você reage a preconceito?',
+    options: [
+      { label: 'Com deboche afiado, sem dar trabalho', collection: 'ironicas' },
+      { label: 'Erguendo a bandeira mais alto ainda', collection: 'pride' },
+      { label: 'Lembrando de onde vim e seguindo em frente', collection: 'raca' },
+      { label: 'Simplesmente não cabendo na caixinha deles', collection: 'diversidade' },
+    ],
+  },
+  {
+    id: 17,
+    text: 'Seu jeito de paquerar é...',
+    options: [
+      { label: 'Direto, provocante, sem rodeios', collection: 'fetiche' },
+      { label: 'Tranquilo, caseiro, sem pressa', collection: 'bear' },
+      { label: 'Ambíguo de propósito, ninguém te encaixa', collection: 'queer' },
+      { label: 'Engraçado — rir junto é meu flerte favorito', collection: 'ironicas' },
+    ],
+  },
+  {
+    id: 18,
+    text: 'Se você fosse uma camiseta, seria a que...',
+    options: [
+      { label: 'Tem uma referência pop escondida', collection: 'cultura-pop' },
+      { label: 'Grita orgulho de longe', collection: 'pride' },
+      { label: 'Ninguém sabe definir de primeira', collection: 'diversidade' },
+      { label: 'Faz todo mundo rir e se identificar', collection: 'ironicas' },
+    ],
+  },
 ]
+
+// Sorteia N perguntas do banco (sem repetir), embaralhando também a ordem das opções de cada uma
+export function pickQuizQuestions(n = 9): QuizQuestion[] {
+  const shuffled = [...ALL_QUIZ_QUESTIONS].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, n).map((q) => ({
+    ...q,
+    options: [...q.options].sort(() => Math.random() - 0.5),
+  }))
+}
 
 export const QUIZ_RESULTS: Record<CollectionSlug, { title: string; tagline: string; description: string }> = {
   fetiche: {
