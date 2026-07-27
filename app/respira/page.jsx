@@ -231,8 +231,8 @@ export default function RespiraPage() {
                     setMilestonesMarked((cur) => [...cur, data]);
                   }
                 }}
-                onAddPlan={async (trigger_tag, substitute) => {
-                  const { data } = await supabase.from("quit_emergency_plans").insert({ user_id: session.user.id, trigger_tag, substitute }).select().single();
+                onAddPlan={async (trigger_tag, substitute, reminder_time) => {
+                  const { data } = await supabase.from("quit_emergency_plans").insert({ user_id: session.user.id, trigger_tag, substitute, reminder_time: reminder_time || null }).select().single();
                   setPlans((cur) => [...cur, data]);
                 }}
                 onRemovePlan={async (id) => {
@@ -461,13 +461,14 @@ function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cra
 // ---------- Painel ----------
 function PanelTab(props) {
   const {
-    profile, elapsedMin, dayNumber, cigsAvoided, moneySaved, co2Grams, lifeMinutes, cravingsSurvived,
+    profile, session, supabase, elapsedMin, dayNumber, cigsAvoided, moneySaved, co2Grams, lifeMinutes, cravingsSurvived,
     cravings, longestStreakDays, plans, milestonesMarked, movementLogs, selfesteemChecks,
     onToggleMilestone, onAddPlan, onRemovePlan, onLogMovement, onSelfesteemCheck, onOpenRelapse,
   } = props;
 
   const [planTrigger, setPlanTrigger] = useState(TRIGGER_OPTIONS[0].key);
   const [planSub, setPlanSub] = useState(SUBSTITUTE_OPTIONS[0].key);
+  const [planTime, setPlanTime] = useState("");
   const [movActivity, setMovActivity] = useState(MOVEMENT_ACTIVITIES[0].key);
   const [movMinutes, setMovMinutes] = useState(15);
   const [shareOpen, setShareOpen] = useState(false);
@@ -679,14 +680,20 @@ function PanelTab(props) {
       </div>
 
       <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">PLANO DE EMERGÊNCIA</p>
+        <div className="flex items-center justify-between mb-3">
+          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70">PLANO DE EMERGÊNCIA</p>
+          <PushToggleButton session={session} supabase={supabase} />
+        </div>
         <div className="space-y-2 mb-3">
           {plans.map((p) => {
             const t = TRIGGER_OPTIONS.find((x) => x.key === p.trigger_tag);
             const s = SUBSTITUTE_OPTIONS.find((x) => x.key === p.substitute);
             return (
               <div key={p.id} style={{ background: C.navySoft }} className="rounded-xl p-3 flex justify-between items-center">
-                <p className="text-sm">{t?.icon} {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
+                <div>
+                  <p className="text-sm">{t?.icon} {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
+                  {p.reminder_time && <p className="text-xs opacity-50 mt-0.5">🔔 lembrete às {p.reminder_time.slice(0, 5)}</p>}
+                </div>
                 <button onClick={() => onRemovePlan(p.id)} className="opacity-50">✕</button>
               </div>
             );
@@ -699,7 +706,11 @@ function PanelTab(props) {
           <select value={planSub} onChange={(e) => setPlanSub(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none">
             {SUBSTITUTE_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
-          <button onClick={() => onAddPlan(planTrigger, planSub)} style={{ color: C.red }} className="w-full text-sm py-1">+ adicionar</button>
+          <div>
+            <label className="text-xs opacity-60 block mb-1">horário do lembrete (opcional)</label>
+            <input type="time" value={planTime} onChange={(e) => setPlanTime(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none" />
+          </div>
+          <button onClick={() => { onAddPlan(planTrigger, planSub, planTime); setPlanTime(""); }} style={{ color: C.red }} className="w-full text-sm py-1">+ adicionar</button>
         </div>
       </div>
 
@@ -840,6 +851,91 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
   );
 }
 
+function PushToggleButton({ session, supabase }) {
+  const [status, setStatus] = useState("checking"); // checking | unsupported | denied | off | on | working
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setStatus("unsupported");
+      return;
+    }
+    if (Notification.permission === "denied") { setStatus("denied"); return; }
+    navigator.serviceWorker.getRegistration().then(async (reg) => {
+      if (!reg) { setStatus("off"); return; }
+      const sub = await reg.pushManager.getSubscription();
+      setStatus(sub ? "on" : "off");
+    });
+  }, []);
+
+  async function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+  }
+
+  async function activate() {
+    setStatus("working");
+    setError("");
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") { setStatus("denied"); return; }
+
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      const applicationServerKey = await urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "");
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
+
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      await fetch("/api/respira/push-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${freshSession?.access_token}` },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+      setStatus("on");
+    } catch (e) {
+      setError("Não foi possível ativar. Tenta de novo.");
+      setStatus("off");
+    }
+  }
+
+  async function deactivate() {
+    setStatus("working");
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        const { data: { session: freshSession } } = await supabase.auth.getSession();
+        await fetch("/api/respira/push-subscribe", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${freshSession?.access_token}` },
+          body: JSON.stringify({ endpoint }),
+        });
+      }
+      setStatus("off");
+    } catch (e) {
+      setStatus("on");
+    }
+  }
+
+  if (status === "unsupported") return null;
+  if (status === "denied") return <span className="text-[10px] opacity-40">notificações bloqueadas no navegador</span>;
+
+  return (
+    <div className="text-right">
+      <button onClick={status === "on" ? deactivate : activate} disabled={status === "working" || status === "checking"}
+        style={{ color: status === "on" ? "#4ade80" : C.gold }} className="text-xs underline">
+        {status === "working" ? "..." : status === "on" ? "🔔 lembretes ativados" : "🔕 ativar lembretes"}
+      </button>
+      {error && <p className="text-[10px] mt-1" style={{ color: C.red }}>{error}</p>}
+    </div>
+  );
+}
+
 function CommunityTab({ supabase, session, profile }) {
   const [posts, setPosts] = useState(null);
   const [reactions, setReactions] = useState({});
@@ -876,6 +972,7 @@ function CommunityTab({ supabase, session, profile }) {
       display_name: profile.display_name || session.user.user_metadata?.full_name || "Alguém da comunidade",
       photo_url: session.user.user_metadata?.avatar_url || null,
       content: content.trim(),
+      approved: false,
     }).select().single();
     setPosting(false);
     if (err) { setError("Não foi possível publicar. Tenta de novo."); return; }
@@ -902,7 +999,10 @@ function CommunityTab({ supabase, session, profile }) {
         <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={2} placeholder="Compartilha algo sobre o seu processo..."
           style={{ background: "transparent", color: C.cream, borderColor: C.line }} className="w-full outline-none resize-none text-sm border-b pb-2 placeholder-white/40" />
         {error && <p className="text-xs mt-2" style={{ color: C.red }}>{error}</p>}
-        <button onClick={submitPost} disabled={posting || !content.trim()} style={{ color: C.red, opacity: posting || !content.trim() ? 0.4 : 1 }} className="text-sm mt-2">publicar</button>
+        <div className="flex items-center justify-between mt-2">
+          <button onClick={submitPost} disabled={posting || !content.trim()} style={{ color: C.red, opacity: posting || !content.trim() ? 0.4 : 1 }} className="text-sm">publicar</button>
+          <span className="text-[10px] opacity-30">posts passam por moderação antes de aparecer pra todo mundo</span>
+        </div>
       </div>
 
       {posts === null ? (
@@ -913,12 +1013,14 @@ function CommunityTab({ supabase, session, profile }) {
         <div className="space-y-3">
           {posts.map((p) => {
             const canDelete = p.user_id === session.user.id || profile.is_admin;
+            const isPendingOwn = !p.approved && p.user_id === session.user.id;
             return (
-              <div key={p.id} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5">
+              <div key={p.id} style={{ background: C.navySoft, border: `1px solid ${isPendingOwn ? C.gold : C.line}`, opacity: isPendingOwn ? 0.75 : 1 }} className="rounded-xl p-3.5">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     {p.photo_url && <img src={p.photo_url} alt="" className="w-6 h-6 rounded-full" />}
                     <span className="text-xs opacity-70">{p.display_name}</span>
+                    {isPendingOwn && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${C.gold}22`, color: C.gold }}>aguardando aprovação</span>}
                   </div>
                   {canDelete && <button onClick={() => removePost(p.id)} className="text-xs opacity-40">excluir</button>}
                 </div>

@@ -4,9 +4,15 @@ import postgres from 'postgres'
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
 export async function GET() {
+  const pending = await sql`
+    SELECT id, user_id, display_name, content, created_at
+    FROM quit_forum_posts
+    WHERE approved = false
+    ORDER BY created_at ASC`
+
   const reported = await sql`
     SELECT
-      p.id, p.user_id, p.display_name, p.content, p.created_at,
+      p.id, p.user_id, p.display_name, p.content, p.created_at, p.approved,
       COUNT(r.id) as total_denuncias
     FROM quit_forum_posts p
     INNER JOIN quit_forum_reports r ON r.post_id = p.id
@@ -14,12 +20,20 @@ export async function GET() {
     ORDER BY total_denuncias DESC, p.created_at DESC`
 
   const allPosts = await sql`
-    SELECT id, user_id, display_name, content, created_at
+    SELECT id, user_id, display_name, content, created_at, approved
     FROM quit_forum_posts
+    WHERE approved = true
     ORDER BY created_at DESC
     LIMIT 50`
 
-  return NextResponse.json({ reported, allPosts })
+  return NextResponse.json({ pending, reported, allPosts })
+}
+
+export async function PATCH(request: NextRequest) {
+  const { post_id, approved } = await request.json()
+  if (!post_id) return NextResponse.json({ error: 'post_id obrigatório' }, { status: 400 })
+  await sql`UPDATE quit_forum_posts SET approved = ${approved} WHERE id = ${post_id}`
+  return NextResponse.json({ ok: true })
 }
 
 export async function DELETE(request: NextRequest) {

@@ -23,6 +23,7 @@ const cardStyle = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgb
 export default function RespiraAdminPage() {
   const [tab, setTab] = useState<'usuarios' | 'moderacao'>('usuarios')
   const [profiles, setProfiles] = useState<Profile[]>([])
+  const [pending, setPending] = useState<ForumPost[]>([])
   const [reported, setReported] = useState<ForumPost[]>([])
   const [allPosts, setAllPosts] = useState<ForumPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +37,7 @@ export default function RespiraAdminPage() {
       fetch('/api/admin/respira/forum').then(r => r.json()),
     ])
     setProfiles(p)
+    setPending(f.pending || [])
     setReported(f.reported || [])
     setAllPosts(f.allPosts || [])
     setLoading(false)
@@ -64,6 +66,16 @@ export default function RespiraAdminPage() {
     setDeleting(false)
   }
 
+  async function approvePost(post_id: number, approved: boolean) {
+    await fetch('/api/admin/respira/forum', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id, approved }),
+    })
+    setPending(cur => cur.filter(p => p.id !== post_id))
+    if (approved) load()
+  }
+
   async function deletePost(post_id: number) {
     await fetch('/api/admin/respira/forum', {
       method: 'DELETE',
@@ -86,7 +98,7 @@ export default function RespiraAdminPage() {
       </div>
 
       <div className="flex gap-1 mb-6" style={{ borderBottom: '1px solid rgba(212,168,67,.2)' }}>
-        {[['usuarios', `Usuários (${profiles.length})`], ['moderacao', `Moderação (${reported.length} denúncias)`]].map(([key, label]) => (
+        {[['usuarios', `Usuários (${profiles.length})`], ['moderacao', `Moderação (${pending.length} pendentes · ${reported.length} denúncias)`]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key as any)}
             className="px-4 py-2.5 text-sm font-bebas tracking-widest"
             style={{ color: tab === key ? 'var(--gold)' : 'rgba(242,235,217,.5)', borderBottom: tab === key ? '2px solid var(--gold)' : '2px solid transparent' }}>
@@ -138,6 +150,31 @@ export default function RespiraAdminPage() {
         </div>
       ) : (
         <div>
+          {pending.length > 0 && (
+            <div className="mb-8">
+              <p className="text-xs tracking-widest uppercase opacity-60 mb-3" style={{ color: 'var(--gold)' }}>⏳ Pendentes de aprovação</p>
+              <div className="space-y-2">
+                {pending.map(post => (
+                  <div key={post.id} style={{ ...cardStyle, borderColor: 'rgba(212,168,67,.4)' }} className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs opacity-70">{post.display_name || 'Alguém'}</span>
+                      <span className="text-xs opacity-40">{new Date(post.created_at).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <p className="text-sm mb-3">{post.content}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => approvePost(post.id, true)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: '#4ade80', color: 'var(--navy)' }}>
+                        APROVAR
+                      </button>
+                      <button onClick={() => { setPending(cur => cur.filter(p => p.id !== post.id)); deletePost(post.id); }} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ color: 'var(--red)', border: '1px solid rgba(192,40,28,.3)' }}>
+                        REJEITAR E EXCLUIR
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {reported.length > 0 && (
             <div className="mb-8">
               <p className="text-xs tracking-widest uppercase opacity-60 mb-3" style={{ color: 'var(--red)' }}>⚠ Posts denunciados</p>
