@@ -33,8 +33,9 @@ const playfair = { fontFamily: "var(--font-playfair)" };
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 
 async function shareText(text) {
-  if (navigator.share) {
-    try { await navigator.share({ text }); return; } catch (e) { /* usuário cancelou */ return; }
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile && navigator.share) {
+    try { await navigator.share({ text }); return; } catch (e) { /* usuário cancelou, cai no fallback abaixo */ }
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
