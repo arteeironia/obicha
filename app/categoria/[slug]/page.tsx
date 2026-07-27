@@ -19,9 +19,34 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 const supplierLabel = (s: string | null) => {
-  if (s === 'reserva-ink-dtf') return '✦ Reserva INK · DTG · Qualidade Reserva'
-  if (s === 'uma-penca-dtg') return '✦ Uma Penca · DTF · Qualidade Chico Rei'
+  if (s === 'reserva-ink-dtg') return '✦ Reserva INK · DTG · Qualidade Reserva'
+  if (s === 'uma-penca-dtf') return '✦ Uma Penca · DTF · Qualidade Chico Rei'
   return null
+}
+
+// Categoria (slug do site) -> nome do tipo de variante correspondente
+const CATEGORY_TO_VARIANT_TYPE: Record<string, string> = {
+  camisetas: 'Camiseta',
+  estonada: 'Estonada',
+  dryfit: 'Dry Fit',
+  modal: 'Modal Tech',
+  peruano: 'Camiseta Algodão Peruano',
+  oversized: 'Camiseta Oversized',
+  regata: 'Regata',
+  cropped: 'Cropped',
+  'cropped-moletom': 'Cropped Moletom',
+  infantil: 'Camiseta Infantil',
+  hoodie: 'Hoodie Moletom',
+  sueter: 'Suéter Moletom',
+  bones: 'Boné',
+  canecas: 'Caneca',
+  ecobags: 'Ecobag',
+  bottoms: 'Kit de Bottons',
+}
+
+function parseVariants(mv: any): { type: string; price: string; link: string }[] {
+  if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
+  return Array.isArray(mv) ? mv : []
 }
 
 export default async function CategoriaPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -30,7 +55,14 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
   const [category] = await sql`SELECT * FROM categories WHERE value = ${slug} AND active = true`
   if (!category) notFound()
 
-  const products = await sql`SELECT * FROM products WHERE category = ${slug} ORDER BY created_at DESC`
+  const variantType = CATEGORY_TO_VARIANT_TYPE[slug]
+  const products = variantType
+    ? await sql`
+        SELECT * FROM products
+        WHERE category = ${slug}
+           OR manual_variants @> ${JSON.stringify([{ type: variantType }])}::jsonb
+        ORDER BY created_at DESC`
+    : await sql`SELECT * FROM products WHERE category = ${slug} ORDER BY created_at DESC`
   const allCategories = await sql`SELECT * FROM categories WHERE active = true ORDER BY position ASC`
 
   return (
@@ -96,24 +128,33 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
           </div>
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:'2rem', maxWidth:1200, marginBottom:'5rem' }}>
-            {(products as any[]).map((p: any) => (
+            {(products as any[]).map((p: any) => {
+              const variants = parseVariants(p.manual_variants)
+              const matchedVariant = variantType ? variants.find(v => v.type === variantType) : null
+              const displayPrice = matchedVariant?.price || p.price
+              const displayLink = matchedVariant?.link || p.link
+              return (
               <div key={p.id} className="product-card">
                 {p.image_url
                   ? <img src={p.image_url} alt={p.name} style={{ width:'100%', aspectRatio:1, objectFit:'cover', display:'block' }} />
                   : <div style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', fontSize:'3rem', opacity:.3 }}>👕</div>
                 }
                 <div style={{ padding:'1.2rem' }}>
+                  {matchedVariant && (
+                    <div style={{ fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:'var(--gold)', marginBottom:'.3rem' }}>{matchedVariant.type}</div>
+                  )}
                   <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.5rem', lineHeight:1.3 }}>{p.name}</div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'.5rem' }}>
-                    <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                    <a href={p.link} target="_blank" className="btn-loja">Ver na loja</a>
+                    <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{displayPrice}</span>
+                    <a href={displayLink} target="_blank" className="btn-loja">Ver na loja</a>
                   </div>
                   {supplierLabel(p.supplier) && (
                     <p style={{ fontSize:'.68rem', color:'rgba(212,168,67,.4)', letterSpacing:'.5px' }}>{supplierLabel(p.supplier)}</p>
                   )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
 

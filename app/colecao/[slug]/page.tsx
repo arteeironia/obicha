@@ -106,7 +106,11 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
           </div>
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:'2rem', maxWidth:1200 }}>
-            {products.map((p: any) => (
+            {products.map((p: any) => {
+              let variants: any[] = p.manual_variants
+              if (typeof variants === 'string') { try { variants = JSON.parse(variants) } catch { variants = [] } }
+              if (!Array.isArray(variants)) variants = []
+              return (
               <div key={p.id} className="product-card">
                 {p.image_url
                   ? <img src={p.image_url} alt={p.name} style={{ width:'100%', aspectRatio:1, objectFit:'cover', display:'block' }} />
@@ -115,13 +119,22 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
                 <div style={{ padding:'1.2rem' }}>
                   <div style={{ fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:'var(--gold)', marginBottom:'.3rem' }}>{catLabel(p.category)}</div>
                   <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                    <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                    <a href={p.link} target="_blank" className="btn-loja">Ver na loja</a>
-                  </div>
+                  {variants.length > 0 ? (
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
+                      {variants.map((v: any, i: number) => (
+                        <a key={i} href={v.link || p.link} target="_blank" className="btn-loja" title={v.price}>{v.type}</a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
+                      <a href={p.link} target="_blank" className="btn-loja">Ver na loja</a>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
