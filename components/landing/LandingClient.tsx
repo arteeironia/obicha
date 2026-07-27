@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { hasAnalyticsConsent } from '@/lib/cookie-consent'
 
 type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; collections?: { id: number; name: string; slug: string }[]; manual_variants?: any }
 type Category = { id: number; value: string; label: string; active: boolean }
@@ -33,6 +34,7 @@ function getEmbedHTML(post: SocialPost) {
 }
 
 function trackProductClick(label: string) {
+  if (!hasAnalyticsConsent()) return
   fetch('/api/analytics', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -481,6 +483,8 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <a href="/parcerias" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Parcerias</a>
             <span style={{ color:'rgba(242,235,217,.15)' }}>·</span>
             <a href="/projeto-social" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Projeto Social</a>
+            <span style={{ color:'rgba(242,235,217,.15)' }}>·</span>
+            <a href="/politica-de-privacidade" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Política de Privacidade</a>
           </div>
         </footer>
       </div>
