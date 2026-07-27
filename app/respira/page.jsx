@@ -30,6 +30,19 @@ const C = { cream: "#F5EFE4", navy: "#101B2D", navySoft: "#1B2A42", red: "#C63B3
 const bebas = { fontFamily: "var(--font-bebas)" };
 const playfair = { fontFamily: "var(--font-playfair)" };
 
+function ShareRow({ text }) {
+  const encoded = encodeURIComponent(text);
+  const linkStyle = { flex: 1, textAlign: "center", padding: ".6rem .4rem", borderRadius: 8, fontSize: ".7rem", ...bebas, letterSpacing: 0.5, textDecoration: "none" };
+  return (
+    <div style={{ display: "flex", gap: ".5rem" }}>
+      <a href={`https://www.threads.net/intent/post?text=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>Threads</a>
+      <a href={`https://twitter.com/intent/tweet?text=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>X</a>
+      <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://obicha.com.br/respira")}&quote=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>Facebook</a>
+      <a href={`https://wa.me/?text=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>WhatsApp</a>
+    </div>
+  );
+}
+
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 
 async function shareText(text) {
@@ -1055,10 +1068,9 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
             <button onClick={() => setIntensity("media")} style={{ background: C.navySoft }} className="w-full rounded-xl py-3.5 text-sm">😣 Média</button>
             <button onClick={() => setIntensity("forte")} style={{ background: C.navySoft }} className="w-full rounded-xl py-3.5 text-sm">😭 Muito forte</button>
           </div>
-          <button onClick={() => shareText("Estou na fissura de cigarro, me ajuda? Vamos conversar..")} style={{ color: C.gold }} className="w-full text-xs underline py-3 mt-1">
-            📱 pedir ajuda a alguém agora
-          </button>
-          <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-1">fechar</button>
+          <p style={{ ...bebas, letterSpacing: 1 }} className="text-[10px] opacity-40 text-center mb-2 mt-3">OU PEDE AJUDA A ALGUÉM AGORA</p>
+          <ShareRow text="Estou na fissura de cigarro, me ajuda? Vamos conversar.." />
+          <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-1 mt-3">fechar</button>
         </div>
       </div>
     );
@@ -1210,9 +1222,8 @@ function RelapseModal({ onClose, onChoose }) {
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="quer contar mais alguma coisa? (opcional)"
           style={{ background: C.navySoft, color: C.cream }} className="w-full rounded-xl px-3 py-2.5 mb-3 outline-none resize-none text-sm placeholder-white/40" />
 
-        <button onClick={() => shareText("Tive uma recaída. Pode conversar comigo um pouco?")} style={{ color: C.gold }} className="w-full text-xs underline py-2 mb-4">
-          📱 contar pra alguém agora
-        </button>
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-[10px] opacity-40 text-center mb-2">CONTAR PRA ALGUÉM AGORA</p>
+        <div className="mb-4"><ShareRow text="Tive uma recaída. Pode conversar comigo um pouco?" /></div>
 
         {confirming === null && (
           <div className="space-y-2">
