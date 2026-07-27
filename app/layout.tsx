@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Bebas_Neue, Playfair_Display, DM_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
 import Script from 'next/script'
+import PageViewTracker from '@/components/PageViewTracker'
 import './globals.css'
 
 const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--font-bebas', display: 'swap' })
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${bebasNeue.variable} ${playfairDisplay.variable} ${dmSans.variable}`}>
         {children}
+        <PageViewTracker />
         <Analytics />
       </body>
     </html>

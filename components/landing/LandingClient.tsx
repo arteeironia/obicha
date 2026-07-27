@@ -32,6 +32,15 @@ function getEmbedHTML(post: SocialPost) {
   return `<a href="${post.url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--gold);font-family:var(--font-bebas);letter-spacing:2px;">VER POST ↗</a>`
 }
 
+function trackProductClick(label: string) {
+  fetch('/api/analytics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event_type: 'product_click', label, path: typeof window !== 'undefined' ? window.location.pathname : null }),
+    keepalive: true,
+  }).catch(() => {})
+}
+
 export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, highlights, categories }: Props) {
   const instagramUrl = siteConfig.instagram_url || 'https://www.instagram.com/obicha_camisetas/'
   const tiktokUrl = siteConfig.tiktok_url || 'https://www.tiktok.com/@obicha_camisetas'
@@ -330,6 +339,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                           {variants.map((v, i) => (
                             <div key={i} className="variant-badge-wrap" style={{ position:'relative', display:'inline-block' }}>
                               <a href={v.link || p.link} target="_blank"
+                                onClick={() => trackProductClick(`${p.name} — ${v.type}`)}
                                 style={{ display:'block', padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
                                 onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
                                 onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
@@ -347,7 +357,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                     return (
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                         <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                        <a href={p.link} target="_blank" style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                        <a href={p.link} target="_blank" onClick={() => trackProductClick(p.name)} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
                           onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
                           onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
                         >Ver na loja</a>
