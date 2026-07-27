@@ -1,5 +1,0 @@
-version: STSv1
-   mode: testing
-   mx: mx1.improvmx.com
-   mx: mx2.improvmx.com
-   max_age: 86400
