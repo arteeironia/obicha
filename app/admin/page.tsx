@@ -125,7 +125,8 @@ export default function AdminDashboard() {
               <QuickLink href="/admin/comentarios" label="Comentários" icon="💬" />
               <QuickLink href="/admin/links" label="Links" icon="🔗" />
               <QuickLink href="/admin/site-config" label="Links do Site" icon="⚙️" />
-              <QuickLink href="/respira" label="App Respira" icon="🫁" />
+              <QuickLink href="/admin/respira" label="Respira — Gerenciar" icon="🫁" />
+              <QuickLink href="/respira" label="Abrir App Respira" icon="↗" />
             </div>
           </div>
         </>

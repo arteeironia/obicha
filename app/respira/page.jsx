@@ -252,6 +252,19 @@ export default function RespiraPage() {
                 }}
                 onRereadWelcome={() => setWelcomeOpen(true)}
                 onSignOut={() => supabase.auth.signOut()}
+                onDeleteAccount={async () => {
+                  const { data: { session: freshSession } } = await supabase.auth.getSession();
+                  const res = await fetch("/api/respira/delete-account", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${freshSession?.access_token}` },
+                  });
+                  const result = await res.json();
+                  if (result.ok) {
+                    await supabase.auth.signOut();
+                    window.location.href = "/respira";
+                  }
+                  return result;
+                }}
               />
             )}
 
@@ -919,11 +932,25 @@ function CommunityTab({ supabase, session, profile }) {
   );
 }
 
-function ConfigTab({ profile, onSave, onRereadWelcome, onSignOut }) {
+function ConfigTab({ profile, onSave, onRereadWelcome, onSignOut, onDeleteAccount }) {
   const [cigsPerDay, setCigsPerDay] = useState(profile.cigs_per_day);
   const [pricePerPack, setPricePerPack] = useState(profile.price_per_pack);
   const [cigsPerPack, setCigsPerPack] = useState(profile.cigs_per_pack);
   const [why, setWhy] = useState(profile.why_text || "");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError("");
+    const result = await onDeleteAccount();
+    if (!result?.ok) {
+      setDeleteError("Não foi possível excluir agora. Tenta de novo em instantes.");
+      setDeleting(false);
+    }
+    // se deu certo, a própria função onDeleteAccount já redireciona
+  }
 
   return (
     <div>
@@ -941,7 +968,28 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onSignOut }) {
         style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-6">SALVAR</button>
 
       <button onClick={onRereadWelcome} style={{ color: C.gold }} className="w-full text-sm py-2 mb-2 underline">reler minha decisão de parar</button>
-      <button onClick={onSignOut} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2 mb-8 underline">sair da conta</button>
+      <button onClick={onSignOut} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2 mb-6 underline">sair da conta</button>
+
+      <div style={{ borderTop: `1px solid ${C.line}` }} className="pt-5 mb-6">
+        {!confirmingDelete ? (
+          <button onClick={() => setConfirmingDelete(true)} style={{ color: C.red, opacity: 0.7 }} className="w-full text-sm py-2 underline">
+            quero sair do app e excluir meu registro
+          </button>
+        ) : (
+          <div style={{ background: `${C.red}15`, border: `1px solid ${C.red}` }} className="rounded-xl p-4">
+            <p className="text-sm mb-2">Isso apaga permanentemente seus dias contados, fissuras registradas, plano de emergência e sua conta de login. Não tem como desfazer.</p>
+            {deleteError && <p className="text-xs mb-2" style={{ color: C.red }}>{deleteError}</p>}
+            <div className="flex gap-2">
+              <button onClick={handleDelete} disabled={deleting} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1, opacity: deleting ? 0.6 : 1 }} className="flex-1 rounded-full py-2.5 text-sm">
+                {deleting ? "EXCLUINDO..." : "SIM, EXCLUIR TUDO"}
+              </button>
+              <button onClick={() => setConfirmingDelete(false)} disabled={deleting} style={{ color: C.cream, opacity: 0.6 }} className="flex-1 text-sm">
+                cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <p className="text-[11px] opacity-30 text-center mb-2">v2 · Ô bicha!</p>
     </div>
