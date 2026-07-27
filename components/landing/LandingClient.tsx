@@ -51,11 +51,18 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [search, setSearch] = useState('')
+  const [displayProducts, setDisplayProducts] = useState(products)
+
+  // Embaralha a ordem dos produtos só depois de montado no navegador — cada visita mostra uma ordem diferente,
+  // sem causar erro de hidratação (o servidor e o primeiro render do cliente continuam iguais)
+  useEffect(() => {
+    setDisplayProducts([...products].sort(() => Math.random() - 0.5))
+  }, [products])
 
   const catLabel = (cat: string) => categories.find(c => c.value === cat)?.label || cat
   const categoryValues = ['todos', ...categories.map(c => c.value)]
 
-  const filteredProducts = products.filter(p =>
+  const filteredProducts = displayProducts.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase())
   )
 
