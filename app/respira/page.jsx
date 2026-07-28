@@ -154,145 +154,147 @@ export default function RespiraPage() {
       <SiteHeader menuOpen={menuOpen} setMenuOpen={setMenuOpen} onSignOut={() => supabase.auth.signOut()} />
 
       <div className="max-w-md mx-auto px-5 pb-32 pt-6">
-        {isFuture ? (
-          <>
-            <CountdownView quitAt={quitAt} now={now} />
-            <EmphasisDisclaimer />
-          </>
-        ) : (
-          <>
-            <div className="flex gap-1 mb-6" style={{ borderBottom: `1px solid ${C.line}` }}>
-              {[["hoje", "Hoje"], ["painel", "Painel"], ["aprenda", "Aprenda"], ["comunidade", "Comunidade"], ["config", "Config"]].map(([key, label]) => (
-                <button key={key} onClick={() => setTab(key)}
-                  style={{ ...bebas, letterSpacing: 0.5, color: tab === key ? C.red : C.cream, opacity: tab === key ? 1 : 0.5, borderBottom: tab === key ? `2px solid ${C.red}` : "2px solid transparent" }}
-                  className="flex-1 text-xs pb-2.5 pt-1">
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {tab === "hoje" && (
-              <TodayTab
-                profile={profile}
-                dayNumber={dayNumber}
-                elapsedMin={elapsedMin}
-                cigsAvoided={cigsAvoided}
-                moneySaved={moneySaved}
-                cravingsSurvived={cravingsSurvived}
-                dailyState={dailyState}
-                onToggleMission={async (mission) => {
-                  const done = dailyState?.missions_done || [];
-                  const next = done.includes(mission) ? done.filter((m) => m !== mission) : [...done, mission];
-                  const { data } = await supabase.from("quit_daily_state")
-                    .upsert({ user_id: session.user.id, day_key: dayKey(), missions_done: next, mood: dailyState?.mood, diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
-                    .select().single();
-                  setDailyState(data);
-                }}
-                onSetMood={async (mood) => {
-                  const { data } = await supabase.from("quit_daily_state")
-                    .upsert({ user_id: session.user.id, day_key: dayKey(), mood, missions_done: dailyState?.missions_done || [], diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
-                    .select().single();
-                  setDailyState(data);
-                }}
-                onSaveDiary={async (text) => {
-                  const { data } = await supabase.from("quit_daily_state")
-                    .upsert({ user_id: session.user.id, day_key: dayKey(), diary_text: text, missions_done: dailyState?.missions_done || [], mood: dailyState?.mood }, { onConflict: "user_id,day_key" })
-                    .select().single();
-                  setDailyState(data);
-                }}
-              />
-            )}
-
-            {tab === "painel" && (
-              <PanelTab
-                profile={profile}
-                session={session}
-                supabase={supabase}
-                elapsedMin={elapsedMin}
-                dayNumber={dayNumber}
-                cigsAvoided={cigsAvoided}
-                moneySaved={moneySaved}
-                co2Grams={co2Grams}
-                lifeMinutes={lifeMinutes}
-                cravingsSurvived={cravingsSurvived}
-                cravings={cravings}
-                longestStreakDays={longestStreakDays}
-                plans={plans}
-                milestonesMarked={milestonesMarked}
-                movementLogs={movementLogs}
-                selfesteemChecks={selfesteemChecks}
-                onToggleMilestone={async (key) => {
-                  const has = milestonesMarked.some((m) => m.milestone_key === key);
-                  if (has) {
-                    await supabase.from("quit_milestones_marked").delete().eq("user_id", session.user.id).eq("milestone_key", key);
-                    setMilestonesMarked((cur) => cur.filter((m) => m.milestone_key !== key));
-                  } else {
-                    const { data } = await supabase.from("quit_milestones_marked").insert({ user_id: session.user.id, milestone_key: key }).select().single();
-                    setMilestonesMarked((cur) => [...cur, data]);
-                  }
-                }}
-                onAddPlan={async (trigger_tag, substitute, reminder_time) => {
-                  const { data } = await supabase.from("quit_emergency_plans").insert({ user_id: session.user.id, trigger_tag, substitute, reminder_time: reminder_time || null }).select().single();
-                  setPlans((cur) => [...cur, data]);
-                }}
-                onRemovePlan={async (id) => {
-                  await supabase.from("quit_emergency_plans").delete().eq("id", id);
-                  setPlans((cur) => cur.filter((p) => p.id !== id));
-                }}
-                onLogMovement={async (activity, minutes) => {
-                  const { data } = await supabase.from("quit_movement_logs").insert({ user_id: session.user.id, activity, minutes }).select().single();
-                  setMovementLogs((cur) => [data, ...cur]);
-                }}
-                onSelfesteemCheck={async (rating) => {
-                  const { data } = await supabase.from("quit_selfesteem_checks")
-                    .upsert({ user_id: session.user.id, week_key: weekKey(), rating }, { onConflict: "user_id,week_key" })
-                    .select().single();
-                  setSelfesteemChecks((cur) => [...cur.filter((c) => c.week_key !== data.week_key), data]);
-                }}
-                onOpenRelapse={() => setRelapseOpen(true)}
-              />
-            )}
-
-            {tab === "aprenda" && <AprendaTab />}
-
-            {tab === "comunidade" && <CommunityTab supabase={supabase} session={session} profile={profile} />}
-
-            {tab === "config" && (
-              <ConfigTab
-                profile={profile}
-                onSave={async (fields) => {
-                  await supabase.from("quit_profiles").update(fields).eq("user_id", session.user.id);
-                  setProfile((p) => ({ ...p, ...fields }));
-                }}
-                onRereadWelcome={() => setWelcomeOpen(true)}
-                onSignOut={() => supabase.auth.signOut()}
-                onDeleteAccount={async () => {
-                  const { data: { session: freshSession } } = await supabase.auth.getSession();
-                  const res = await fetch("/api/respira/delete-account", {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${freshSession?.access_token}` },
-                  });
-                  const result = await res.json();
-                  if (result.ok) {
-                    await supabase.auth.signOut();
-                    window.location.href = "/respira";
-                  }
-                  return result;
-                }}
-              />
-            )}
-
-            <EmphasisDisclaimer />
-          </>
+        {isFuture && (
+          <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}` }} className="rounded-2xl p-3.5 mb-5 text-center">
+            <p className="text-sm">
+              Sua contagem de dias começa em <span style={{ color: C.gold, ...bebas }}>{new Date(quitAt).toLocaleDateString("pt-BR")}</span>. Até lá, aproveita pra explorar o app, montar seu plano e conhecer a comunidade.
+            </p>
+          </div>
         )}
+
+        <div className="flex gap-1 mb-6" style={{ borderBottom: `1px solid ${C.line}` }}>
+          {[["hoje", "Hoje"], ["painel", "Painel"], ["aprenda", "Aprenda"], ["comunidade", "Comunidade"], ["config", "Config"]].map(([key, label]) => (
+            <button key={key} onClick={() => setTab(key)}
+              style={{ ...bebas, letterSpacing: 0.5, color: tab === key ? C.red : C.cream, opacity: tab === key ? 1 : 0.5, borderBottom: tab === key ? `2px solid ${C.red}` : "2px solid transparent" }}
+              className="flex-1 text-xs pb-2.5 pt-1">
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "hoje" && (
+          isFuture ? (
+            <CountdownView quitAt={quitAt} now={now} />
+          ) : (
+            <TodayTab
+              profile={profile}
+              dayNumber={dayNumber}
+              elapsedMin={elapsedMin}
+              cigsAvoided={cigsAvoided}
+              moneySaved={moneySaved}
+              cravingsSurvived={cravingsSurvived}
+              dailyState={dailyState}
+              onToggleMission={async (mission) => {
+                const done = dailyState?.missions_done || [];
+                const next = done.includes(mission) ? done.filter((m) => m !== mission) : [...done, mission];
+                const { data } = await supabase.from("quit_daily_state")
+                  .upsert({ user_id: session.user.id, day_key: dayKey(), missions_done: next, mood: dailyState?.mood, diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
+                  .select().single();
+                setDailyState(data);
+              }}
+              onSetMood={async (mood) => {
+                const { data } = await supabase.from("quit_daily_state")
+                  .upsert({ user_id: session.user.id, day_key: dayKey(), mood, missions_done: dailyState?.missions_done || [], diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
+                  .select().single();
+                setDailyState(data);
+              }}
+              onSaveDiary={async (text) => {
+                const { data } = await supabase.from("quit_daily_state")
+                  .upsert({ user_id: session.user.id, day_key: dayKey(), diary_text: text, missions_done: dailyState?.missions_done || [], mood: dailyState?.mood }, { onConflict: "user_id,day_key" })
+                  .select().single();
+                setDailyState(data);
+              }}
+            />
+          )
+        )}
+
+        {tab === "painel" && (
+          <PanelTab
+            profile={profile}
+            session={session}
+            supabase={supabase}
+            elapsedMin={elapsedMin}
+            dayNumber={dayNumber}
+            cigsAvoided={cigsAvoided}
+            moneySaved={moneySaved}
+            co2Grams={co2Grams}
+            lifeMinutes={lifeMinutes}
+            cravingsSurvived={cravingsSurvived}
+            cravings={cravings}
+            longestStreakDays={longestStreakDays}
+            plans={plans}
+            milestonesMarked={milestonesMarked}
+            movementLogs={movementLogs}
+            selfesteemChecks={selfesteemChecks}
+            onToggleMilestone={async (key) => {
+              const has = milestonesMarked.some((m) => m.milestone_key === key);
+              if (has) {
+                await supabase.from("quit_milestones_marked").delete().eq("user_id", session.user.id).eq("milestone_key", key);
+                setMilestonesMarked((cur) => cur.filter((m) => m.milestone_key !== key));
+              } else {
+                const { data } = await supabase.from("quit_milestones_marked").insert({ user_id: session.user.id, milestone_key: key }).select().single();
+                setMilestonesMarked((cur) => [...cur, data]);
+              }
+            }}
+            onAddPlan={async (trigger_tag, substitute, reminder_time) => {
+              const { data } = await supabase.from("quit_emergency_plans").insert({ user_id: session.user.id, trigger_tag, substitute, reminder_time: reminder_time || null }).select().single();
+              setPlans((cur) => [...cur, data]);
+            }}
+            onRemovePlan={async (id) => {
+              await supabase.from("quit_emergency_plans").delete().eq("id", id);
+              setPlans((cur) => cur.filter((p) => p.id !== id));
+            }}
+            onLogMovement={async (activity, minutes) => {
+              const { data } = await supabase.from("quit_movement_logs").insert({ user_id: session.user.id, activity, minutes }).select().single();
+              setMovementLogs((cur) => [data, ...cur]);
+            }}
+            onSelfesteemCheck={async (rating) => {
+              const { data } = await supabase.from("quit_selfesteem_checks")
+                .upsert({ user_id: session.user.id, week_key: weekKey(), rating }, { onConflict: "user_id,week_key" })
+                .select().single();
+              setSelfesteemChecks((cur) => [...cur.filter((c) => c.week_key !== data.week_key), data]);
+            }}
+            onOpenRelapse={() => setRelapseOpen(true)}
+          />
+        )}
+
+        {tab === "aprenda" && <AprendaTab />}
+
+        {tab === "comunidade" && <CommunityTab supabase={supabase} session={session} profile={profile} />}
+
+        {tab === "config" && (
+          <ConfigTab
+            profile={profile}
+            onSave={async (fields) => {
+              await supabase.from("quit_profiles").update(fields).eq("user_id", session.user.id);
+              setProfile((p) => ({ ...p, ...fields }));
+            }}
+            onRereadWelcome={() => setWelcomeOpen(true)}
+            onSignOut={() => supabase.auth.signOut()}
+            onDeleteAccount={async () => {
+              const { data: { session: freshSession } } = await supabase.auth.getSession();
+              const res = await fetch("/api/respira/delete-account", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${freshSession?.access_token}` },
+              });
+              const result = await res.json();
+              if (result.ok) {
+                await supabase.auth.signOut();
+                window.location.href = "/respira";
+              }
+              return result;
+            }}
+          />
+        )}
+
+        <EmphasisDisclaimer />
       </div>
 
-      {!isFuture && (
-        <button onClick={() => setSosOpen(true)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-full shadow-lg shadow-black/40 text-lg active:scale-95 transition-transform">
-          BATEU A VONTADE
-        </button>
-      )}
+      <button onClick={() => setSosOpen(true)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-full shadow-lg shadow-black/40 text-lg active:scale-95 transition-transform">
+        BATEU A VONTADE
+      </button>
+
 
       {sosOpen && (
         <SOSModal
@@ -731,17 +733,102 @@ function PanelTab(props) {
 
 function AprendaTab() {
   const [open, setOpen] = useState(null);
+  const [content, setContent] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/respira/content")
+      .then((r) => r.json())
+      .then(setContent)
+      .catch(() => setContent([]));
+  }, []);
+
+  const videos = (content || []).filter((c) => c.type === "video");
+  const textos = (content || []).filter((c) => c.type === "texto");
+  const materias = (content || []).filter((c) => c.type === "materia");
+
+  function youtubeEmbed(url) {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+    return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+  }
+
   return (
-    <div className="space-y-2">
-      {LEARN_CARDS.map((c, i) => (
-        <div key={i} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5">
-          <button onClick={() => setOpen(open === i ? null : i)} className="w-full text-left flex justify-between items-center">
-            <span className="text-sm">{c.title}</span>
-            <span className="opacity-50">{open === i ? "−" : "+"}</span>
-          </button>
-          {open === i && <p className="text-sm opacity-70 mt-2 leading-relaxed">{c.text}</p>}
+    <div>
+      {videos.length > 0 && (
+        <div className="mb-8">
+          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">VÍDEOS</p>
+          <div className="space-y-4">
+            {videos.map((v) => {
+              const embed = youtubeEmbed(v.url || "");
+              return (
+                <div key={v.id} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl overflow-hidden">
+                  {embed ? (
+                    <div style={{ position: "relative", paddingTop: "56.25%" }}>
+                      <iframe src={embed} title={v.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} allowFullScreen />
+                    </div>
+                  ) : (
+                    <a href={v.url} target="_blank" style={{ display: "block", padding: "1rem", color: C.gold }} className="text-sm">
+                      ▶ assistir vídeo ↗
+                    </a>
+                  )}
+                  <div className="p-3.5">
+                    <p className="text-sm font-bold">{v.title}</p>
+                    {v.description && <p className="text-xs opacity-60 mt-1">{v.description}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      ))}
+      )}
+
+      {textos.length > 0 && (
+        <div className="mb-8">
+          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">TEXTOS</p>
+          <div className="space-y-2">
+            {textos.map((t) => (
+              <div key={t.id} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5">
+                <button onClick={() => setOpen(open === `t${t.id}` ? null : `t${t.id}`)} className="w-full text-left flex justify-between items-center">
+                  <span className="text-sm font-bold">{t.title}</span>
+                  <span className="opacity-50">{open === `t${t.id}` ? "−" : "+"}</span>
+                </button>
+                {open === `t${t.id}` && (
+                  <div className="mt-2 text-sm opacity-80 leading-relaxed whitespace-pre-line">{t.body}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {materias.length > 0 && (
+        <div className="mb-8">
+          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MATÉRIAS</p>
+          <div className="space-y-2">
+            {materias.map((m) => (
+              <a key={m.id} href={m.url} target="_blank" style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="block rounded-xl p-3.5">
+                <p className="text-sm font-bold">{m.title}</p>
+                {m.description && <p className="text-xs opacity-60 mt-1">{m.description}</p>}
+                {m.source && <p className="text-xs mt-1" style={{ color: C.gold }}>{m.source} ↗</p>}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">SABIA QUE...</p>
+        <div className="space-y-2">
+          {LEARN_CARDS.map((c, i) => (
+            <div key={i} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5">
+              <button onClick={() => setOpen(open === i ? null : i)} className="w-full text-left flex justify-between items-center">
+                <span className="text-sm">{c.title}</span>
+                <span className="opacity-50">{open === i ? "−" : "+"}</span>
+              </button>
+              {open === i && <p className="text-sm opacity-70 mt-2 leading-relaxed">{c.text}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1137,6 +1224,186 @@ function Stat({ label, value }) {
 }
 
 // ---------- SOS por intensidade ----------
+// ---------- Jogo da memória ----------
+function MemoryGame() {
+  const [images, setImages] = useState(null);
+  const [cards, setCards] = useState([]);
+  const [flipped, setFlipped] = useState([]);
+  const [matched, setMatched] = useState([]);
+  const [moves, setMoves] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/respira/game-images?count=6")
+      .then((r) => r.json())
+      .then((data) => {
+        setImages(data);
+        const pairs = [...data, ...data]
+          .map((img, i) => ({ ...img, cardId: i }))
+          .sort(() => Math.random() - 0.5);
+        setCards(pairs);
+      })
+      .catch(() => setImages([]));
+  }, []);
+
+  function flip(cardId) {
+    if (flipped.length === 2) return;
+    if (flipped.includes(cardId) || matched.includes(cardId)) return;
+    const next = [...flipped, cardId];
+    setFlipped(next);
+    if (next.length === 2) {
+      setMoves((m) => m + 1);
+      const [a, b] = next;
+      const cardA = cards.find((c) => c.cardId === a);
+      const cardB = cards.find((c) => c.cardId === b);
+      if (cardA.id === cardB.id) {
+        setTimeout(() => {
+          setMatched((cur) => [...cur, a, b]);
+          setFlipped([]);
+        }, 500);
+      } else {
+        setTimeout(() => setFlipped([]), 900);
+      }
+    }
+  }
+
+  if (images === null) return <p className="text-sm opacity-50 text-center py-8">carregando…</p>;
+  if (images.length < 6) return <p className="text-sm opacity-50 text-center py-8">precisa de mais produtos cadastrados pra montar o jogo</p>;
+
+  const won = matched.length === cards.length && cards.length > 0;
+
+  return (
+    <div>
+      <p className="text-xs opacity-60 text-center mb-3">{moves} jogadas</p>
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        {cards.map((card) => {
+          const isFlipped = flipped.includes(card.cardId) || matched.includes(card.cardId);
+          return (
+            <button
+              key={card.cardId}
+              onClick={() => flip(card.cardId)}
+              style={{
+                aspectRatio: 1,
+                background: isFlipped ? "transparent" : C.navySoft,
+                border: `1px solid ${matched.includes(card.cardId) ? "#4ade80" : C.line}`,
+                borderRadius: 8,
+                overflow: "hidden",
+                padding: 0,
+              }}
+            >
+              {isFlipped ? (
+                <img src={card.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: "1.3rem" }}>🏳️‍🌈</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {won && <p className="text-sm text-center mb-2" style={{ color: "#4ade80" }}>🎉 Você venceu em {moves} jogadas!</p>}
+    </div>
+  );
+}
+
+// ---------- Quebra-cabeça deslizante ----------
+function PuzzleGame() {
+  const SIZE = 3;
+  const [image, setImage] = useState(null);
+  const [tiles, setTiles] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/respira/game-images?count=1")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data[0]) { setImage(false); return; }
+        setImage(data[0]);
+        const solved = Array.from({ length: SIZE * SIZE }, (_, i) => i); // 8 = vazio
+        setTiles(shuffleSolvable(solved));
+      })
+      .catch(() => setImage(false));
+  }, []);
+
+  function shuffleSolvable(solved) {
+    let arr = [...solved];
+    let blankIndex = arr.indexOf(SIZE * SIZE - 1);
+    // faz 100 movimentos válidos a partir do estado resolvido — garante que sempre tem solução
+    for (let i = 0; i < 100; i++) {
+      const neighbors = getNeighbors(blankIndex);
+      const swapWith = neighbors[Math.floor(Math.random() * neighbors.length)];
+      [arr[blankIndex], arr[swapWith]] = [arr[swapWith], arr[blankIndex]];
+      blankIndex = swapWith;
+    }
+    return arr;
+  }
+
+  function getNeighbors(index) {
+    const row = Math.floor(index / SIZE);
+    const col = index % SIZE;
+    const out = [];
+    if (row > 0) out.push(index - SIZE);
+    if (row < SIZE - 1) out.push(index + SIZE);
+    if (col > 0) out.push(index - 1);
+    if (col < SIZE - 1) out.push(index + 1);
+    return out;
+  }
+
+  function moveTile(index) {
+    const blankIndex = tiles.indexOf(SIZE * SIZE - 1);
+    if (getNeighbors(blankIndex).includes(index)) {
+      const next = [...tiles];
+      [next[blankIndex], next[index]] = [next[index], next[blankIndex]];
+      setTiles(next);
+    }
+  }
+
+  if (image === null) return <p className="text-sm opacity-50 text-center py-8">carregando…</p>;
+  if (image === false) return <p className="text-sm opacity-50 text-center py-8">não achei imagem pra montar o quebra-cabeça agora</p>;
+
+  const solved = tiles.every((v, i) => v === i);
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${SIZE}, 1fr)`,
+          gap: 2,
+          width: "100%",
+          aspectRatio: 1,
+          maxWidth: 280,
+          margin: "0 auto 1rem",
+          background: C.navy,
+          borderRadius: 8,
+          overflow: "hidden",
+          border: `1px solid ${C.line}`,
+        }}
+      >
+        {tiles.map((value, index) => {
+          const isBlank = value === SIZE * SIZE - 1;
+          const row = Math.floor(value / SIZE);
+          const col = value % SIZE;
+          return (
+            <button
+              key={index}
+              onClick={() => moveTile(index)}
+              style={{
+                aspectRatio: 1,
+                border: "none",
+                padding: 0,
+                cursor: isBlank ? "default" : "pointer",
+                backgroundImage: isBlank ? "none" : `url(${image.image_url})`,
+                backgroundSize: `${SIZE * 100}% ${SIZE * 100}%`,
+                backgroundPosition: `${(col / (SIZE - 1)) * 100}% ${(row / (SIZE - 1)) * 100}%`,
+                background: isBlank ? C.navySoft : undefined,
+              }}
+            />
+          );
+        })}
+      </div>
+      {solved && <p className="text-sm text-center mb-2" style={{ color: "#4ade80" }}>🎉 Resolvido! Manda ver de novo se quiser.</p>}
+    </div>
+  );
+}
+
 function SOSModal({ why, stats, onSurvived, onClose }) {
   const [intensity, setIntensity] = useState(null);
   const [active, setActive] = useState(null);
@@ -1243,10 +1510,11 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
   const tech = SOS_TECHNIQUES.find((t) => t.id === active);
   const bPhase = breathPhase < 4 ? "inspire" : breathPhase < 11 ? "segure" : "solte";
   const scale = bPhase === "solte" ? 0.85 : 1.3;
+  const isGame = active === "quebra-cabeca" || active === "memoria";
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50">
-      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className="rounded-3xl p-6 max-w-sm w-full text-center">
+      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl p-6 w-full text-center ${isGame ? "max-w-sm" : "max-w-sm"}`}>
         <p style={{ color: C.red, ...bebas, letterSpacing: 1 }} className="text-lg mb-4">{tech.icon} {tech.title.toUpperCase()}</p>
 
         {active === "respirar" && (
@@ -1275,6 +1543,9 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
         {["caminhar", "agua", "gelo", "boca"].includes(active) && (
           <p className="text-sm opacity-80 mb-4">Faz isso agora, com calma. Você tem alguns minutos até a vontade passar.</p>
         )}
+
+        {active === "memoria" && <MemoryGame />}
+        {active === "quebra-cabeca" && <PuzzleGame />}
 
         <button onClick={() => onSurvived("forte", active)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-2">PASSOU, AGUENTEI</button>
         <button onClick={() => setActive(null)} style={{ color: C.cream, opacity: 0.6 }} className="w-full text-sm py-2">tentar outra técnica</button>
