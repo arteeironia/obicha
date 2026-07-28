@@ -1778,14 +1778,41 @@ function RelapseModal({ onClose, onChoose }) {
 }
 
 function LoginScreen({ supabase }) {
+  const FEATURES = [
+    { icon: "🆘", title: "Botão SOS", text: "quando a fissura bater, técnicas rápidas e até um joguinho pra passar o momento" },
+    { icon: "📅", title: "Missões do dia", text: "pequenas ações diárias que ajudam a segurar a barra sem perceber o esforço" },
+    { icon: "📊", title: "Seu progresso", text: "dias sem fumar, dinheiro economizado, cigarros evitados, tempo de vida recuperado" },
+    { icon: "🫂", title: "Sem julgamento", text: "recaiu? tudo bem. o app te ajuda a entender o porquê e continuar de onde parou" },
+  ];
+
   return (
-    <div style={{ background: C.navy }} className="min-h-screen flex items-center justify-center px-6">
-      <div className="max-w-sm w-full text-center">
+    <div style={{ background: C.navy }} className="min-h-screen px-6 py-10">
+      <div className="max-w-sm w-full mx-auto text-center">
         <p style={{ ...bebas, color: C.cream, letterSpacing: 2 }} className="text-lg mb-1">Ô BICHA<span style={{ color: C.red }}>!</span></p>
-        <h1 style={{ ...bebas, color: C.cream, letterSpacing: 1 }} className="text-5xl mb-3">RESPIRA</h1>
-        <p style={{ color: C.cream, ...playfair }} className="italic text-sm opacity-80 mb-8">Parar de fumar é um presente pra versão mais bonita de você.</p>
+        <h1 style={{ ...bebas, color: C.cream, letterSpacing: 1 }} className="text-5xl mb-4">RESPIRA</h1>
+
+        <img src="/respira-snarf.webp" alt="" className="mx-auto mb-4" style={{ maxWidth: 220, width: "100%" }} />
+
+        <p style={{ color: C.cream, ...playfair }} className="italic text-base opacity-90 mb-2">Parar de fumar é um presente pra versão mais bonita de você.</p>
+        <p className="text-sm opacity-70 mb-8 leading-relaxed">
+          O Respira é o programa de cessação do tabagismo do Ô bicha! — um companheiro de bolso pra quem tá tentando (ou já decidiu) parar de fumar.
+        </p>
+
+        <div className="text-left space-y-3 mb-8">
+          {FEATURES.map((f, i) => (
+            <div key={i} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5 flex gap-3">
+              <span className="text-xl">{f.icon}</span>
+              <div>
+                <p className="text-sm font-bold">{f.title}</p>
+                <p className="text-xs opacity-70 mt-0.5">{f.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <button onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/respira` } })}
-          style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3.5">ENTRAR COM GOOGLE</button>
+          style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3.5">CRIAR MINHA CONTA GRÁTIS</button>
+        <p className="text-xs opacity-50 mt-3">rapidinho, só com sua conta Google</p>
         <EmphasisDisclaimer />
       </div>
     </div>
