@@ -850,12 +850,17 @@ function AprendaTab() {
       {materias.length > 0 && (
         <div className="mb-8">
           <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MATÉRIAS</p>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {materias.map((m) => (
-              <a key={m.id} href={m.url} target="_blank" style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="block rounded-xl p-3.5">
-                <p className="text-sm font-bold">{m.title}</p>
-                {m.description && <p className="text-xs opacity-60 mt-1">{m.description}</p>}
-                {m.source && <p className="text-xs mt-1" style={{ color: C.gold }}>{m.source} ↗</p>}
+              <a key={m.id} href={m.url} target="_blank"
+                style={{ background: `linear-gradient(90deg, ${C.gold}14, ${C.navySoft} 25%)`, border: `1px solid ${C.line}`, borderLeftWidth: 3, borderLeftColor: C.gold }}
+                className="flex items-start gap-3 rounded-xl p-3.5">
+                <span className="text-lg leading-none mt-0.5">📰</span>
+                <div className="flex-1 min-w-0">
+                  <p style={{ ...playfair }} className="text-sm italic leading-snug">{m.title}</p>
+                  {m.description && <p className="text-xs opacity-60 mt-1">{m.description}</p>}
+                  {m.source && <p className="text-xs mt-1.5" style={{ color: C.gold }}>{m.source} — ler matéria ↗</p>}
+                </div>
               </a>
             ))}
           </div>
