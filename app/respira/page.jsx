@@ -1478,6 +1478,182 @@ function BubbleWrapGame() {
 }
 
 
+const TETRIS_WIDTH = 8;
+const TETRIS_HEIGHT = 14;
+const TETRIS_CELL = 22;
+
+const TETRIS_PIECES = {
+  I: { color: "#22d3ee", matrix: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]] },
+  O: { color: "#facc15", matrix: [[1, 1], [1, 1]] },
+  T: { color: "#a78bfa", matrix: [[0, 1, 0], [1, 1, 1], [0, 0, 0]] },
+  S: { color: "#4ade80", matrix: [[0, 1, 1], [1, 1, 0], [0, 0, 0]] },
+  Z: { color: "#f87171", matrix: [[1, 1, 0], [0, 1, 1], [0, 0, 0]] },
+  J: { color: "#60a5fa", matrix: [[1, 0, 0], [1, 1, 1], [0, 0, 0]] },
+  L: { color: "#fb923c", matrix: [[0, 0, 1], [1, 1, 1], [0, 0, 0]] },
+};
+const TETRIS_KEYS = Object.keys(TETRIS_PIECES);
+
+function tetrisRotate(matrix) {
+  const n = matrix.length;
+  const out = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) out[c][n - 1 - r] = matrix[r][c];
+  return out;
+}
+
+function tetrisRandomPiece() {
+  const key = TETRIS_KEYS[Math.floor(Math.random() * TETRIS_KEYS.length)];
+  const { matrix, color } = TETRIS_PIECES[key];
+  return { matrix, color, row: -2, col: Math.floor(TETRIS_WIDTH / 2) - Math.ceil(matrix.length / 2) };
+}
+
+function tetrisEmptyBoard() {
+  return Array.from({ length: TETRIS_HEIGHT }, () => Array(TETRIS_WIDTH).fill(null));
+}
+
+function tetrisCollides(board, row, col, matrix) {
+  for (let r = 0; r < matrix.length; r++) {
+    for (let c = 0; c < matrix[r].length; c++) {
+      if (!matrix[r][c]) continue;
+      const br = row + r, bc = col + c;
+      if (bc < 0 || bc >= TETRIS_WIDTH || br >= TETRIS_HEIGHT) return true;
+      if (br >= 0 && board[br][bc]) return true;
+    }
+  }
+  return false;
+}
+
+function TetrisGame() {
+  const [board, setBoard] = useState(tetrisEmptyBoard);
+  const [piece, setPiece] = useState(tetrisRandomPiece);
+  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const stateRef = useRef({ board, piece, gameOver });
+  stateRef.current = { board, piece, gameOver };
+
+  function spawnNext(currentBoard) {
+    const np = tetrisRandomPiece();
+    // O game over precisa ser checado na linha onde a peça de fato aparece no
+    // tabuleiro (linha 0), não na posição de nascimento acima da tela (usada só
+    // pro efeito visual de "cair de cima") — senão peças como a "I" nunca
+    // detectam o topo cheio, e o jogo trava em silêncio em vez de acabar.
+    if (tetrisCollides(currentBoard, 0, np.col, np.matrix)) {
+      setGameOver(true);
+    } else {
+      setPiece(np);
+    }
+  }
+
+  function lockPiece() {
+    const { board: b, piece: p } = stateRef.current;
+    const newBoard = b.map((row) => row.slice());
+    p.matrix.forEach((row, r) => row.forEach((v, c) => {
+      if (v) {
+        const br = p.row + r, bc = p.col + c;
+        if (br >= 0) newBoard[br][bc] = p.color;
+      }
+    }));
+    let cleared = 0;
+    const filtered = newBoard.filter((row) => {
+      const full = row.every((cell) => cell);
+      if (full) cleared++;
+      return !full;
+    });
+    while (filtered.length < TETRIS_HEIGHT) filtered.unshift(Array(TETRIS_WIDTH).fill(null));
+    if (cleared > 0) setScore((s) => s + cleared * 10);
+    setBoard(filtered);
+    spawnNext(filtered);
+  }
+
+  function tryMove(dr, dc, matrixOverride) {
+    const { board: b, piece: p, gameOver: go } = stateRef.current;
+    if (go) return false;
+    const matrix = matrixOverride || p.matrix;
+    const nr = p.row + dr, nc = p.col + dc;
+    if (tetrisCollides(b, nr, nc, matrix)) return false;
+    setPiece((cur) => ({ ...cur, row: nr, col: nc, matrix }));
+    return true;
+  }
+
+  function drop() {
+    if (!tryMove(1, 0)) lockPiece();
+  }
+
+  function rotate() {
+    const { board: b, piece: p, gameOver: go } = stateRef.current;
+    if (go) return;
+    const rotated = tetrisRotate(p.matrix);
+    for (const kick of [0, -1, 1, -2, 2]) {
+      if (!tetrisCollides(b, p.row, p.col + kick, rotated)) {
+        setPiece((cur) => ({ ...cur, matrix: rotated, col: cur.col + kick }));
+        return;
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (gameOver) return;
+    const id = setInterval(() => drop(), 650);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameOver]);
+
+  function restart() {
+    setBoard(tetrisEmptyBoard());
+    setScore(0);
+    setGameOver(false);
+    setPiece(tetrisRandomPiece());
+  }
+
+  const display = board.map((row) => row.slice());
+  piece.matrix.forEach((row, r) => row.forEach((v, c) => {
+    if (v) {
+      const br = piece.row + r, bc = piece.col + c;
+      if (br >= 0 && br < TETRIS_HEIGHT && bc >= 0 && bc < TETRIS_WIDTH) display[br][bc] = piece.color;
+    }
+  }));
+
+  const ctrlBtn = { background: C.navySoft, border: `1px solid ${C.line}`, borderRadius: 10, width: 52, height: 44, fontSize: "1.2rem" };
+
+  return (
+    <div>
+      <p className="text-xs opacity-60 text-center mb-2">{score} pontos</p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${TETRIS_WIDTH}, ${TETRIS_CELL}px)`,
+          gridTemplateRows: `repeat(${TETRIS_HEIGHT}, ${TETRIS_CELL}px)`,
+          gap: 1,
+          background: C.line,
+          border: `1px solid ${C.line}`,
+          margin: "0 auto",
+          borderRadius: 6,
+          overflow: "hidden",
+          width: "fit-content",
+        }}
+      >
+        {display.flatMap((row, r) => row.map((cell, c) => (
+          <div key={`${r}-${c}`} style={{ width: TETRIS_CELL, height: TETRIS_CELL, background: cell || C.navy }} />
+        )))}
+      </div>
+
+      {gameOver ? (
+        <div className="text-center mt-4">
+          <p className="text-sm mb-2" style={{ color: C.red }}>fim de jogo — {score} pontos</p>
+          <button onClick={restart} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
+        </div>
+      ) : (
+        <div className="flex justify-center gap-2 mt-4">
+          <button onClick={() => tryMove(0, -1)} style={ctrlBtn}>⬅️</button>
+          <button onClick={rotate} style={ctrlBtn}>🔄</button>
+          <button onClick={drop} style={ctrlBtn}>⬇️</button>
+          <button onClick={() => tryMove(0, 1)} style={ctrlBtn}>➡️</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function SOSModal({ why, stats, onSurvived, onClose }) {
   const [intensity, setIntensity] = useState(null);
   const [active, setActive] = useState(null);
@@ -1587,7 +1763,7 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
   const tech = SOS_TECHNIQUES.find((t) => t.id === active);
   const bPhase = breathPhase < 4 ? "inspire" : breathPhase < 11 ? "segure" : "solte";
   const scale = bPhase === "solte" ? 0.85 : 1.3;
-  const isGame = active === "bolha-pop" || active === "memoria";
+  const isGame = active === "bolha-pop" || active === "memoria" || active === "tetris";
 
   return (
     <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-50 ${isGame ? "p-3" : "p-6"}`}>
@@ -1637,6 +1813,7 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
 
         {active === "memoria" && <MemoryGame />}
         {active === "bolha-pop" && <BubbleWrapGame />}
+        {active === "tetris" && <TetrisGame />}
 
         <button onClick={() => onSurvived("forte", active)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-2">PASSOU, AGUENTEI</button>
         <button onClick={() => setActive(null)} style={{ color: C.cream, opacity: 0.6 }} className="w-full text-sm py-2">tentar outra técnica</button>
