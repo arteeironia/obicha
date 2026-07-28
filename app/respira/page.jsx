@@ -1326,33 +1326,20 @@ function PuzzleGame() {
   const BOARD = 300;
   const TILE = BOARD / SIZE;
   const [image, setImage] = useState(null);
+  const [tiles, setTiles] = useState(() => shuffle());
+  const [selected, setSelected] = useState(null);
 
-  function getNeighbors(index) {
-    const row = Math.floor(index / SIZE);
-    const col = index % SIZE;
-    const out = [];
-    if (row > 0) out.push(index - SIZE);
-    if (row < SIZE - 1) out.push(index + SIZE);
-    if (col > 0) out.push(index - 1);
-    if (col < SIZE - 1) out.push(index + 1);
-    return out;
-  }
-
-  function shuffleSolvable() {
+  function shuffle() {
     const arr = Array.from({ length: SIZE * SIZE }, (_, i) => i);
-    let blankIndex = SIZE * SIZE - 1;
-    for (let i = 0; i < 150; i++) {
-      const neighbors = getNeighbors(blankIndex);
-      const swapWith = neighbors[Math.floor(Math.random() * neighbors.length)];
-      const tmp = arr[blankIndex];
-      arr[blankIndex] = arr[swapWith];
-      arr[swapWith] = tmp;
-      blankIndex = swapWith;
-    }
+    // embaralha até garantir que não sobrou nenhuma peça no lugar certo
+    do {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    } while (arr.every((v, i) => v === i));
     return arr;
   }
-
-  const [tiles, setTiles] = useState(() => shuffleSolvable());
 
   useEffect(() => {
     fetch("/api/respira/game-images?count=1")
@@ -1360,22 +1347,29 @@ function PuzzleGame() {
       .then((data) => {
         if (!data || !data[0] || !data[0].image_url) { setImage(false); return; }
         setImage(data[0]);
-        setTiles(shuffleSolvable());
+        setTiles(shuffle());
       })
       .catch(() => setImage(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function moveTile(clickedIndex) {
+  function tapTile(index) {
+    if (selected === null) {
+      setSelected(index);
+      return;
+    }
+    if (selected === index) {
+      setSelected(null);
+      return;
+    }
     setTiles((current) => {
-      const blankIndex = current.indexOf(SIZE * SIZE - 1);
-      if (!getNeighbors(blankIndex).includes(clickedIndex)) return current;
       const next = current.slice();
-      const tmp = next[blankIndex];
-      next[blankIndex] = next[clickedIndex];
-      next[clickedIndex] = tmp;
+      const tmp = next[selected];
+      next[selected] = next[index];
+      next[index] = tmp;
       return next;
     });
+    setSelected(null);
   }
 
   if (image === null) return <p className="text-sm opacity-50 text-center py-8">carregando…</p>;
@@ -1398,29 +1392,30 @@ function PuzzleGame() {
         }}
       >
         {tiles.map((value, index) => {
-          const isBlank = value === SIZE * SIZE - 1;
           const targetRow = Math.floor(index / SIZE);
           const targetCol = index % SIZE;
           const srcRow = Math.floor(value / SIZE);
           const srcCol = value % SIZE;
+          const isSelected = selected === index;
           return (
             <button
               key={index}
-              onClick={() => moveTile(index)}
+              onClick={() => tapTile(index)}
               style={{
                 position: "absolute",
                 top: targetRow * TILE,
                 left: targetCol * TILE,
                 width: TILE,
                 height: TILE,
-                border: "1px solid rgba(0,0,0,.3)",
+                border: isSelected ? `3px solid ${C.gold}` : "1px solid rgba(0,0,0,.3)",
+                boxSizing: "border-box",
                 padding: 0,
-                cursor: isBlank ? "default" : "pointer",
-                backgroundColor: isBlank ? C.navySoft : "transparent",
-                backgroundImage: isBlank ? "none" : `url(${image.image_url})`,
+                cursor: "pointer",
+                backgroundImage: `url(${image.image_url})`,
                 backgroundSize: `${BOARD}px ${BOARD}px`,
                 backgroundPosition: `-${srcCol * TILE}px -${srcRow * TILE}px`,
-                transition: "top .15s ease, left .15s ease",
+                opacity: solved ? 1 : isSelected ? 0.85 : 1,
+                transition: "opacity .15s ease",
               }}
             />
           );
@@ -1429,10 +1424,10 @@ function PuzzleGame() {
       {solved ? (
         <div className="text-center mb-2">
           <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Resolvido!</p>
-          <button onClick={() => setTiles(shuffleSolvable())} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
+          <button onClick={() => { setTiles(shuffle()); setSelected(null); }} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
         </div>
       ) : (
-        <p className="text-xs opacity-40 text-center mb-2">clica numa peça encostada no espaço vazio pra mover</p>
+        <p className="text-xs opacity-40 text-center mb-2">toca em duas peças pra trocar elas de lugar</p>
       )}
     </div>
   );
