@@ -1394,11 +1394,38 @@ function BubbleWrapGame() {
   const COLS = 5;
   const TOTAL = ROWS * COLS;
   const [popped, setPopped] = useState(() => new Set());
+  const audioCtxRef = useRef(null);
 
   const allPopped = popped.size === TOTAL;
 
+  function playPop() {
+    try {
+      if (!audioCtxRef.current) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtxRef.current = new AC();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startFreq = 380 + Math.random() * 120;
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(startFreq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(startFreq * 0.35, ctx.currentTime + 0.09);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.11);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } catch (e) {
+      // som é só um bônus — se o navegador bloquear, o jogo segue normal
+    }
+  }
+
   function pop(i) {
     if (popped.has(i)) return;
+    playPop();
     setPopped((cur) => new Set(cur).add(i));
   }
 
