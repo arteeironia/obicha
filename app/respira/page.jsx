@@ -1232,15 +1232,22 @@ function MemoryGame() {
   const [matched, setMatched] = useState([]);
   const [moves, setMoves] = useState(0);
 
+  function newRound(imgs) {
+    const pairs = [...imgs, ...imgs]
+      .map((img, i) => ({ ...img, cardId: i }))
+      .sort(() => Math.random() - 0.5);
+    setCards(pairs);
+    setFlipped([]);
+    setMatched([]);
+    setMoves(0);
+  }
+
   useEffect(() => {
     fetch("/api/respira/game-images?count=6")
       .then((r) => r.json())
       .then((data) => {
         setImages(data);
-        const pairs = [...data, ...data]
-          .map((img, i) => ({ ...img, cardId: i }))
-          .sort(() => Math.random() - 0.5);
-        setCards(pairs);
+        if (data.length >= 6) newRound(data);
       })
       .catch(() => setImages([]));
   }, []);
@@ -1274,7 +1281,7 @@ function MemoryGame() {
   return (
     <div>
       <p className="text-xs opacity-60 text-center mb-3">{moves} jogadas</p>
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-4 gap-2.5 mb-4">
         {cards.map((card) => {
           const isFlipped = flipped.includes(card.cardId) || matched.includes(card.cardId);
           return (
@@ -1282,58 +1289,43 @@ function MemoryGame() {
               key={card.cardId}
               onClick={() => flip(card.cardId)}
               style={{
-                aspectRatio: 1,
+                width: "100%",
+                aspectRatio: "1",
+                minHeight: 64,
                 background: isFlipped ? "transparent" : C.navySoft,
                 border: `1px solid ${matched.includes(card.cardId) ? "#4ade80" : C.line}`,
                 borderRadius: 8,
                 overflow: "hidden",
                 padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               {isFlipped ? (
                 <img src={card.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <span style={{ fontSize: "1.3rem" }}>🏳️‍🌈</span>
+                <span style={{ fontSize: "1.6rem" }}>🏳️‍🌈</span>
               )}
             </button>
           );
         })}
       </div>
-      {won && <p className="text-sm text-center mb-2" style={{ color: "#4ade80" }}>🎉 Você venceu em {moves} jogadas!</p>}
+      {won && (
+        <div className="text-center mb-2">
+          <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Você venceu em {moves} jogadas!</p>
+          <button onClick={() => newRound(images)} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
+        </div>
+      )}
     </div>
   );
 }
 
-// ---------- Quebra-cabeça deslizante ----------
 function PuzzleGame() {
   const SIZE = 3;
+  const BOARD = 300;
+  const TILE = BOARD / SIZE;
   const [image, setImage] = useState(null);
-  const [tiles, setTiles] = useState([]);
-
-  useEffect(() => {
-    fetch("/api/respira/game-images?count=1")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data[0]) { setImage(false); return; }
-        setImage(data[0]);
-        const solved = Array.from({ length: SIZE * SIZE }, (_, i) => i); // 8 = vazio
-        setTiles(shuffleSolvable(solved));
-      })
-      .catch(() => setImage(false));
-  }, []);
-
-  function shuffleSolvable(solved) {
-    let arr = [...solved];
-    let blankIndex = arr.indexOf(SIZE * SIZE - 1);
-    // faz 100 movimentos válidos a partir do estado resolvido — garante que sempre tem solução
-    for (let i = 0; i < 100; i++) {
-      const neighbors = getNeighbors(blankIndex);
-      const swapWith = neighbors[Math.floor(Math.random() * neighbors.length)];
-      [arr[blankIndex], arr[swapWith]] = [arr[swapWith], arr[blankIndex]];
-      blankIndex = swapWith;
-    }
-    return arr;
-  }
 
   function getNeighbors(index) {
     const row = Math.floor(index / SIZE);
@@ -1346,13 +1338,44 @@ function PuzzleGame() {
     return out;
   }
 
-  function moveTile(index) {
-    const blankIndex = tiles.indexOf(SIZE * SIZE - 1);
-    if (getNeighbors(blankIndex).includes(index)) {
-      const next = [...tiles];
-      [next[blankIndex], next[index]] = [next[index], next[blankIndex]];
-      setTiles(next);
+  function shuffleSolvable() {
+    const arr = Array.from({ length: SIZE * SIZE }, (_, i) => i);
+    let blankIndex = SIZE * SIZE - 1;
+    for (let i = 0; i < 150; i++) {
+      const neighbors = getNeighbors(blankIndex);
+      const swapWith = neighbors[Math.floor(Math.random() * neighbors.length)];
+      const tmp = arr[blankIndex];
+      arr[blankIndex] = arr[swapWith];
+      arr[swapWith] = tmp;
+      blankIndex = swapWith;
     }
+    return arr;
+  }
+
+  const [tiles, setTiles] = useState(() => shuffleSolvable());
+
+  useEffect(() => {
+    fetch("/api/respira/game-images?count=1")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data || !data[0] || !data[0].image_url) { setImage(false); return; }
+        setImage(data[0]);
+        setTiles(shuffleSolvable());
+      })
+      .catch(() => setImage(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function moveTile(clickedIndex) {
+    setTiles((current) => {
+      const blankIndex = current.indexOf(SIZE * SIZE - 1);
+      if (!getNeighbors(blankIndex).includes(clickedIndex)) return current;
+      const next = current.slice();
+      const tmp = next[blankIndex];
+      next[blankIndex] = next[clickedIndex];
+      next[clickedIndex] = tmp;
+      return next;
+    });
   }
 
   if (image === null) return <p className="text-sm opacity-50 text-center py-8">carregando…</p>;
@@ -1364,12 +1387,9 @@ function PuzzleGame() {
     <div>
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${SIZE}, 1fr)`,
-          gap: 2,
-          width: "100%",
-          aspectRatio: 1,
-          maxWidth: 280,
+          position: "relative",
+          width: BOARD,
+          height: BOARD,
           margin: "0 auto 1rem",
           background: C.navy,
           borderRadius: 8,
@@ -1379,30 +1399,45 @@ function PuzzleGame() {
       >
         {tiles.map((value, index) => {
           const isBlank = value === SIZE * SIZE - 1;
-          const row = Math.floor(value / SIZE);
-          const col = value % SIZE;
+          const targetRow = Math.floor(index / SIZE);
+          const targetCol = index % SIZE;
+          const srcRow = Math.floor(value / SIZE);
+          const srcCol = value % SIZE;
           return (
             <button
               key={index}
               onClick={() => moveTile(index)}
               style={{
-                aspectRatio: 1,
-                border: "none",
+                position: "absolute",
+                top: targetRow * TILE,
+                left: targetCol * TILE,
+                width: TILE,
+                height: TILE,
+                border: "1px solid rgba(0,0,0,.3)",
                 padding: 0,
                 cursor: isBlank ? "default" : "pointer",
+                backgroundColor: isBlank ? C.navySoft : "transparent",
                 backgroundImage: isBlank ? "none" : `url(${image.image_url})`,
-                backgroundSize: `${SIZE * 100}% ${SIZE * 100}%`,
-                backgroundPosition: `${(col / (SIZE - 1)) * 100}% ${(row / (SIZE - 1)) * 100}%`,
-                background: isBlank ? C.navySoft : undefined,
+                backgroundSize: `${BOARD}px ${BOARD}px`,
+                backgroundPosition: `-${srcCol * TILE}px -${srcRow * TILE}px`,
+                transition: "top .15s ease, left .15s ease",
               }}
             />
           );
         })}
       </div>
-      {solved && <p className="text-sm text-center mb-2" style={{ color: "#4ade80" }}>🎉 Resolvido! Manda ver de novo se quiser.</p>}
+      {solved ? (
+        <div className="text-center mb-2">
+          <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Resolvido!</p>
+          <button onClick={() => setTiles(shuffleSolvable())} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
+        </div>
+      ) : (
+        <p className="text-xs opacity-40 text-center mb-2">clica numa peça encostada no espaço vazio pra mover</p>
+      )}
     </div>
   );
 }
+
 
 function SOSModal({ why, stats, onSurvived, onClose }) {
   const [intensity, setIntensity] = useState(null);
@@ -1469,7 +1504,10 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
               </div>
             </>
           )}
-          <button onClick={onClose} style={{ color: C.cream, opacity: 0.4 }} className="w-full text-xs py-3 mt-2">fechar</button>
+          <button onClick={() => { setIntensity("forte"); setAfterAnswer(null); setTimerDone(false); }} style={{ color: C.gold }} className="w-full text-xs underline py-2 mt-1">
+            prefere tentar um jogo ou outra técnica agora?
+          </button>
+          <button onClick={onClose} style={{ color: C.cream, opacity: 0.4 }} className="w-full text-xs py-1">fechar</button>
         </div>
       </div>
     );
@@ -1514,7 +1552,7 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50">
-      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl p-6 w-full text-center ${isGame ? "max-w-sm" : "max-w-sm"}`}>
+      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl p-6 w-full text-center ${isGame ? "max-w-md" : "max-w-sm"}`}>
         <p style={{ color: C.red, ...bebas, letterSpacing: 1 }} className="text-lg mb-4">{tech.icon} {tech.title.toUpperCase()}</p>
 
         {active === "respirar" && (
