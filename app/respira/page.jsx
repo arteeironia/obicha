@@ -1405,12 +1405,17 @@ function PuzzleGame() {
   function shuffleSolvable() {
     const arr = Array.from({ length: SIZE * SIZE }, (_, i) => i);
     let blankIndex = SIZE * SIZE - 1;
-    for (let i = 0; i < 150; i++) {
-      const neighbors = getNeighbors(blankIndex);
+    // Poucos movimentos de propósito: isso é uma técnica de SOS pra fissura, não um
+    // desafio de puzzle. Precisa ser fácil e rápido de vencer, não frustrante.
+    const SHUFFLE_MOVES = 18;
+    let lastIndex = -1;
+    for (let i = 0; i < SHUFFLE_MOVES; i++) {
+      const neighbors = getNeighbors(blankIndex).filter((n) => n !== lastIndex);
       const swapWith = neighbors[Math.floor(Math.random() * neighbors.length)];
       const tmp = arr[blankIndex];
       arr[blankIndex] = arr[swapWith];
       arr[swapWith] = tmp;
+      lastIndex = blankIndex;
       blankIndex = swapWith;
     }
     return arr;
@@ -1498,7 +1503,10 @@ function PuzzleGame() {
           <button onClick={() => setTiles(shuffleSolvable())} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
         </div>
       ) : (
-        <p className="text-xs opacity-40 text-center mb-2">clica numa peça encostada no espaço vazio pra mover</p>
+        <div className="text-center mb-2">
+          <p className="text-xs opacity-40 mb-2">clica numa peça encostada no espaço vazio pra mover</p>
+          <button onClick={() => setTiles(Array.from({ length: SIZE * SIZE }, (_, i) => i))} style={{ color: C.cream, opacity: 0.5 }} className="text-xs underline">não tô conseguindo, só mostra a imagem</button>
+        </div>
       )}
     </div>
   );

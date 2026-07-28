@@ -3,6 +3,13 @@ import postgres from 'postgres'
 
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
+// Corta o fundo branco/liso das fotos de produto, focando no conteúdo (gravity: auto)
+// pra virarem peças de quebra-cabeça/memória reconhecíveis, não quadrados brancos.
+function cropForGame(url: string) {
+  if (!url || !url.includes('/upload/')) return url
+  return url.replace('/upload/', '/upload/c_fill,g_auto,ar_1:1,w_900,q_auto/')
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const count = Math.min(parseInt(searchParams.get('count') || '8'), 12)
@@ -13,5 +20,6 @@ export async function GET(request: NextRequest) {
     ORDER BY RANDOM()
     LIMIT ${count}`
 
-  return NextResponse.json(rows)
+  const cropped = rows.map((r) => ({ ...r, image_url: cropForGame(r.image_url) }))
+  return NextResponse.json(cropped)
 }
