@@ -1795,7 +1795,7 @@ function LoginScreen({ supabase }) {
 
         <p style={{ color: C.cream, ...playfair }} className="italic text-base opacity-90 mb-2">Parar de fumar é um presente pra versão mais bonita de você.</p>
         <p className="text-sm opacity-70 mb-8 leading-relaxed">
-          O Respira é o programa de cessação do tabagismo do Ô bicha! — um companheiro de bolso pra quem tá tentando (ou já decidiu) parar de fumar.
+          O Respira é uma ferramenta do Ô bicha! desenvolvida pra apoiar quem tá tentando (ou já decidiu) parar de fumar — um companheiro de bolso pros dias mais difíceis dessa jornada.
         </p>
 
         <div className="text-left space-y-3 mb-8">
@@ -1813,6 +1813,10 @@ function LoginScreen({ supabase }) {
         <button onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/respira` } })}
           style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3.5">CRIAR MINHA CONTA GRÁTIS</button>
         <p className="text-xs opacity-50 mt-3">rapidinho, só com sua conta Google</p>
+
+        <button onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/respira` } })}
+          className="text-sm mt-5 underline" style={{ color: C.gold }}>já tenho conta — entrar</button>
+
         <EmphasisDisclaimer />
       </div>
     </div>
