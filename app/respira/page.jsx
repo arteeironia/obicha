@@ -19,6 +19,9 @@ import {
   LEARN_CARDS,
   RELAPSE_CAUSES,
   FORUM_REACTIONS,
+  FISSURE_KIT_ITEMS,
+  COMPANY_OPTIONS,
+  EMOTION_BEFORE_OPTIONS,
   getCoachMessage,
   getMissionsForDay,
   getEsteemAffirmation,
@@ -221,6 +224,7 @@ export default function RespiraPage() {
             lifeMinutes={lifeMinutes}
             cravingsSurvived={cravingsSurvived}
             cravings={cravings}
+            relapses={relapses}
             longestStreakDays={longestStreakDays}
             plans={plans}
             milestonesMarked={milestonesMarked}
@@ -314,10 +318,11 @@ export default function RespiraPage() {
       {relapseOpen && (
         <RelapseModal
           onClose={() => setRelapseOpen(false)}
-          onChoose={async (cause, note, action) => {
+          onChoose={async (cause, note, action, diary) => {
             const days_reached = Math.floor(elapsedMin / 1440);
-            await supabase.from("quit_relapses").insert({ user_id: session.user.id, trigger_tag: cause, note: note || null, action, days_reached });
-            setRelapses((cur) => [{ trigger_tag: cause, note, action, days_reached, created_at: new Date().toISOString() }, ...cur]);
+            const row = { user_id: session.user.id, trigger_tag: cause, note: note || null, action, days_reached, place_company: diary?.company || null, emotion_before: diary?.emotion || null, urge_intensity: diary?.urge ?? null };
+            await supabase.from("quit_relapses").insert(row);
+            setRelapses((cur) => [{ ...row, created_at: new Date().toISOString() }, ...cur]);
             if (action === "restart") {
               const newQuitAt = new Date().toISOString();
               await supabase.from("quit_profiles").update({ quit_at: newQuitAt }).eq("user_id", session.user.id);
@@ -464,7 +469,7 @@ function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cra
 function PanelTab(props) {
   const {
     profile, session, supabase, elapsedMin, dayNumber, cigsAvoided, moneySaved, co2Grams, lifeMinutes, cravingsSurvived,
-    cravings, longestStreakDays, plans, milestonesMarked, movementLogs, selfesteemChecks,
+    cravings, relapses, longestStreakDays, plans, milestonesMarked, movementLogs, selfesteemChecks,
     onToggleMilestone, onAddPlan, onRemovePlan, onLogMovement, onSelfesteemCheck, onOpenRelapse,
   } = props;
 
@@ -490,6 +495,19 @@ function PanelTab(props) {
     cravings.forEach((c) => { if (c.trigger_tag) map[c.trigger_tag] = (map[c.trigger_tag] || 0) + 1; });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [cravings]);
+
+  const diaryStats = useMemo(() => {
+    const withDiary = relapses.filter((r) => r.place_company || r.emotion_before || r.urge_intensity != null);
+    if (withDiary.length === 0) return null;
+    const countBy = (key) => {
+      const map = {};
+      withDiary.forEach((r) => { if (r[key]) map[r[key]] = (map[r[key]] || 0) + 1; });
+      return Object.entries(map).sort((a, b) => b[1] - a[1]);
+    };
+    const urges = withDiary.map((r) => r.urge_intensity).filter((v) => v != null);
+    const avgUrge = urges.length ? (urges.reduce((a, b) => a + b, 0) / urges.length).toFixed(1) : null;
+    return { count: withDiary.length, companyCounts: countBy("place_company"), emotionCounts: countBy("emotion_before"), avgUrge };
+  }, [relapses]);
 
   const co2Display = co2Grams >= 1000 ? `${(co2Grams / 1000).toFixed(1)}kg` : `${Math.floor(co2Grams)}g`;
 
@@ -578,6 +596,35 @@ function PanelTab(props) {
                 const t = TRIGGER_OPTIONS.find((x) => x.key === tag);
                 return <span key={tag} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{t?.icon} {t?.label} · {count}</span>;
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {diaryStats && (
+        <div className="mb-8">
+          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">DIÁRIO DO CIGARRO</p>
+          <p className="text-xs opacity-60 mb-3">com base em {diaryStats.count} registro{diaryStats.count !== 1 ? "s" : ""} {diaryStats.avgUrge ? <>· vontade média: <span style={{ color: C.red }}>{diaryStats.avgUrge}/10</span></> : null}</p>
+          {diaryStats.companyCounts.length > 0 && (
+            <div className="mb-3">
+              <p className="text-[11px] opacity-50 mb-1.5">onde / com quem</p>
+              <div className="flex flex-wrap gap-1.5">
+                {diaryStats.companyCounts.map(([key, count]) => {
+                  const c = COMPANY_OPTIONS.find((x) => x.key === key);
+                  return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{c?.icon} {c?.label} · {count}</span>;
+                })}
+              </div>
+            </div>
+          )}
+          {diaryStats.emotionCounts.length > 0 && (
+            <div>
+              <p className="text-[11px] opacity-50 mb-1.5">como se sentia antes</p>
+              <div className="flex flex-wrap gap-1.5">
+                {diaryStats.emotionCounts.map(([key, count]) => {
+                  const e = EMOTION_BEFORE_OPTIONS.find((x) => x.key === key);
+                  return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{e?.icon} {e?.label} · {count}</span>;
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -1281,7 +1328,7 @@ function MemoryGame() {
   return (
     <div>
       <p className="text-xs opacity-60 text-center mb-3">{moves} jogadas</p>
-      <div className="grid grid-cols-4 gap-2.5 mb-4">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         {cards.map((card) => {
           const isFlipped = flipped.includes(card.cardId) || matched.includes(card.cardId);
           return (
@@ -1291,10 +1338,10 @@ function MemoryGame() {
               style={{
                 width: "100%",
                 aspectRatio: "1",
-                minHeight: 64,
+                minHeight: 92,
                 background: isFlipped ? "transparent" : C.navySoft,
                 border: `1px solid ${matched.includes(card.cardId) ? "#4ade80" : C.line}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 overflow: "hidden",
                 padding: 0,
                 display: "flex",
@@ -1305,7 +1352,7 @@ function MemoryGame() {
               {isFlipped ? (
                 <img src={card.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <span style={{ fontSize: "1.6rem" }}>🏳️‍🌈</span>
+                <span style={{ fontSize: "2.2rem" }}>🏳️‍🌈</span>
               )}
             </button>
           );
@@ -1323,23 +1370,48 @@ function MemoryGame() {
 
 function PuzzleGame() {
   const SIZE = 3;
-  const BOARD = 300;
-  const TILE = BOARD / SIZE;
+  const MAX_BOARD = 380;
+  const boardRef = useRef(null);
+  const [boardPx, setBoardPx] = useState(300);
+  const TILE = boardPx / SIZE;
   const [image, setImage] = useState(null);
-  const [tiles, setTiles] = useState(() => shuffle());
-  const [selected, setSelected] = useState(null);
 
-  function shuffle() {
+  useEffect(() => {
+    if (!boardRef.current) return;
+    const el = boardRef.current;
+    const update = () => setBoardPx(el.offsetWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  function getNeighbors(index) {
+    const row = Math.floor(index / SIZE);
+    const col = index % SIZE;
+    const out = [];
+    if (row > 0) out.push(index - SIZE);
+    if (row < SIZE - 1) out.push(index + SIZE);
+    if (col > 0) out.push(index - 1);
+    if (col < SIZE - 1) out.push(index + 1);
+    return out;
+  }
+
+  function shuffleSolvable() {
     const arr = Array.from({ length: SIZE * SIZE }, (_, i) => i);
-    // embaralha até garantir que não sobrou nenhuma peça no lugar certo
-    do {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    } while (arr.every((v, i) => v === i));
+    let blankIndex = SIZE * SIZE - 1;
+    for (let i = 0; i < 150; i++) {
+      const neighbors = getNeighbors(blankIndex);
+      const swapWith = neighbors[Math.floor(Math.random() * neighbors.length)];
+      const tmp = arr[blankIndex];
+      arr[blankIndex] = arr[swapWith];
+      arr[swapWith] = tmp;
+      blankIndex = swapWith;
+    }
     return arr;
   }
+
+  const [tiles, setTiles] = useState(() => shuffleSolvable());
 
   useEffect(() => {
     fetch("/api/respira/game-images?count=1")
@@ -1347,29 +1419,22 @@ function PuzzleGame() {
       .then((data) => {
         if (!data || !data[0] || !data[0].image_url) { setImage(false); return; }
         setImage(data[0]);
-        setTiles(shuffle());
+        setTiles(shuffleSolvable());
       })
       .catch(() => setImage(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function tapTile(index) {
-    if (selected === null) {
-      setSelected(index);
-      return;
-    }
-    if (selected === index) {
-      setSelected(null);
-      return;
-    }
+  function moveTile(clickedIndex) {
     setTiles((current) => {
+      const blankIndex = current.indexOf(SIZE * SIZE - 1);
+      if (!getNeighbors(blankIndex).includes(clickedIndex)) return current;
       const next = current.slice();
-      const tmp = next[selected];
-      next[selected] = next[index];
-      next[index] = tmp;
+      const tmp = next[blankIndex];
+      next[blankIndex] = next[clickedIndex];
+      next[clickedIndex] = tmp;
       return next;
     });
-    setSelected(null);
   }
 
   if (image === null) return <p className="text-sm opacity-50 text-center py-8">carregando…</p>;
@@ -1380,10 +1445,12 @@ function PuzzleGame() {
   return (
     <div>
       <div
+        ref={boardRef}
         style={{
           position: "relative",
-          width: BOARD,
-          height: BOARD,
+          width: "100%",
+          maxWidth: MAX_BOARD,
+          aspectRatio: "1",
           margin: "0 auto 1rem",
           background: C.navy,
           borderRadius: 8,
@@ -1392,30 +1459,29 @@ function PuzzleGame() {
         }}
       >
         {tiles.map((value, index) => {
+          const isBlank = value === SIZE * SIZE - 1;
           const targetRow = Math.floor(index / SIZE);
           const targetCol = index % SIZE;
           const srcRow = Math.floor(value / SIZE);
           const srcCol = value % SIZE;
-          const isSelected = selected === index;
           return (
             <button
               key={index}
-              onClick={() => tapTile(index)}
+              onClick={() => moveTile(index)}
               style={{
                 position: "absolute",
                 top: targetRow * TILE,
                 left: targetCol * TILE,
                 width: TILE,
                 height: TILE,
-                border: isSelected ? `3px solid ${C.gold}` : "1px solid rgba(0,0,0,.3)",
-                boxSizing: "border-box",
+                border: "1px solid rgba(0,0,0,.3)",
                 padding: 0,
-                cursor: "pointer",
-                backgroundImage: `url(${image.image_url})`,
-                backgroundSize: `${BOARD}px ${BOARD}px`,
+                cursor: isBlank ? "default" : "pointer",
+                backgroundColor: isBlank ? C.navySoft : "transparent",
+                backgroundImage: isBlank ? "none" : `url(${image.image_url})`,
+                backgroundSize: `${boardPx}px ${boardPx}px`,
                 backgroundPosition: `-${srcCol * TILE}px -${srcRow * TILE}px`,
-                opacity: solved ? 1 : isSelected ? 0.85 : 1,
-                transition: "opacity .15s ease",
+                transition: "top .15s ease, left .15s ease",
               }}
             />
           );
@@ -1424,10 +1490,10 @@ function PuzzleGame() {
       {solved ? (
         <div className="text-center mb-2">
           <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Resolvido!</p>
-          <button onClick={() => { setTiles(shuffle()); setSelected(null); }} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
+          <button onClick={() => setTiles(shuffleSolvable())} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
         </div>
       ) : (
-        <p className="text-xs opacity-40 text-center mb-2">toca em duas peças pra trocar elas de lugar</p>
+        <p className="text-xs opacity-40 text-center mb-2">clica numa peça encostada no espaço vazio pra mover</p>
       )}
     </div>
   );
@@ -1546,8 +1612,8 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
   const isGame = active === "quebra-cabeca" || active === "memoria";
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50">
-      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl p-6 w-full text-center ${isGame ? "max-w-md" : "max-w-sm"}`}>
+    <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-50 ${isGame ? "p-3" : "p-6"}`}>
+      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl w-full text-center ${isGame ? "max-w-lg p-4 sm:p-6" : "max-w-sm p-6"}`}>
         <p style={{ color: C.red, ...bebas, letterSpacing: 1 }} className="text-lg mb-4">{tech.icon} {tech.title.toUpperCase()}</p>
 
         {active === "respirar" && (
@@ -1573,8 +1639,22 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
           </div>
         )}
 
-        {["caminhar", "agua", "gelo", "boca"].includes(active) && (
+        {["caminhar", "agua", "gelo"].includes(active) && (
           <p className="text-sm opacity-80 mb-4">Faz isso agora, com calma. Você tem alguns minutos até a vontade passar.</p>
+        )}
+
+        {active === "boca" && (
+          <div className="mb-4 text-left">
+            <p className="text-sm opacity-80 mb-3 text-center">Seu kit fissura — escolhe algo pra ter sempre por perto:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {FISSURE_KIT_ITEMS.map((item) => (
+                <div key={item.key} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-2.5">
+                  <p className="text-xs font-bold">{item.icon} {item.label}</p>
+                  <p className="text-[11px] opacity-60 mt-0.5">{item.examples}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {active === "memoria" && <MemoryGame />}
@@ -1601,6 +1681,10 @@ function WelcomeModal({ onClose }) {
 
 function RelapseModal({ onClose, onChoose }) {
   const [cause, setCause] = useState(null);
+  const [company, setCompany] = useState(null);
+  const [emotion, setEmotion] = useState(null);
+  const [urge, setUrge] = useState(5);
+  const [diaryDone, setDiaryDone] = useState(false);
   const [note, setNote] = useState("");
   const [confirming, setConfirming] = useState(null);
 
@@ -1616,6 +1700,40 @@ function RelapseModal({ onClose, onChoose }) {
             ))}
           </div>
           <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-xs py-2">cancelar</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Diário do cigarro — onde estava/com quem, como se sentia antes, intensidade da vontade
+  if (!diaryDone) {
+    return (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
+        <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className="rounded-3xl p-6 max-w-sm w-full max-h-[85vh] overflow-y-auto">
+          <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-sm mb-3">DIÁRIO DO CIGARRO</p>
+          <p style={{ ...playfair }} className="italic text-sm leading-relaxed mb-4">Vale registrar — isso ajuda a entender seus padrões. Tudo opcional.</p>
+
+          <p className="text-xs opacity-60 mb-2">Onde estava / com quem?</p>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {COMPANY_OPTIONS.map((c) => (
+              <button key={c.key} onClick={() => setCompany(c.key === company ? null : c.key)}
+                style={{ background: company === c.key ? C.red : C.navySoft }} className="rounded-xl p-2.5 text-sm text-left">{c.icon} {c.label}</button>
+            ))}
+          </div>
+
+          <p className="text-xs opacity-60 mb-2">Como estava se sentindo antes?</p>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {EMOTION_BEFORE_OPTIONS.map((e) => (
+              <button key={e.key} onClick={() => setEmotion(e.key === emotion ? null : e.key)}
+                style={{ background: emotion === e.key ? C.red : C.navySoft }} className="rounded-xl p-2.5 text-sm text-left">{e.icon} {e.label}</button>
+            ))}
+          </div>
+
+          <p className="text-xs opacity-60 mb-2">Intensidade da vontade de fumar: <span style={{ color: C.gold }}>{urge}</span>/10</p>
+          <input type="range" min="0" max="10" value={urge} onChange={(e) => setUrge(Number(e.target.value))} className="w-full mb-5" />
+
+          <button onClick={() => setDiaryDone(true)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-2">CONTINUAR</button>
+          <button onClick={() => setDiaryDone(true)} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-xs py-2">pular essa parte</button>
         </div>
       </div>
     );
@@ -1642,7 +1760,7 @@ function RelapseModal({ onClose, onChoose }) {
         {confirming === "slip" && (
           <div className="space-y-2">
             <p className="text-xs opacity-70 mb-2">Seus dias já construídos continuam contando normalmente. Um deslize não apaga o que você já conquistou.</p>
-            <button onClick={() => onChoose(cause, note, "slip")} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3">CONFIRMAR</button>
+            <button onClick={() => onChoose(cause, note, "slip", { company, emotion, urge })} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3">CONFIRMAR</button>
             <button onClick={() => setConfirming(null)} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-xs py-2">voltar</button>
           </div>
         )}
@@ -1650,7 +1768,7 @@ function RelapseModal({ onClose, onChoose }) {
         {confirming === "restart" && (
           <div className="space-y-2">
             <p className="text-xs opacity-70 mb-2">A contagem volta a zero a partir de agora. Recomeçar não apaga a coragem de ter tentado.</p>
-            <button onClick={() => onChoose(cause, note, "restart")} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3">CONFIRMAR RECOMEÇO</button>
+            <button onClick={() => onChoose(cause, note, "restart", { company, emotion, urge })} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3">CONFIRMAR RECOMEÇO</button>
             <button onClick={() => setConfirming(null)} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-xs py-2">voltar</button>
           </div>
         )}
