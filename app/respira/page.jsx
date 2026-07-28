@@ -165,16 +165,6 @@ export default function RespiraPage() {
           </div>
         )}
 
-        <div className="flex gap-1 mb-6" style={{ borderBottom: `1px solid ${C.line}` }}>
-          {[["hoje", "Hoje"], ["painel", "Painel"], ["aprenda", "Aprenda"], ["comunidade", "Comunidade"], ["config", "Config"]].map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)}
-              style={{ ...bebas, letterSpacing: 0.5, color: tab === key ? C.red : C.cream, opacity: tab === key ? 1 : 0.5, borderBottom: tab === key ? `2px solid ${C.red}` : "2px solid transparent" }}
-              className="flex-1 text-xs pb-2.5 pt-1">
-              {label}
-            </button>
-          ))}
-        </div>
-
         {tab === "hoje" && (
           isFuture ? (
             <CountdownView quitAt={quitAt} now={now} />
@@ -186,7 +176,10 @@ export default function RespiraPage() {
               cigsAvoided={cigsAvoided}
               moneySaved={moneySaved}
               cravingsSurvived={cravingsSurvived}
+              longestStreakDays={longestStreakDays}
               dailyState={dailyState}
+              onOpenAprenda={() => setTab("aprenda")}
+              onOpenSOS={() => setSosOpen(true)}
               onToggleMission={async (mission) => {
                 const done = dailyState?.missions_done || [];
                 const next = done.includes(mission) ? done.filter((m) => m !== mission) : [...done, mission];
@@ -274,6 +267,7 @@ export default function RespiraPage() {
               setProfile((p) => ({ ...p, ...fields }));
             }}
             onRereadWelcome={() => setWelcomeOpen(true)}
+            onOpenAprenda={() => setTab("aprenda")}
             onSignOut={() => supabase.auth.signOut()}
             onDeleteAccount={async () => {
               const { data: { session: freshSession } } = await supabase.auth.getSession();
@@ -294,12 +288,7 @@ export default function RespiraPage() {
         <EmphasisDisclaimer />
       </div>
 
-      <button onClick={() => setSosOpen(true)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-full shadow-lg shadow-black/40 text-lg active:scale-95 transition-transform">
-        BATEU A VONTADE
-      </button>
-
-
+      <BottomNav tab={tab} setTab={setTab} onOpenSOS={() => setSosOpen(true)} />
       {sosOpen && (
         <SOSModal
           why={profile.why_text}
@@ -378,6 +367,49 @@ function SiteHeader({ menuOpen, setMenuOpen, onSignOut }) {
   );
 }
 
+function BottomNav({ tab, setTab, onOpenSOS }) {
+  const leftItems = [
+    { key: "hoje", label: "Hoje", icon: "🏠" },
+    { key: "painel", label: "Minha jornada", icon: "🫁" },
+  ];
+  const rightItems = [
+    { key: "comunidade", label: "Comunidade", icon: "👥" },
+    { key: "config", label: "Perfil", icon: "👤" },
+  ];
+
+  function NavBtn({ item }) {
+    const active = tab === item.key;
+    return (
+      <button onClick={() => setTab(item.key)} className="flex flex-col items-center gap-0.5 flex-1 py-1">
+        <span style={{ fontSize: "1.25rem", opacity: active ? 1 : 0.45 }}>{item.icon}</span>
+        <span style={{ color: active ? C.gold : C.cream, opacity: active ? 1 : 0.45, ...bebas, letterSpacing: 0.3 }} className="text-[9px] leading-none">{item.label}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ background: C.navy, borderTop: `1px solid ${C.line}` }} className="fixed bottom-0 left-0 right-0 z-40">
+      <div className="max-w-md mx-auto flex items-end justify-between px-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)", paddingTop: 6 }}>
+        {leftItems.map((item) => <NavBtn key={item.key} item={item} />)}
+
+        <button onClick={onOpenSOS} className="flex flex-col items-center flex-1 -mt-6" aria-label="Estou com vontade de fumar">
+          <span
+            style={{
+              background: C.red, width: 54, height: 54, borderRadius: "9999px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 6px 18px ${C.red}80`, border: `3px solid ${C.navy}`,
+            }}
+          >
+            <span style={{ ...bebas, letterSpacing: 0.5, fontSize: "0.75rem", color: C.cream }}>SOS</span>
+          </span>
+        </button>
+
+        {rightItems.map((item) => <NavBtn key={item.key} item={item} />)}
+      </div>
+    </div>
+  );
+}
+
 function CountdownView({ quitAt, now }) {
   const remainMin = Math.max(0, (quitAt - now) / 60000);
   const days = Math.floor(remainMin / 1440);
@@ -399,35 +431,119 @@ function CountdownView({ quitAt, now }) {
 }
 
 // ---------- Hoje ----------
-function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cravingsSurvived, dailyState, onToggleMission, onSetMood, onSaveDiary }) {
+function RecoveryDial({ days }) {
+  const marks = [
+    { label: "7 dias", angle: -90 },
+    { label: "30 dias", angle: -18 },
+    { label: "3 meses", angle: 54 },
+    { label: "6 meses", angle: 126 },
+    { label: "1 ano", angle: 198 },
+  ];
+  const pct = Math.min(100, (days / 365) * 100);
+  const R = 42;
+  const CX = 60, CY = 60;
+  const circumference = 2 * Math.PI * R;
+  return (
+    <svg width="224" height="224" viewBox="0 0 120 120">
+      <circle cx={CX} cy={CY} r={R} fill="none" stroke={C.line} strokeWidth="4" />
+      <circle
+        cx={CX} cy={CY} r={R} fill="none" stroke={C.gold} strokeWidth="4" strokeLinecap="round"
+        strokeDasharray={`${(pct / 100) * circumference} ${circumference}`}
+        transform={`rotate(-90 ${CX} ${CY})`}
+      />
+      <text x={CX} y={CY - 3} textAnchor="middle" fontSize="26" fill={C.cream} fontFamily={bebas.fontFamily}>{days}</text>
+      <text x={CX} y={CY + 14} textAnchor="middle" fontSize="9" fill={C.cream} opacity="0.6">dia{days !== 1 ? "s" : ""}</text>
+      {marks.map((m) => {
+        const rad = (m.angle * Math.PI) / 180;
+        const lx = CX + (R + 15) * Math.cos(rad);
+        const ly = CY + (R + 15) * Math.sin(rad);
+        const dotX = CX + R * Math.cos(rad);
+        const dotY = CY + R * Math.sin(rad);
+        return (
+          <g key={m.label}>
+            <circle cx={dotX} cy={dotY} r="2" fill={C.line} />
+            <text x={lx} y={ly + 2} textAnchor="middle" fontSize="6.5" fill={C.cream} opacity="0.55">{m.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function DetailStat({ icon, title, value, note }) {
+  return (
+    <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 flex flex-col">
+      <div className="flex items-center gap-2 mb-2">
+        <div style={{ width: 32, height: 32, borderRadius: "9999px", border: `1.5px solid ${C.line}` }} className="flex items-center justify-center flex-shrink-0">
+          <span style={{ fontSize: "0.9rem" }}>{icon}</span>
+        </div>
+        <p className="text-[11px] opacity-70 leading-tight">{title}</p>
+      </div>
+      <p style={{ ...bebas }} className="text-xl mb-1">{value}</p>
+      <p className="text-[10px] opacity-45 leading-tight mt-auto">{note}</p>
+    </div>
+  );
+}
+
+function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cravingsSurvived, longestStreakDays, dailyState, onToggleMission, onSetMood, onSaveDiary, onOpenAprenda, onOpenSOS }) {
   const coach = getCoachMessage(dayNumber);
   const missions = getMissionsForDay(dayNumber);
   const done = dailyState?.missions_done || [];
-  const nextMilestone = HEALTH_MILESTONES.find((m) => m.mins > elapsedMin);
   const days = Math.floor(elapsedMin / 1440);
   const [diaryDraft, setDiaryDraft] = useState(dailyState?.diary_text || "");
   useEffect(() => setDiaryDraft(dailyState?.diary_text || ""), [dailyState?.diary_text]);
 
   const firstName = (profile.display_name || "").split(" ")[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  const nextBadge = BADGE_LEVELS.find((b) => dayNumber < b.days) || null;
 
   return (
     <div>
-      <div className="text-center mb-4">
-        <p className="text-sm opacity-70 mb-1">{firstName ? `Oi, ${firstName}` : "Oi"} 👋</p>
-        <p style={{ ...bebas, fontSize: "4.5rem", lineHeight: 0.9, color: C.cream }}>{days}</p>
-        <p style={{ ...playfair }} className="italic text-sm opacity-80">dia{days !== 1 ? "s" : ""} sem fumar</p>
+      <div className="mb-5">
+        <p className="text-sm opacity-70 mb-1">{greeting}{firstName ? `, ${firstName}` : ""}.</p>
+        <p style={{ ...bebas, fontSize: "2.4rem", lineHeight: 1.05, color: C.cream }}>
+          Hoje faz <span style={{ color: C.gold }}>{days} dia{days !== 1 ? "s" : ""}</span><br />sem fumar.
+        </p>
+        <div style={{ width: 40, height: 2, background: C.red }} className="my-3" />
+        <p style={{ ...playfair }} className="italic text-sm opacity-80">Cada dia é uma escolha. E você escolheu você. ♥</p>
       </div>
 
-      {nextMilestone && (
-        <p className="text-center text-xs opacity-70 mb-4">próxima marca: <span style={{ color: C.red }}>{nextMilestone.label}</span></p>
+      <div className="flex justify-center mb-5">
+        <RecoveryDial days={days} />
+      </div>
+
+      {nextBadge && (
+        <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}55` }} className="rounded-2xl px-4 py-3 mb-5 flex items-center gap-2.5">
+          <span>⭐</span>
+          <p className="text-sm">Faltam só <b style={{ color: C.gold }}>{nextBadge.days - days}</b> dias pro selo de <b style={{ color: C.gold }}>{nextBadge.label}</b>.</p>
+        </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <Stat label="cigarros evitados" value={Math.floor(cigsAvoided)} />
-        <Stat label="economizado" value={`R$ ${moneySaved.toFixed(0)}`} />
-        <Stat label="tempo de vida" value={formatMinutesAsLifeTime(cigsAvoided * 11)} />
-        <Stat label="fissuras vencidas" value={cravingsSurvived} />
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <DetailStat icon="💰" title="Dinheiro economizado" value={`R$ ${moneySaved.toFixed(0)}`} note="Imagina o que mais dá pra fazer com isso." />
+        <DetailStat icon="🫁" title="Cigarros evitados" value={Math.floor(cigsAvoided)} note="É muito cigarro a menos no seu corpo." />
+        <DetailStat icon="⏳" title="Tempo recuperado" value={formatMinutesAsLifeTime(cigsAvoided * 11)} note="Tempo pra você. Pra viver melhor." />
+        <DetailStat icon="🔥" title="Maior sequência" value={`${longestStreakDays ?? days} dias`} note="Seu recorde atual. Bora superar?" />
       </div>
+
+      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p style={{ color: C.gold }} className="text-sm font-bold mb-1">✨ Você está mandando bem!</p>
+          <p className="text-xs opacity-70 leading-relaxed">Seu corpo já está colhendo os primeiros benefícios. Continua assim.</p>
+        </div>
+        <span style={{ fontSize: "2rem", flexShrink: 0 }}>🌤️</span>
+      </div>
+
+      {onOpenSOS && (
+        <button onClick={onOpenSOS} style={{ background: C.red, border: `1px solid ${C.red}` }} className="w-full rounded-2xl p-4 mb-5 flex items-center gap-3 text-left">
+          <span style={{ fontSize: "1.6rem" }}>🚭</span>
+          <div>
+            <p style={{ ...bebas, letterSpacing: 0.5, color: C.cream }} className="text-base leading-tight">ESTOU COM VONTADE DE FUMAR</p>
+            <p className="text-xs opacity-80">Aperte aqui. A gente te ajuda.</p>
+          </div>
+        </button>
+      )}
 
       <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4">
         <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-xs mb-2">MENSAGEM DO DIA</p>
@@ -461,6 +577,12 @@ function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cra
           placeholder="quer registrar algo sobre hoje?" rows={2}
           style={{ background: "transparent", color: C.cream, borderColor: C.line }} className="w-full outline-none resize-none text-sm border-t pt-2 placeholder-white/40" />
       </div>
+
+      {onOpenAprenda && (
+        <button onClick={onOpenAprenda} style={{ color: C.gold }} className="w-full text-center text-xs underline mt-5">
+          📚 quer entender mais? conteúdos sobre parar de fumar
+        </button>
+      )}
     </div>
   );
 }
@@ -511,6 +633,12 @@ function PanelTab(props) {
 
   const co2Display = co2Grams >= 1000 ? `${(co2Grams / 1000).toFixed(1)}kg` : `${Math.floor(co2Grams)}g`;
 
+  const nextBadge = BADGE_LEVELS.find((b) => dayNumber < b.days) || null;
+  const prevBadgeDays = [...BADGE_LEVELS].reverse().find((b) => dayNumber >= b.days)?.days || 0;
+  const gaugePct = nextBadge
+    ? Math.min(100, Math.max(0, Math.round(((dayNumber - prevBadgeDays) / (nextBadge.days - prevBadgeDays)) * 100)))
+    : 100;
+
   const thisWeekRating = selfesteemChecks.find((c) => c.week_key === weekKey())?.rating;
 
   return (
@@ -542,14 +670,38 @@ function PanelTab(props) {
 
       <div className="mb-8">
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">ESTATÍSTICAS</p>
+
+        <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-3 flex items-center justify-between">
+          <div className="text-center flex-1">
+            <p style={{ ...bebas }} className="text-2xl">{Math.floor(cigsAvoided)}</p>
+            <p className="text-[10px] opacity-60 mt-0.5 leading-tight">cigarros<br />evitados</p>
+          </div>
+
+          <svg width="104" height="104" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke={C.line} strokeWidth="9" />
+            <circle
+              cx="50" cy="50" r="42" fill="none" stroke={C.gold} strokeWidth="9" strokeLinecap="round"
+              strokeDasharray={`${(gaugePct / 100) * 263.9} 263.9`}
+              transform="rotate(-90 50 50)"
+            />
+            <text x="50" y="48" textAnchor="middle" fontSize="22" fill={C.cream} fontFamily={bebas.fontFamily}>{dayNumber}</text>
+            <text x="50" y="63" textAnchor="middle" fontSize="9" fill={C.cream} opacity="0.55">dias</text>
+          </svg>
+
+          <div className="text-center flex-1">
+            <p style={{ ...bebas }} className="text-2xl">{cravingsSurvived}</p>
+            <p className="text-[10px] opacity-60 mt-0.5 leading-tight">fissuras<br />vencidas</p>
+          </div>
+        </div>
+        {nextBadge && (
+          <p className="text-[10px] opacity-40 text-center mb-3">faltam {nextBadge.days - dayNumber}d pro selo {nextBadge.icon} {nextBadge.label}</p>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
-          <Stat label="dias" value={dayNumber} />
-          <Stat label="maior sequência" value={`${longestStreakDays}d`} />
-          <Stat label="cigarros evitados" value={Math.floor(cigsAvoided)} />
-          <Stat label="economizado" value={`R$ ${moneySaved.toFixed(0)}`} />
-          <Stat label="CO₂ não emitido*" value={co2Display} />
-          <Stat label="tempo de vida" value={formatMinutesAsLifeTime(lifeMinutes)} />
-          <Stat label="fissuras vencidas" value={cravingsSurvived} />
+          <StatCard icon="💰" iconBg={`${C.gold}30`} label="economizado" value={`R$ ${moneySaved.toFixed(0)}`} />
+          <StatCard icon="🌱" iconBg="#4ade8030" label="CO₂ não emitido*" value={co2Display} />
+          <StatCard icon="⏳" iconBg="#60a5fa30" label="tempo de vida" value={formatMinutesAsLifeTime(lifeMinutes)} />
+          <StatCard icon="🔥" iconBg={`${C.red}30`} label="maior sequência" value={`${longestStreakDays}d`} />
         </div>
         <p className="text-[10px] opacity-30 mt-2">*estimativa aproximada, não é uma medição real</p>
       </div>
@@ -1187,7 +1339,7 @@ function CommunityTab({ supabase, session, profile }) {
   );
 }
 
-function ConfigTab({ profile, onSave, onRereadWelcome, onSignOut, onDeleteAccount }) {
+function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onSignOut, onDeleteAccount }) {
   const [cigsPerDay, setCigsPerDay] = useState(profile.cigs_per_day);
   const [pricePerPack, setPricePerPack] = useState(profile.price_per_pack);
   const [cigsPerPack, setCigsPerPack] = useState(profile.cigs_per_pack);
@@ -1223,6 +1375,9 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onSignOut, onDeleteAccoun
         style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-6">SALVAR</button>
 
       <button onClick={onRereadWelcome} style={{ color: C.gold }} className="w-full text-sm py-2 mb-2 underline">reler minha decisão de parar</button>
+      {onOpenAprenda && (
+        <button onClick={onOpenAprenda} style={{ color: C.gold }} className="w-full text-sm py-2 mb-2 underline">📚 conteúdos sobre parar de fumar</button>
+      )}
       <button onClick={onSignOut} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2 mb-6 underline">sair da conta</button>
 
       <div style={{ borderTop: `1px solid ${C.line}` }} className="pt-5 mb-6">
@@ -1271,6 +1426,18 @@ function Stat({ label, value }) {
     <div style={{ background: C.navySoft }} className="rounded-2xl p-4">
       <p className="text-[11px] opacity-60">{label}</p>
       <p style={{ ...bebas }} className="text-2xl mt-0.5">{value}</p>
+    </div>
+  );
+}
+
+function StatCard({ icon, iconBg, label, value }) {
+  return (
+    <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4">
+      <div style={{ width: 34, height: 34, borderRadius: "9999px", background: iconBg }} className="flex items-center justify-center mb-2">
+        <span style={{ fontSize: "1.05rem" }}>{icon}</span>
+      </div>
+      <p className="text-[11px] opacity-60">{label}</p>
+      <p style={{ ...bebas }} className="text-xl mt-0.5">{value}</p>
     </div>
   );
 }
