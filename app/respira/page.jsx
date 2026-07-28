@@ -1358,7 +1358,7 @@ function MemoryGame() {
               style={{
                 width: "100%",
                 aspectRatio: "1",
-                minHeight: 92,
+                minHeight: 110,
                 background: isFlipped ? "transparent" : C.navySoft,
                 border: `1px solid ${matched.includes(card.cardId) ? "#4ade80" : C.line}`,
                 borderRadius: 10,
@@ -1372,7 +1372,7 @@ function MemoryGame() {
               {isFlipped ? (
                 <img src={card.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <span style={{ fontSize: "2.2rem" }}>🏳️‍🌈</span>
+                <span style={{ fontSize: "2.6rem" }}>🏳️‍🌈</span>
               )}
             </button>
           );
@@ -1398,14 +1398,30 @@ function BubbleWrapGame() {
 
   const allPopped = popped.size === TOTAL;
 
-  function playPop() {
+  async function ensureAudio() {
+    if (!audioCtxRef.current) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      audioCtxRef.current = ctx;
+      // Destrava o áudio no iOS/Safari: esses navegadores só liberam o
+      // AudioContext de verdade depois de tocar um buffer (mesmo que silencioso)
+      // dentro do primeiro toque do usuário.
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const unlockSrc = ctx.createBufferSource();
+      unlockSrc.buffer = buffer;
+      unlockSrc.connect(ctx.destination);
+      unlockSrc.start(0);
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === "suspended") {
+      try { await ctx.resume(); } catch (e) { /* segue mesmo assim */ }
+    }
+    return ctx;
+  }
+
+  async function playPop() {
     try {
-      if (!audioCtxRef.current) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        audioCtxRef.current = new AC();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === "suspended") ctx.resume();
+      const ctx = await ensureAudio();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       const startFreq = 380 + Math.random() * 120;
@@ -1480,7 +1496,7 @@ function BubbleWrapGame() {
 
 const TETRIS_WIDTH = 8;
 const TETRIS_HEIGHT = 14;
-const TETRIS_CELL = 22;
+const TETRIS_CELL = 30;
 
 const TETRIS_PIECES = {
   I: { color: "#22d3ee", matrix: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]] },
@@ -1612,7 +1628,7 @@ function TetrisGame() {
     }
   }));
 
-  const ctrlBtn = { background: C.navySoft, border: `1px solid ${C.line}`, borderRadius: 10, width: 52, height: 44, fontSize: "1.2rem" };
+  const ctrlBtn = { background: C.navySoft, border: `1px solid ${C.line}`, borderRadius: 10, width: 58, height: 50, fontSize: "1.3rem" };
 
   return (
     <div>
@@ -1767,7 +1783,7 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
 
   return (
     <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-50 ${isGame ? "p-3" : "p-6"}`}>
-      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl w-full text-center ${isGame ? "max-w-lg p-4 sm:p-6" : "max-w-sm p-6"}`}>
+      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl w-full text-center max-h-[90vh] overflow-y-auto ${isGame ? "max-w-2xl p-4 sm:p-6" : "max-w-sm p-6"}`}>
         <p style={{ color: C.red, ...bebas, letterSpacing: 1 }} className="text-lg mb-4">{tech.icon} {tech.title.toUpperCase()}</p>
 
         {active === "respirar" && (
