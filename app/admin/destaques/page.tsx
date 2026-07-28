@@ -155,7 +155,7 @@ export default function AdminDestaques() {
   const isExpired = (h: Highlight) => h.expires_at ? new Date(h.expires_at) < new Date() : false
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Destaques</h1>

@@ -27,7 +27,7 @@ export default function AuditoriaCliques() {
   const totalGeral = stats.reduce((acc, s) => acc + parseInt(s.total_cliques || '0'), 0)
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Auditoria de Cliques</h1>
         <p className="opacity-50 text-sm mt-1">Rastreamento de cliques da página obicha.com.br/links</p>

@@ -99,7 +99,7 @@ export default function AdminCollections() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Coleções em Destaque</h1>

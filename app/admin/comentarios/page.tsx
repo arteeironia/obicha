@@ -43,7 +43,7 @@ export default function AdminComentarios() {
     : comments
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Comentários</h1>

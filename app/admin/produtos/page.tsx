@@ -136,8 +136,8 @@ export default function AdminProdutos() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Produtos</h1>
           <p className="opacity-50 text-sm mt-1">{products.length} produtos cadastrados</p>
@@ -148,7 +148,7 @@ export default function AdminProdutos() {
       </div>
 
       {loading ? <p className="opacity-50">Carregando...</p> : (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {products.map(p => (
             <div key={p.id} className="border rounded overflow-hidden" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
               <div className="aspect-square bg-white/5 relative">

@@ -71,7 +71,7 @@ export default function AdminDashboard() {
   const publishedPosts = posts.filter(p => p.published).length
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Dashboard</h1>
         <p className="opacity-50 text-sm mt-1">Visão geral do site Ô bicha!</p>
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
         <p className="opacity-50">Carregando...</p>
       ) : (
         <>
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <StatCard label="Produtos" value={products.length} sub={`${reservaInkCount} Reserva INK · ${umaPencaCount} Uma Penca`} />
             <StatCard label="Categorias ativas" value={activeCategories} sub={`${categories.length} no total`} />
             <StatCard label="Coleções" value={collections.length} />
@@ -90,14 +90,14 @@ export default function AdminDashboard() {
 
           <div className="mb-8">
             <p className="text-xs tracking-widest uppercase opacity-50 mb-3">Comentários</p>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard label="Comentários no blog" value={comments.length} />
             </div>
           </div>
 
           <div className="mb-8">
             <p className="text-xs tracking-widest uppercase opacity-50 mb-3">🫁 App Respira</p>
-            <div className="grid grid-cols-4 gap-4 mb-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
               <StatCard label="Pessoas cadastradas" value={respiraStats.total} />
             </div>
             {respiraStats.recent.length > 0 && (
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
 
           <div>
             <p className="text-xs tracking-widest uppercase opacity-50 mb-3">Atalhos</p>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <QuickLink href="/admin/produtos" label="Gerenciar Produtos" icon="👕" />
               <QuickLink href="/admin/categorias" label="Categorias" icon="🏷️" />
               <QuickLink href="/admin/destaques" label="Destaques" icon="✦" />

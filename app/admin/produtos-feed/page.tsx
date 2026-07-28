@@ -105,7 +105,7 @@ export default function AdminProdutosFeed() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Produtos das Lojas</h1>
@@ -137,7 +137,7 @@ export default function AdminProdutosFeed() {
 
       {loading ? <p className="opacity-50">Carregando...</p> : (
         <>
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {products.map(p => (
               <div key={p.id} className="border rounded overflow-hidden" style={{ borderColor: p.active ? 'rgba(212,168,67,0.2)' : 'rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)', opacity: p.active ? 1 : .4 }}>
                 <div className="aspect-square bg-white/5 relative cursor-pointer" onClick={() => setEditProduct(p)}>

@@ -91,7 +91,7 @@ export default function RespiraAdminPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6">
         <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>🫁 Respira — Gerenciar</h1>
         <p className="opacity-50 text-sm mt-1">Usuários, dados e moderação do fórum</p>
@@ -113,9 +113,9 @@ export default function RespiraAdminPage() {
         <div className="space-y-3">
           {profiles.length === 0 && <p className="opacity-40 text-sm">Ninguém cadastrado ainda.</p>}
           {profiles.map(p => (
-            <div key={p.user_id} style={cardStyle} className="p-4 flex items-center justify-between">
+            <div key={p.user_id} style={cardStyle} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                {p.photo_url && <img src={p.photo_url} alt="" className="w-10 h-10 rounded-full" />}
+                {p.photo_url && <img src={p.photo_url} alt="" className="w-10 h-10 rounded-full flex-shrink-0" />}
                 <div>
                   <p className="text-sm font-bold">{p.display_name || 'Sem nome'} {p.is_admin && <span style={{ color: 'var(--gold)' }} className="text-xs ml-1">★ admin</span>}</p>
                   <p className="text-xs opacity-50">
@@ -124,7 +124,7 @@ export default function RespiraAdminPage() {
                   <p className="text-[11px] opacity-30 mt-0.5">cadastrado em {new Date(p.created_at).toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => toggleAdmin(p.user_id, p.is_admin)}
                   className="text-xs px-3 py-1.5 font-bebas tracking-widest"
                   style={{ background: p.is_admin ? 'rgba(212,168,67,.15)' : 'rgba(255,255,255,.03)', color: p.is_admin ? 'var(--gold)' : 'rgba(242,235,217,.6)', border: '1px solid rgba(212,168,67,.2)' }}>

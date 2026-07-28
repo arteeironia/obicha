@@ -58,7 +58,7 @@ export default function AdminPinterest() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Pinterest</h1>
@@ -79,7 +79,7 @@ export default function AdminPinterest() {
           <p>Nenhum pin adicionado ainda</p>
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {pins.map(pin => (
             <div key={pin.id} className="border rounded overflow-hidden" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
               <div className="aspect-square relative">

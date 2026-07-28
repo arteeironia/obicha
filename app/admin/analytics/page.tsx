@@ -60,8 +60,8 @@ export default function AnalyticsPage() {
   const maxDaily = data ? Math.max(...data.dailyViews.map(d => parseInt(d.views || '0')), 1) : 1
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Analytics</h1>
           <p className="opacity-50 text-sm mt-1">Páginas, produtos e origem do tráfego</p>
@@ -81,7 +81,7 @@ export default function AnalyticsPage() {
         <p className="opacity-50">Carregando...</p>
       ) : (
         <>
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <StatCard label="Visualizações" value={data.totals.total_pageviews || 0} />
             <StatCard label="Cliques em produtos" value={data.totals.total_clicks || 0} />
             <StatCard label="Visualizações hoje" value={data.totals.pageviews_hoje || 0} />
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <RankTable title="Páginas mais visitadas" items={data.topPages} valueKey="views" labelKey="path" />
             <RankTable title="Produtos mais clicados" items={data.topProducts} valueKey="clicks" labelKey="label" />
             <RankTable title="De onde vem o tráfego" items={data.topReferrers} valueKey="visits" labelKey="source" />
