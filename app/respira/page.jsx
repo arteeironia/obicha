@@ -1297,9 +1297,24 @@ function MemoryGame() {
   useEffect(() => {
     fetch("/api/respira/game-images?count=6")
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
+        if (!data || data.length < 6) { setImages(data || []); return; }
+        // Pré-carrega tudo ANTES de liberar o jogo — sem isso, a imagem só começa a
+        // baixar no exato clique, e se o par for errado o timeout de virar de volta
+        // corre contra o carregamento (às vezes vence antes da imagem aparecer).
+        await Promise.all(
+          data.map(
+            (d) =>
+              new Promise((resolve) => {
+                const img = new window.Image();
+                img.onload = resolve;
+                img.onerror = resolve;
+                img.src = d.image_url;
+              })
+          )
+        );
         setImages(data);
-        if (data.length >= 6) newRound(data);
+        newRound(data);
       })
       .catch(() => setImages([]));
   }, []);
@@ -1373,140 +1388,63 @@ function MemoryGame() {
   );
 }
 
-function PuzzleGame() {
-  const SIZE = 3;
-  const MAX_BOARD = 380;
-  const boardRef = useRef(null);
-  const [boardPx, setBoardPx] = useState(300);
-  const TILE = boardPx / SIZE;
-  const [image, setImage] = useState(null);
 
-  useEffect(() => {
-    if (!boardRef.current) return;
-    const el = boardRef.current;
-    const update = () => setBoardPx(el.offsetWidth);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+function BubbleWrapGame() {
+  const ROWS = 6;
+  const COLS = 5;
+  const TOTAL = ROWS * COLS;
+  const [popped, setPopped] = useState(() => new Set());
 
-  function getNeighbors(index) {
-    const row = Math.floor(index / SIZE);
-    const col = index % SIZE;
-    const out = [];
-    if (row > 0) out.push(index - SIZE);
-    if (row < SIZE - 1) out.push(index + SIZE);
-    if (col > 0) out.push(index - 1);
-    if (col < SIZE - 1) out.push(index + 1);
-    return out;
+  const allPopped = popped.size === TOTAL;
+
+  function pop(i) {
+    if (popped.has(i)) return;
+    setPopped((cur) => new Set(cur).add(i));
   }
 
-  function shuffleSolvable() {
-    const arr = Array.from({ length: SIZE * SIZE }, (_, i) => i);
-    let blankIndex = SIZE * SIZE - 1;
-    // Poucos movimentos de propósito: isso é uma técnica de SOS pra fissura, não um
-    // desafio de puzzle. Precisa ser fácil e rápido de vencer, não frustrante.
-    const SHUFFLE_MOVES = 18;
-    let lastIndex = -1;
-    for (let i = 0; i < SHUFFLE_MOVES; i++) {
-      const neighbors = getNeighbors(blankIndex).filter((n) => n !== lastIndex);
-      const swapWith = neighbors[Math.floor(Math.random() * neighbors.length)];
-      const tmp = arr[blankIndex];
-      arr[blankIndex] = arr[swapWith];
-      arr[swapWith] = tmp;
-      lastIndex = blankIndex;
-      blankIndex = swapWith;
-    }
-    return arr;
+  function reset() {
+    setPopped(new Set());
   }
-
-  const [tiles, setTiles] = useState(() => shuffleSolvable());
-
-  useEffect(() => {
-    fetch("/api/respira/game-images?count=1")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data || !data[0] || !data[0].image_url) { setImage(false); return; }
-        setImage(data[0]);
-        setTiles(shuffleSolvable());
-      })
-      .catch(() => setImage(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function moveTile(clickedIndex) {
-    setTiles((current) => {
-      const blankIndex = current.indexOf(SIZE * SIZE - 1);
-      if (!getNeighbors(blankIndex).includes(clickedIndex)) return current;
-      const next = current.slice();
-      const tmp = next[blankIndex];
-      next[blankIndex] = next[clickedIndex];
-      next[clickedIndex] = tmp;
-      return next;
-    });
-  }
-
-  if (image === null) return <p className="text-sm opacity-50 text-center py-8">carregando…</p>;
-  if (image === false) return <p className="text-sm opacity-50 text-center py-8">não achei imagem pra montar o quebra-cabeça agora</p>;
-
-  const solved = tiles.every((v, i) => v === i);
 
   return (
     <div>
+      <p className="text-xs opacity-60 text-center mb-3">
+        {allPopped ? "todinhas! 🎉" : `${popped.size}/${TOTAL} estouradas`}
+      </p>
       <div
-        ref={boardRef}
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: MAX_BOARD,
-          aspectRatio: "1",
-          margin: "0 auto 1rem",
-          background: C.navy,
-          borderRadius: 8,
-          overflow: "hidden",
-          border: `1px solid ${C.line}`,
-        }}
+        style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 8 }}
+        className="mb-4"
       >
-        {tiles.map((value, index) => {
-          const isBlank = value === SIZE * SIZE - 1;
-          const targetRow = Math.floor(index / SIZE);
-          const targetCol = index % SIZE;
-          const srcRow = Math.floor(value / SIZE);
-          const srcCol = value % SIZE;
+        {Array.from({ length: TOTAL }, (_, i) => {
+          const isPopped = popped.has(i);
           return (
             <button
-              key={index}
-              onClick={() => moveTile(index)}
+              key={i}
+              onClick={() => pop(i)}
               style={{
-                position: "absolute",
-                top: targetRow * TILE,
-                left: targetCol * TILE,
-                width: TILE,
-                height: TILE,
-                border: "1px solid rgba(0,0,0,.3)",
+                aspectRatio: "1",
+                borderRadius: "50%",
+                border: "none",
                 padding: 0,
-                cursor: isBlank ? "default" : "pointer",
-                backgroundColor: isBlank ? C.navySoft : "transparent",
-                backgroundImage: isBlank ? "none" : `url(${image.image_url})`,
-                backgroundSize: `${boardPx}px ${boardPx}px`,
-                backgroundPosition: `-${srcCol * TILE}px -${srcRow * TILE}px`,
-                transition: "top .15s ease, left .15s ease",
+                background: isPopped
+                  ? C.navy
+                  : `radial-gradient(circle at 35% 30%, ${C.cream}55, ${C.navySoft} 70%)`,
+                boxShadow: isPopped ? "inset 0 2px 3px rgba(0,0,0,.5)" : "0 2px 3px rgba(0,0,0,.25)",
+                transform: isPopped ? "scale(0.85)" : "scale(1)",
+                transition: "transform .1s ease, background .1s ease",
+                cursor: isPopped ? "default" : "pointer",
               }}
             />
           );
         })}
       </div>
-      {solved ? (
+      {allPopped ? (
         <div className="text-center mb-2">
-          <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Resolvido!</p>
-          <button onClick={() => setTiles(shuffleSolvable())} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
+          <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Bora de novo?</p>
+          <button onClick={reset} style={{ color: C.gold }} className="text-sm underline">outra folha de bolhas</button>
         </div>
       ) : (
-        <div className="text-center mb-2">
-          <p className="text-xs opacity-40 mb-2">clica numa peça encostada no espaço vazio pra mover</p>
-          <button onClick={() => setTiles(Array.from({ length: SIZE * SIZE }, (_, i) => i))} style={{ color: C.cream, opacity: 0.5 }} className="text-xs underline">não tô conseguindo, só mostra a imagem</button>
-        </div>
+        <p className="text-xs opacity-40 text-center mb-2">estoura todinhas, no seu ritmo</p>
       )}
     </div>
   );
@@ -1622,7 +1560,7 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
   const tech = SOS_TECHNIQUES.find((t) => t.id === active);
   const bPhase = breathPhase < 4 ? "inspire" : breathPhase < 11 ? "segure" : "solte";
   const scale = bPhase === "solte" ? 0.85 : 1.3;
-  const isGame = active === "quebra-cabeca" || active === "memoria";
+  const isGame = active === "bolha-pop" || active === "memoria";
 
   return (
     <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-50 ${isGame ? "p-3" : "p-6"}`}>
@@ -1671,7 +1609,7 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
         )}
 
         {active === "memoria" && <MemoryGame />}
-        {active === "quebra-cabeca" && <PuzzleGame />}
+        {active === "bolha-pop" && <BubbleWrapGame />}
 
         <button onClick={() => onSurvived("forte", active)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-2">PASSOU, AGUENTEI</button>
         <button onClick={() => setActive(null)} style={{ color: C.cream, opacity: 0.6 }} className="w-full text-sm py-2">tentar outra técnica</button>

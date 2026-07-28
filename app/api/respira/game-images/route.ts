@@ -4,7 +4,7 @@ import postgres from 'postgres'
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
 // Corta o fundo branco/liso das fotos de produto, focando no conteúdo (gravity: auto)
-// pra virarem peças de quebra-cabeça/memória reconhecíveis, não quadrados brancos.
+// pra virarem peças de jogo reconhecíveis, não quadrados brancos.
 function cropForGame(url: string) {
   if (!url || !url.includes('/upload/')) return url
   return url.replace('/upload/', '/upload/c_fill,g_auto,ar_1:1,w_900,q_auto/')
