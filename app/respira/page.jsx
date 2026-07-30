@@ -1365,6 +1365,8 @@ function CommunityTab({ supabase, session, profile }) {
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [posting, setPosting] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportedIds, setReportedIds] = useState(() => new Set());
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1395,7 +1397,7 @@ function CommunityTab({ supabase, session, profile }) {
       display_name: profile.display_name || session.user.user_metadata?.full_name || "Alguém da comunidade",
       photo_url: session.user.user_metadata?.avatar_url || null,
       content: content.trim(),
-      approved: false,
+      approved: true,
     }).select().single();
     setPosting(false);
     if (err) { setError("Não foi possível publicar. Tenta de novo."); return; }
@@ -1413,7 +1415,15 @@ function CommunityTab({ supabase, session, profile }) {
     load();
   }
 
-  async function report(postId) { await supabase.from("quit_forum_reports").insert({ post_id: postId, user_id: session.user.id }); }
+  async function confirmReport(postId) {
+    const { error: err } = await supabase.from("quit_forum_reports").insert({ post_id: postId, user_id: session.user.id });
+    // erro de chave duplicada aqui só significa "já tinha denunciado antes" — trata como sucesso
+    if (!err || err.code === "23505") {
+      setReportedIds((cur) => new Set(cur).add(postId));
+    }
+    setReportTarget(null);
+  }
+
   async function removePost(postId) { await supabase.from("quit_forum_posts").delete().eq("id", postId); setPosts((cur) => cur.filter((p) => p.id !== postId)); }
 
   return (
@@ -1424,7 +1434,7 @@ function CommunityTab({ supabase, session, profile }) {
         {error && <p className="text-xs mt-2" style={{ color: C.red }}>{error}</p>}
         <div className="flex items-center justify-between mt-2">
           <button onClick={submitPost} disabled={posting || !content.trim()} style={{ color: C.red, opacity: posting || !content.trim() ? 0.4 : 1 }} className="text-sm">publicar</button>
-          <span className="text-[10px] opacity-30">posts passam por moderação antes de aparecer pra todo mundo</span>
+          <span className="text-[10px] opacity-30">fórum aberto — denúncias de verdade ajudam a manter o espaço seguro</span>
         </div>
       </div>
 
@@ -1436,14 +1446,16 @@ function CommunityTab({ supabase, session, profile }) {
         <div className="space-y-3">
           {posts.map((p) => {
             const canDelete = p.user_id === session.user.id || profile.is_admin;
-            const isPendingOwn = !p.approved && p.user_id === session.user.id;
+            const isMine = p.user_id === session.user.id;
+            const underReview = !p.approved && isMine;
+            const alreadyReported = reportedIds.has(p.id);
             return (
-              <div key={p.id} style={{ background: C.navySoft, border: `1px solid ${isPendingOwn ? C.gold : C.line}`, opacity: isPendingOwn ? 0.75 : 1 }} className="rounded-xl p-3.5">
+              <div key={p.id} style={{ background: C.navySoft, border: `1px solid ${underReview ? C.gold : C.line}`, opacity: underReview ? 0.75 : 1 }} className="rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     {p.photo_url && <img src={p.photo_url} alt="" className="w-6 h-6 rounded-full" />}
                     <span className="text-xs opacity-70">{p.display_name}</span>
-                    {isPendingOwn && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${C.gold}22`, color: C.gold }}>aguardando aprovação</span>}
+                    {underReview && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${C.gold}22`, color: C.gold }}>em análise (denunciado)</span>}
                   </div>
                   {canDelete && <button onClick={() => removePost(p.id)} className="text-xs opacity-40">excluir</button>}
                 </div>
@@ -1460,11 +1472,30 @@ function CommunityTab({ supabase, session, profile }) {
                       );
                     })}
                   </div>
-                  {!canDelete && <button onClick={() => report(p.id)} className="text-xs opacity-30">denunciar</button>}
+                  {!canDelete && (
+                    alreadyReported ? (
+                      <span className="text-xs opacity-30">denunciado</span>
+                    ) : (
+                      <button onClick={() => setReportTarget(p.id)} className="text-xs opacity-30">denunciar</button>
+                    )
+                  )}
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {reportTarget !== null && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50">
+          <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className="rounded-3xl p-6 max-w-sm w-full">
+            <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-sm mb-3 flex items-center gap-2"><AlertCircle size={18} /> CONFIRMAR DENÚNCIA</p>
+            <p className="text-sm leading-relaxed mb-4">
+              Revê o post antes de confirmar. Denúncias existem pra manter esse espaço seguro — <b>denúncias sem sentido ou feitas de brincadeira podem levar ao banimento da sua conta no app</b>. Você tem certeza que esse post quebra as regras da comunidade?
+            </p>
+            <button onClick={() => confirmReport(reportTarget)} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-2">SIM, DENUNCIAR</button>
+            <button onClick={() => setReportTarget(null)} style={{ color: C.cream, opacity: 0.6 }} className="w-full text-sm py-2">cancelar</button>
+          </div>
         </div>
       )}
     </div>
