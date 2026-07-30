@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy } from "lucide-react";
+import { Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy, CheckCircle2, Circle, Lock, X } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   WELCOME_TEXT,
@@ -363,8 +363,8 @@ function SiteHeader({ menuOpen, setMenuOpen, onSignOut, isHub, title, onBack, on
         )}
 
         <div className="flex items-center gap-3">
-          <button onClick={onOpenSOS} style={{ background: C.red, ...bebas, letterSpacing: 0.5, color: C.cream }} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs">
-            <LifeBuoy size={14} /> SOS
+          <button onClick={onOpenSOS} style={{ background: C.red, ...bebas, letterSpacing: 0.5, color: C.cream, boxShadow: `0 3px 10px ${C.red}66` }} className="flex items-center gap-2 rounded-full px-4 py-2.5 text-sm">
+            <LifeBuoy size={18} /> SOS
           </button>
           {isHub && (
             <button onClick={() => setMenuOpen(true)} style={{ color: C.cream }} aria-label="menu">
@@ -466,6 +466,28 @@ const FN_CARDS = [
   { key: "perfil", title: "Perfil", sub: "Seus dados, seu porquê, sua conta", Icon: User },
 ];
 
+function SubTabs({ tabs, active, onChange }) {
+  return (
+    <div className="flex gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          onClick={() => onChange(t.key)}
+          style={{
+            background: active === t.key ? C.red : C.navySoft,
+            border: `1px solid ${active === t.key ? C.red : C.line}`,
+            color: C.cream,
+            ...bebas, letterSpacing: 0.5,
+          }}
+          className="flex-shrink-0 rounded-full px-4 py-2 text-xs"
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function FunctionCard({ title, sub, Icon, onClick }) {
   return (
     <button onClick={onClick} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-3.5 text-left">
@@ -534,12 +556,15 @@ function MissaoHumorTab({ dayNumber, dailyState, onToggleMission, onSetMood, onS
       <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4">
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-xs opacity-70 mb-3">MISSÃO DO DIA</p>
         <div className="space-y-2">
-          {missions.map((m) => (
-            <button key={m} onClick={() => onToggleMission(m)} className="w-full flex items-center gap-2 text-left">
-              <span style={{ color: done.includes(m) ? C.red : undefined }} className={done.includes(m) ? "" : "opacity-30"}>{done.includes(m) ? "✓" : "○"}</span>
-              <span className={`text-sm ${done.includes(m) ? "line-through opacity-50" : ""}`}>{m}</span>
-            </button>
-          ))}
+          {missions.map((m) => {
+            const isDone = done.includes(m);
+            return (
+              <button key={m} onClick={() => onToggleMission(m)} className="w-full flex items-center gap-2 text-left">
+                {isDone ? <CheckCircle2 size={16} color={C.red} className="flex-shrink-0" /> : <Circle size={16} color={C.cream} opacity={0.3} className="flex-shrink-0" />}
+                <span className={`text-sm ${isDone ? "line-through opacity-50" : ""}`}>{m}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -583,7 +608,7 @@ function MedalhasTab(props) {
                   fontSize: unlocked ? "1.6rem" : "1.3rem",
                   opacity: unlocked ? 1 : 0.4,
                 }}>
-                  {unlocked ? b.icon : "🔒"}
+                  {unlocked ? b.icon : <Lock size={18} color={C.cream} opacity={0.4} />}
                 </div>
                 <p className={`text-[10px] text-center mt-1.5 ${unlocked ? "" : "opacity-40"}`}>{b.label}</p>
                 {isNext && <p className="text-[9px] mt-0.5" style={{ color: C.gold }}>faltam {b.days - dayNumber}d</p>}
@@ -615,60 +640,73 @@ function JornadaTab(props) {
     ? Math.min(100, Math.max(0, Math.round(((dayNumber - prevBadgeDays) / (nextBadge.days - prevBadgeDays)) * 100)))
     : 100;
 
+  const [sub, setSub] = useState("estatisticas");
+
   return (
     <div>
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">ESTATÍSTICAS</p>
+      <SubTabs
+        active={sub}
+        onChange={setSub}
+        tabs={[
+          { key: "estatisticas", label: "Estatísticas" },
+          { key: "corpo", label: "Recuperação do corpo" },
+          { key: "recompensas", label: "Recompensas" },
+        ]}
+      />
 
-        <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-3 flex items-center justify-between">
-          <div className="text-center flex-1">
-            <p style={{ ...bebas }} className="text-2xl">{Math.floor(cigsAvoided)}</p>
-            <p className="text-[10px] opacity-60 mt-0.5 leading-tight">cigarros<br />evitados</p>
-          </div>
-
-          <svg width="104" height="104" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="42" fill="none" stroke={C.line} strokeWidth="9" />
-            <circle
-              cx="50" cy="50" r="42" fill="none" stroke={C.gold} strokeWidth="9" strokeLinecap="round"
-              strokeDasharray={`${(gaugePct / 100) * 263.9} 263.9`}
-              transform="rotate(-90 50 50)"
-            />
-            <text x="50" y="48" textAnchor="middle" fontSize="22" fill={C.cream} fontFamily={bebas.fontFamily}>{dayNumber}</text>
-            <text x="50" y="63" textAnchor="middle" fontSize="9" fill={C.cream} opacity="0.55">dias</text>
-          </svg>
-
-          <div className="text-center flex-1">
-            <p style={{ ...bebas }} className="text-2xl">{cravingsSurvived}</p>
-            <p className="text-[10px] opacity-60 mt-0.5 leading-tight">fissuras<br />vencidas</p>
-          </div>
-        </div>
-        {nextBadge && (
-          <p className="text-[10px] opacity-40 text-center mb-3">faltam {nextBadge.days - dayNumber}d pro selo {nextBadge.icon} {nextBadge.label}</p>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard icon="💰" iconBg={`${C.gold}30`} label="economizado" value={`R$ ${moneySaved.toFixed(0)}`} />
-          <StatCard icon="🌱" iconBg="#4ade8030" label="CO₂ não emitido*" value={co2Display} />
-          <StatCard icon="⏳" iconBg="#60a5fa30" label="tempo de vida" value={formatMinutesAsLifeTime(lifeMinutes)} />
-          <StatCard icon="🔥" iconBg={`${C.red}30`} label="maior sequência" value={`${longestStreakDays}d`} />
-        </div>
-        <p className="text-[10px] opacity-30 mt-2">*estimativa aproximada, não é uma medição real</p>
-      </div>
-
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">RECUPERAÇÃO DO CORPO</p>
-        <div className="space-y-3">
-          {HEALTH_MILESTONES.map((m, i) => (
-            <div key={i} className="text-sm flex gap-2">
-              <span className={elapsedMin >= m.mins ? "" : "opacity-30"}>{elapsedMin >= m.mins ? "✓" : "○"}</span>
-              <span className={elapsedMin >= m.mins ? "" : "opacity-50"}>{m.icon} <b>{m.label}</b> — {m.fact}</span>
+      {sub === "estatisticas" && (
+        <div>
+          <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-3 flex items-center justify-between">
+            <div className="text-center flex-1">
+              <p style={{ ...bebas }} className="text-2xl">{Math.floor(cigsAvoided)}</p>
+              <p className="text-[10px] opacity-60 mt-0.5 leading-tight">cigarros<br />evitados</p>
             </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">RECOMPENSAS</p>
+            <svg width="104" height="104" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke={C.line} strokeWidth="9" />
+              <circle
+                cx="50" cy="50" r="42" fill="none" stroke={C.gold} strokeWidth="9" strokeLinecap="round"
+                strokeDasharray={`${(gaugePct / 100) * 263.9} 263.9`}
+                transform="rotate(-90 50 50)"
+              />
+              <text x="50" y="48" textAnchor="middle" fontSize="22" fill={C.cream} fontFamily={bebas.fontFamily}>{dayNumber}</text>
+              <text x="50" y="63" textAnchor="middle" fontSize="9" fill={C.cream} opacity="0.55">dias</text>
+            </svg>
+
+            <div className="text-center flex-1">
+              <p style={{ ...bebas }} className="text-2xl">{cravingsSurvived}</p>
+              <p className="text-[10px] opacity-60 mt-0.5 leading-tight">fissuras<br />vencidas</p>
+            </div>
+          </div>
+          {nextBadge && (
+            <p className="text-[10px] opacity-40 text-center mb-3">faltam {nextBadge.days - dayNumber}d pro selo {nextBadge.icon} {nextBadge.label}</p>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard icon="💰" iconBg={`${C.gold}30`} label="economizado" value={`R$ ${moneySaved.toFixed(0)}`} />
+            <StatCard icon="🌱" iconBg="#4ade8030" label="CO₂ não emitido*" value={co2Display} />
+            <StatCard icon="⏳" iconBg="#60a5fa30" label="tempo de vida" value={formatMinutesAsLifeTime(lifeMinutes)} />
+            <StatCard icon="🔥" iconBg={`${C.red}30`} label="maior sequência" value={`${longestStreakDays}d`} />
+          </div>
+          <p className="text-[10px] opacity-30 mt-2">*estimativa aproximada, não é uma medição real</p>
+        </div>
+      )}
+
+      {sub === "corpo" && (
+        <div className="space-y-3">
+          {HEALTH_MILESTONES.map((m, i) => {
+            const reached = elapsedMin >= m.mins;
+            return (
+              <div key={i} className="text-sm flex gap-2 items-start">
+                {reached ? <CheckCircle2 size={16} color={C.gold} className="flex-shrink-0 mt-0.5" /> : <Circle size={16} color={C.cream} opacity={0.3} className="flex-shrink-0 mt-0.5" />}
+                <span className={reached ? "" : "opacity-50"}>{m.icon} <b>{m.label}</b> — {m.fact}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {sub === "recompensas" && (
         <div className="space-y-2">
           {REWARD_THRESHOLDS.map((r) => {
             const unlocked = moneySaved >= r.amount;
@@ -678,12 +716,12 @@ function JornadaTab(props) {
                   <p className="text-sm">{r.label}</p>
                   <p className="text-xs opacity-50">R$ {r.amount}</p>
                 </div>
-                {unlocked ? <span style={{ color: C.gold }} className="text-lg">✓</span> : <span className="text-xs opacity-40">faltam R$ {(r.amount - moneySaved).toFixed(0)}</span>}
+                {unlocked ? <CheckCircle2 size={20} color={C.gold} /> : <span className="text-xs opacity-40">faltam R$ {(r.amount - moneySaved).toFixed(0)}</span>}
               </div>
             );
           })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -691,6 +729,7 @@ function JornadaTab(props) {
 function FissuraTab(props) {
   const { session, supabase, cravings, relapses, plans, onAddPlan, onRemovePlan, onOpenRelapse } = props;
 
+  const [sub, setSub] = useState("padroes");
   const [planTrigger, setPlanTrigger] = useState(TRIGGER_OPTIONS[0].key);
   const [planSub, setPlanSub] = useState(SUBSTITUTE_OPTIONS[0].key);
   const [planTime, setPlanTime] = useState("");
@@ -726,117 +765,137 @@ function FissuraTab(props) {
 
   return (
     <div>
-      {hasEnoughCravings && (
-        <div className="mb-8">
-          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">DESCUBRA SEUS PADRÕES</p>
-          <p className="text-xs opacity-60 mb-2">horário mais crítico: por volta das <span style={{ color: C.red }}>{riskiestHour}h</span></p>
-          <div className="flex items-end gap-0.5 h-16 mb-3">
-            {hourCounts.map((c, h) => (
-              <div key={h} style={{ height: `${(c / maxHour) * 100}%`, background: h === riskiestHour ? C.red : C.line, minHeight: 2 }} className="flex-1 rounded-t" />
-            ))}
-          </div>
-          {triggerCounts.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {triggerCounts.map(([tag, count]) => {
-                const t = TRIGGER_OPTIONS.find((x) => x.key === tag);
-                return <span key={tag} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{t?.icon} {t?.label} · {count}</span>;
+      <SubTabs
+        active={sub}
+        onChange={setSub}
+        tabs={[
+          { key: "padroes", label: "Seus padrões" },
+          { key: "historico", label: "Histórico" },
+          { key: "plano", label: "Plano de emergência" },
+        ]}
+      />
+
+      {sub === "padroes" && (
+        <div>
+          {hasEnoughCravings ? (
+            <div className="mb-8">
+              <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">HORÁRIOS CRÍTICOS</p>
+              <p className="text-xs opacity-60 mb-2">horário mais crítico: por volta das <span style={{ color: C.red }}>{riskiestHour}h</span></p>
+              <div className="flex items-end gap-0.5 h-16 mb-3">
+                {hourCounts.map((c, h) => (
+                  <div key={h} style={{ height: `${(c / maxHour) * 100}%`, background: h === riskiestHour ? C.red : C.line, minHeight: 2 }} className="flex-1 rounded-t" />
+                ))}
+              </div>
+              {triggerCounts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {triggerCounts.map(([tag, count]) => {
+                    const t = TRIGGER_OPTIONS.find((x) => x.key === tag);
+                    return <span key={tag} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{t?.icon} {t?.label} · {count}</span>;
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs opacity-40 mb-8">registre algumas fissuras vencidas pra começar a ver seus horários e gatilhos mais comuns aqui</p>
+          )}
+
+          {diaryStats ? (
+            <div>
+              <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">DIÁRIO DO CIGARRO</p>
+              <p className="text-xs opacity-60 mb-3">com base em {diaryStats.count} registro{diaryStats.count !== 1 ? "s" : ""} {diaryStats.avgUrge ? <>· vontade média: <span style={{ color: C.red }}>{diaryStats.avgUrge}/10</span></> : null}</p>
+              {diaryStats.companyCounts.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[11px] opacity-50 mb-1.5">onde / com quem</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {diaryStats.companyCounts.map(([key, count]) => {
+                      const c = COMPANY_OPTIONS.find((x) => x.key === key);
+                      return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{c?.icon} {c?.label} · {count}</span>;
+                    })}
+                  </div>
+                </div>
+              )}
+              {diaryStats.emotionCounts.length > 0 && (
+                <div>
+                  <p className="text-[11px] opacity-50 mb-1.5">como se sentia antes</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {diaryStats.emotionCounts.map(([key, count]) => {
+                      const e = EMOTION_BEFORE_OPTIONS.find((x) => x.key === key);
+                      return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{e?.icon} {e?.label} · {count}</span>;
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs opacity-40">se um dia você registrar uma recaída, o diário dela aparece aqui</p>
+          )}
+        </div>
+      )}
+
+      {sub === "historico" && (
+        <div>
+          {cravings.length === 0 ? (
+            <p className="text-xs opacity-40">nenhuma fissura registrada ainda — toda vez que você aguentar uma, ela aparece aqui</p>
+          ) : (
+            <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1">
+              {[...cravings].reverse().slice(0, showAllCravings ? cravings.length : 12).map((c, i) => {
+                const intensityInfo = { leve: { icon: "😐", label: "Leve" }, media: { icon: "😣", label: "Média" }, forte: { icon: "😭", label: "Forte" } }[c.intensity] || {};
+                const tech = SOS_TECHNIQUES.find((t) => t.id === c.technique);
+                const date = new Date(c.created_at);
+                return (
+                  <div key={c.id || i} style={{ background: C.navySoft }} className="rounded-lg px-3 py-2 flex items-center justify-between text-xs">
+                    <span>{intensityInfo.icon} {intensityInfo.label}{tech ? ` · ${tech.icon} ${tech.title}` : ""}</span>
+                    <span className="opacity-50">{date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                );
               })}
             </div>
           )}
-        </div>
-      )}
-
-      {diaryStats && (
-        <div className="mb-8">
-          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">DIÁRIO DO CIGARRO</p>
-          <p className="text-xs opacity-60 mb-3">com base em {diaryStats.count} registro{diaryStats.count !== 1 ? "s" : ""} {diaryStats.avgUrge ? <>· vontade média: <span style={{ color: C.red }}>{diaryStats.avgUrge}/10</span></> : null}</p>
-          {diaryStats.companyCounts.length > 0 && (
-            <div className="mb-3">
-              <p className="text-[11px] opacity-50 mb-1.5">onde / com quem</p>
-              <div className="flex flex-wrap gap-1.5">
-                {diaryStats.companyCounts.map(([key, count]) => {
-                  const c = COMPANY_OPTIONS.find((x) => x.key === key);
-                  return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{c?.icon} {c?.label} · {count}</span>;
-                })}
-              </div>
-            </div>
-          )}
-          {diaryStats.emotionCounts.length > 0 && (
-            <div>
-              <p className="text-[11px] opacity-50 mb-1.5">como se sentia antes</p>
-              <div className="flex flex-wrap gap-1.5">
-                {diaryStats.emotionCounts.map(([key, count]) => {
-                  const e = EMOTION_BEFORE_OPTIONS.find((x) => x.key === key);
-                  return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{e?.icon} {e?.label} · {count}</span>;
-                })}
-              </div>
-            </div>
+          {cravings.length > 12 && (
+            <button onClick={() => setShowAllCravings((v) => !v)} style={{ color: C.gold }} className="text-xs mt-2 underline">
+              {showAllCravings ? "ver menos" : `ver todas (${cravings.length})`}
+            </button>
           )}
         </div>
       )}
 
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">HISTÓRICO DE FISSURAS VENCIDAS</p>
-        {cravings.length === 0 ? (
-          <p className="text-xs opacity-40">nenhuma fissura registrada ainda — toda vez que você aguentar uma, ela aparece aqui</p>
-        ) : (
-          <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-            {[...cravings].reverse().slice(0, showAllCravings ? cravings.length : 8).map((c, i) => {
-              const intensityInfo = { leve: { icon: "😐", label: "Leve" }, media: { icon: "😣", label: "Média" }, forte: { icon: "😭", label: "Forte" } }[c.intensity] || {};
-              const tech = SOS_TECHNIQUES.find((t) => t.id === c.technique);
-              const date = new Date(c.created_at);
+      {sub === "plano" && (
+        <div>
+          <div className="flex items-center justify-end mb-3">
+            <PushToggleButton session={session} supabase={supabase} />
+          </div>
+          <div className="space-y-2 mb-3">
+            {plans.map((p) => {
+              const t = TRIGGER_OPTIONS.find((x) => x.key === p.trigger_tag);
+              const s = SUBSTITUTE_OPTIONS.find((x) => x.key === p.substitute);
               return (
-                <div key={c.id || i} style={{ background: C.navySoft }} className="rounded-lg px-3 py-2 flex items-center justify-between text-xs">
-                  <span>{intensityInfo.icon} {intensityInfo.label}{tech ? ` · ${tech.icon} ${tech.title}` : ""}</span>
-                  <span className="opacity-50">{date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                <div key={p.id} style={{ background: C.navySoft }} className="rounded-xl p-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-sm">{t?.icon} {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
+                    {p.reminder_time && <p className="text-xs opacity-50 mt-0.5">🔔 lembrete às {p.reminder_time.slice(0, 5)}</p>}
+                  </div>
+                  <button onClick={() => onRemovePlan(p.id)} className="opacity-50"><X size={16} /></button>
                 </div>
               );
             })}
           </div>
-        )}
-        {cravings.length > 8 && (
-          <button onClick={() => setShowAllCravings((v) => !v)} style={{ color: C.gold }} className="text-xs mt-2 underline">
-            {showAllCravings ? "ver menos" : `ver todas (${cravings.length})`}
-          </button>
-        )}
-      </div>
-
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70">PLANO DE EMERGÊNCIA</p>
-          <PushToggleButton session={session} supabase={supabase} />
-        </div>
-        <div className="space-y-2 mb-3">
-          {plans.map((p) => {
-            const t = TRIGGER_OPTIONS.find((x) => x.key === p.trigger_tag);
-            const s = SUBSTITUTE_OPTIONS.find((x) => x.key === p.substitute);
-            return (
-              <div key={p.id} style={{ background: C.navySoft }} className="rounded-xl p-3 flex justify-between items-center">
-                <div>
-                  <p className="text-sm">{t?.icon} {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
-                  {p.reminder_time && <p className="text-xs opacity-50 mt-0.5">🔔 lembrete às {p.reminder_time.slice(0, 5)}</p>}
-                </div>
-                <button onClick={() => onRemovePlan(p.id)} className="opacity-50">✕</button>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ background: C.navySoft }} className="rounded-xl p-3 space-y-2">
-          <select value={planTrigger} onChange={(e) => setPlanTrigger(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none">
-            {TRIGGER_OPTIONS.map((t) => <option key={t.key} value={t.key}>{t.icon} {t.label}</option>)}
-          </select>
-          <select value={planSub} onChange={(e) => setPlanSub(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none">
-            {SUBSTITUTE_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
-          <div>
-            <label className="text-xs opacity-60 block mb-1">horário do lembrete (opcional)</label>
-            <input type="time" value={planTime} onChange={(e) => setPlanTime(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none" />
+          <div style={{ background: C.navySoft }} className="rounded-xl p-3 space-y-2">
+            <select value={planTrigger} onChange={(e) => setPlanTrigger(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none">
+              {TRIGGER_OPTIONS.map((t) => <option key={t.key} value={t.key}>{t.icon} {t.label}</option>)}
+            </select>
+            <select value={planSub} onChange={(e) => setPlanSub(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none">
+              {SUBSTITUTE_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+            <div>
+              <label className="text-xs opacity-60 block mb-1">horário do lembrete (opcional)</label>
+              <input type="time" value={planTime} onChange={(e) => setPlanTime(e.target.value)} style={{ background: C.navy, color: C.cream }} className="w-full rounded-lg px-2 py-2 text-sm outline-none" />
+            </div>
+            <button onClick={() => { onAddPlan(planTrigger, planSub, planTime); setPlanTime(""); }} style={{ color: C.red }} className="w-full text-sm py-1">+ adicionar</button>
           </div>
-          <button onClick={() => { onAddPlan(planTrigger, planSub, planTime); setPlanTime(""); }} style={{ color: C.red }} className="w-full text-sm py-1">+ adicionar</button>
         </div>
-      </div>
+      )}
 
-      <button onClick={onOpenRelapse} style={{ color: C.cream, opacity: 0.4 }} className="w-full text-xs underline py-4">
+      <button onClick={onOpenRelapse} style={{ color: C.cream, opacity: 0.4 }} className="w-full text-xs underline py-4 mt-4">
         tive um deslize / preciso registrar uma recaída
       </button>
     </div>
@@ -846,6 +905,7 @@ function FissuraTab(props) {
 function BemEstarTab(props) {
   const { dayNumber, selfesteemChecks, onSelfesteemCheck, milestonesMarked, onToggleMilestone, movementLogs, onLogMovement } = props;
 
+  const [sub, setSub] = useState("autoestima");
   const [movActivity, setMovActivity] = useState(MOVEMENT_ACTIVITIES[0].key);
   const [movMinutes, setMovMinutes] = useState(15);
 
@@ -853,36 +913,45 @@ function BemEstarTab(props) {
 
   return (
     <div>
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-sm mb-3">🪞 AUTOESTIMA</p>
+      <SubTabs
+        active={sub}
+        onChange={setSub}
+        tabs={[
+          { key: "autoestima", label: "Autoestima" },
+          { key: "vitorias", label: "Pequenas vitórias" },
+          { key: "movimento", label: "Movimento" },
+        ]}
+      />
 
-        <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}` }} className="rounded-2xl p-4 mb-4">
-          <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{getEsteemAffirmation(dayNumber)}</p>
+      {sub === "autoestima" && (
+        <div>
+          <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}` }} className="rounded-2xl p-4 mb-4">
+            <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{getEsteemAffirmation(dayNumber)}</p>
+          </div>
+
+          <p className="text-xs opacity-70 mb-2">Como você se sente essa semana, de um jeito geral?</p>
+          <div className="flex justify-between mb-4">
+            {SELFESTEEM_OPTIONS.map((o) => (
+              <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ fontSize: "1.8rem", opacity: thisWeekRating === o.value ? 1 : 0.35, transform: thisWeekRating === o.value ? "scale(1.15)" : "scale(1)", transition: "all .2s" }}>{o.icon}</button>
+            ))}
+          </div>
+
+          {selfesteemChecks.length > 1 ? (
+            <>
+              <p className="text-[11px] opacity-50 mb-1.5">sua evolução, semana a semana</p>
+              <div className="flex items-end gap-1 h-14">
+                {selfesteemChecks.slice(-12).map((c, i) => (
+                  <div key={i} style={{ height: `${(c.rating / 5) * 100}%`, background: C.gold }} className="flex-1 rounded-t opacity-70" />
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-[11px] opacity-40">responda toda semana pra começar a ver sua evolução aqui</p>
+          )}
         </div>
+      )}
 
-        <p className="text-xs opacity-70 mb-2">Como você se sente essa semana, de um jeito geral?</p>
-        <div className="flex justify-between mb-3">
-          {SELFESTEEM_OPTIONS.map((o) => (
-            <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ fontSize: "1.8rem", opacity: thisWeekRating === o.value ? 1 : 0.35, transform: thisWeekRating === o.value ? "scale(1.15)" : "scale(1)", transition: "all .2s" }}>{o.icon}</button>
-          ))}
-        </div>
-
-        {selfesteemChecks.length > 1 ? (
-          <>
-            <p className="text-[11px] opacity-50 mb-1.5">sua evolução, semana a semana</p>
-            <div className="flex items-end gap-1 h-14">
-              {selfesteemChecks.slice(-12).map((c, i) => (
-                <div key={i} style={{ height: `${(c.rating / 5) * 100}%`, background: C.gold }} className="flex-1 rounded-t opacity-70" />
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-[11px] opacity-40">responda toda semana pra começar a ver sua evolução aqui</p>
-        )}
-      </div>
-
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">PEQUENAS VITÓRIAS</p>
+      {sub === "vitorias" && (
         <div className="grid grid-cols-2 gap-2">
           {EMOTIONAL_MILESTONES.map((m) => {
             const has = milestonesMarked.some((x) => x.milestone_key === m.key);
@@ -894,33 +963,34 @@ function BemEstarTab(props) {
             );
           })}
         </div>
-      </div>
+      )}
 
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MOVIMENTO</p>
-        <div style={{ background: C.navySoft }} className="rounded-xl p-3.5 mb-3">
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {MOVEMENT_ACTIVITIES.map((a) => (
-              <button key={a.key} onClick={() => setMovActivity(a.key)} style={{ background: movActivity === a.key ? C.red : "transparent", border: `1px solid ${movActivity === a.key ? C.red : C.line}` }} className="text-xs px-2 py-1 rounded-full">
-                {a.icon} {a.label}
-              </button>
-            ))}
+      {sub === "movimento" && (
+        <div>
+          <div style={{ background: C.navySoft }} className="rounded-xl p-3.5 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {MOVEMENT_ACTIVITIES.map((a) => (
+                <button key={a.key} onClick={() => setMovActivity(a.key)} style={{ background: movActivity === a.key ? C.red : "transparent", border: `1px solid ${movActivity === a.key ? C.red : C.line}` }} className="text-xs px-2 py-1 rounded-full">
+                  {a.icon} {a.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5 mb-3">
+              {MOVEMENT_DURATIONS.map((d) => (
+                <button key={d} onClick={() => setMovMinutes(d)} style={{ background: movMinutes === d ? C.red : "transparent", border: `1px solid ${movMinutes === d ? C.red : C.line}` }} className="flex-1 text-xs py-1.5 rounded-lg">
+                  {d}min
+                </button>
+              ))}
+            </div>
+            <button onClick={() => onLogMovement(movActivity, movMinutes)} style={{ color: C.red }} className="w-full text-sm py-1">+ registrar</button>
           </div>
-          <div className="flex gap-1.5 mb-3">
-            {MOVEMENT_DURATIONS.map((d) => (
-              <button key={d} onClick={() => setMovMinutes(d)} style={{ background: movMinutes === d ? C.red : "transparent", border: `1px solid ${movMinutes === d ? C.red : C.line}` }} className="flex-1 text-xs py-1.5 rounded-lg">
-                {d}min
-              </button>
-            ))}
-          </div>
-          <button onClick={() => onLogMovement(movActivity, movMinutes)} style={{ color: C.red }} className="w-full text-sm py-1">+ registrar</button>
+          {movementLogs.length > 0 && (
+            <p className="text-xs opacity-50">
+              {movementLogs.length} atividade{movementLogs.length !== 1 ? "s" : ""} registrada{movementLogs.length !== 1 ? "s" : ""} — além de cuidar do corpo, isso diminui suas chances de recaída.
+            </p>
+          )}
         </div>
-        {movementLogs.length > 0 && (
-          <p className="text-xs opacity-50">
-            {movementLogs.length} atividade{movementLogs.length !== 1 ? "s" : ""} registrada{movementLogs.length !== 1 ? "s" : ""} — além de cuidar do corpo, isso diminui suas chances de recaída.
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 }
