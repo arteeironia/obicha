@@ -30,7 +30,7 @@ export default function RespiraAdminPage() {
   })
   const [savingContent, setSavingContent] = useState(false)
   const [profiles, setProfiles] = useState<Profile[]>([])
-  const [pending, setPending] = useState<ForumPost[]>([])
+  const [hidden, setHidden] = useState<ForumPost[]>([])
   const [reported, setReported] = useState<ForumPost[]>([])
   const [allPosts, setAllPosts] = useState<ForumPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,7 @@ export default function RespiraAdminPage() {
       fetch('/api/admin/respira/content').then(r => r.json()),
     ])
     setProfiles(p)
-    setPending(f.pending || [])
+    setHidden(f.hidden || [])
     setReported(f.reported || [])
     setAllPosts(f.allPosts || [])
     setContent(c || [])
@@ -124,7 +124,7 @@ export default function RespiraAdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ post_id, approved }),
     })
-    setPending(cur => cur.filter(p => p.id !== post_id))
+    setHidden(cur => cur.filter(p => p.id !== post_id))
     if (approved) load()
   }
 
@@ -150,7 +150,7 @@ export default function RespiraAdminPage() {
       </div>
 
       <div className="flex gap-1 mb-6" style={{ borderBottom: '1px solid rgba(212,168,67,.2)' }}>
-        {[['usuarios', `Usuários (${profiles.length})`], ['moderacao', `Moderação (${pending.length} pendentes · ${reported.length} denúncias)`], ['conteudo', `Conteúdo (${content.length})`]].map(([key, label]) => (
+        {[['usuarios', `Usuários (${profiles.length})`], ['moderacao', `Moderação (${hidden.length} ocultos · ${reported.length} denúncias)`], ['conteudo', `Conteúdo (${content.length})`]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key as any)}
             className="px-4 py-2.5 text-sm font-bebas tracking-widest"
             style={{ color: tab === key ? 'var(--gold)' : 'rgba(242,235,217,.5)', borderBottom: tab === key ? '2px solid var(--gold)' : '2px solid transparent' }}>
@@ -202,23 +202,23 @@ export default function RespiraAdminPage() {
         </div>
       ) : tab === 'moderacao' ? (
         <div>
-          {pending.length > 0 && (
+          {hidden.length > 0 && (
             <div className="mb-8">
-              <p className="text-xs tracking-widest uppercase opacity-60 mb-3" style={{ color: 'var(--gold)' }}>⏳ Pendentes de aprovação</p>
+              <p className="text-xs tracking-widest uppercase opacity-60 mb-3" style={{ color: 'var(--gold)' }}>🔒 Ocultos por denúncias (3+), aguardando revisão</p>
               <div className="space-y-2">
-                {pending.map(post => (
+                {hidden.map(post => (
                   <div key={post.id} style={{ ...cardStyle, borderColor: 'rgba(212,168,67,.4)' }} className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs opacity-70">{post.display_name || 'Alguém'}</span>
-                      <span className="text-xs opacity-40">{new Date(post.created_at).toLocaleDateString('pt-BR')}</span>
+                      <span className="text-xs" style={{ color: 'var(--gold)' }}>{post.total_denuncias} denúncia{post.total_denuncias !== '1' ? 's' : ''}</span>
                     </div>
                     <p className="text-sm mb-3">{post.content}</p>
                     <div className="flex gap-2">
                       <button onClick={() => approvePost(post.id, true)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: '#4ade80', color: 'var(--navy)' }}>
-                        APROVAR
+                        LIBERAR
                       </button>
-                      <button onClick={() => { setPending(cur => cur.filter(p => p.id !== post.id)); deletePost(post.id); }} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ color: 'var(--red)', border: '1px solid rgba(192,40,28,.3)' }}>
-                        REJEITAR E EXCLUIR
+                      <button onClick={() => { setHidden(cur => cur.filter(p => p.id !== post.id)); deletePost(post.id); }} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ color: 'var(--red)', border: '1px solid rgba(192,40,28,.3)' }}>
+                        EXCLUIR
                       </button>
                     </div>
                   </div>
@@ -235,7 +235,10 @@ export default function RespiraAdminPage() {
                   <div key={post.id} style={{ ...cardStyle, borderColor: 'rgba(192,40,28,.4)' }} className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs opacity-70">{post.display_name || 'Alguém'}</span>
-                      <span className="text-xs" style={{ color: 'var(--red)' }}>{post.total_denuncias} denúncia{post.total_denuncias !== '1' ? 's' : ''}</span>
+                      <div className="flex items-center gap-2">
+                        {!post.approved && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,168,67,.15)', color: 'var(--gold)' }}>oculto</span>}
+                        <span className="text-xs" style={{ color: 'var(--red)' }}>{post.total_denuncias} denúncia{post.total_denuncias !== '1' ? 's' : ''}</span>
+                      </div>
                     </div>
                     <p className="text-sm mb-3">{post.content}</p>
                     <button onClick={() => deletePost(post.id)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'var(--red)', color: 'white' }}>

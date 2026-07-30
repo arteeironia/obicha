@@ -4,12 +4,18 @@ import postgres from 'postgres'
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
 export async function GET() {
-  const pending = await sql`
-    SELECT id, user_id, display_name, content, created_at
-    FROM quit_forum_posts
-    WHERE approved = false
-    ORDER BY created_at ASC`
+  // Posts ocultados automaticamente (3+ denúncias), aguardando revisão de um admin
+  const hidden = await sql`
+    SELECT p.id, p.user_id, p.display_name, p.content, p.created_at,
+      COUNT(r.id) as total_denuncias
+    FROM quit_forum_posts p
+    LEFT JOIN quit_forum_reports r ON r.post_id = p.id
+    WHERE p.approved = false
+    GROUP BY p.id
+    ORDER BY p.created_at ASC`
 
+  // Todos os posts com pelo menos 1 denúncia, inclusive os que ainda estão no ar —
+  // dá pra remover antes mesmo de bater o limite de 3 que oculta automático
   const reported = await sql`
     SELECT
       p.id, p.user_id, p.display_name, p.content, p.created_at, p.approved,
@@ -26,7 +32,7 @@ export async function GET() {
     ORDER BY created_at DESC
     LIMIT 50`
 
-  return NextResponse.json({ pending, reported, allPosts })
+  return NextResponse.json({ hidden, reported, allPosts })
 }
 
 export async function PATCH(request: NextRequest) {
