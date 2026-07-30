@@ -16,7 +16,7 @@ type Profile = {
   posts_forum: string
 }
 
-type ForumPost = { id: number; user_id: string; display_name: string | null; content: string; created_at: string; total_denuncias?: string }
+type ForumPost = { id: number; user_id: string; display_name: string | null; content: string; created_at: string; approved?: boolean; total_denuncias?: string }
 
 type ContentItem = { id: number; type: 'video' | 'texto' | 'materia'; title: string; body: string | null; url: string | null; source: string | null; description: string | null; position: number; active: boolean }
 
