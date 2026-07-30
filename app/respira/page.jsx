@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy, CheckCircle2, Circle, Lock, X, Laugh, Smile, Meh, Frown, Angry, Sprout, Flame, Droplet, CloudSun, Leaf, TreePine, Star, Sparkles, Medal, Trophy } from "lucide-react";
+import {
+  Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy,
+  CheckCircle2, Circle, Lock, X, Laugh, Smile, Meh, Frown, Angry,
+  Sprout, Flame, Droplet, CloudSun, Leaf, TreePine, Star, Sparkles, Medal, Trophy,
+  Sunrise, Coffee, PartyPopper, Music2, Footprints, Dumbbell, Bike, Waves, Car, Beer,
+  Phone, Tv, Moon, Snowflake, Candy, Blocks, LayoutGrid, Grape, Nut, Carrot, Cookie,
+  Home as HomeIcon, Briefcase, AlertCircle, Zap, Feather, Lightbulb, Bell, BellOff,
+  Share2, Newspaper, ChevronDown, ChevronUp, Utensils, Shirt, Sparkle, Volleyball, Play, Wallet, Hourglass, Calendar,
+  Download, Stethoscope, RotateCw, ArrowRight, ArrowDown,
+} from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   WELCOME_TEXT,
@@ -34,11 +43,32 @@ const C = { cream: "#F5EFE4", navy: "#101B2D", navySoft: "#1B2A42", red: "#C63B3
 const bebas = { fontFamily: "var(--font-bebas)" };
 const MOOD_ICONS = { excelente: Laugh, bom: Smile, dificil: Frown, pessimo: Angry };
 const SELFESTEEM_ICONS = { 1: Angry, 2: Frown, 3: Meh, 4: Smile, 5: Laugh };
+const INTENSITY_ICONS = { leve: Meh, media: Frown, forte: Angry };
 const BADGE_ICONS = { "🌱": Sprout, "🔥": Flame, "💧": Droplet, "🌤️": CloudSun, "🌿": Leaf, "🌳": TreePine, "⭐": Star, "✨": Sparkles, "🏅": Medal, "🏆": Trophy };
 
 function BadgeGlyph({ emoji, size = 20, color }) {
   const Icon = BADGE_ICONS[emoji] || Star;
   return <Icon size={size} color={color} strokeWidth={1.75} />;
+}
+
+// Mapa único emoji → ícone lucide, usado em todo o resto do app (gatilhos, técnicas de
+// SOS, kit fissura, atividades de movimento, marcos de saúde, etc) pra manter o mesmo
+// padrão visual em qualquer lugar que hoje ainda usa emoji vindo de lib/respira-content.js.
+const EMOJI_ICON_MAP = {
+  "❤️": Heart, "🫁": Activity, "👅": Utensils, "👕": Shirt, "🏃": Footprints, "💋": Heart,
+  "🌅": Sunrise, "☕": Coffee, "🎉": PartyPopper, "💃": Music2,
+  "🚶": Footprints, "🏋️": Dumbbell, "🚴": Bike, "🏊": Waves, "🧘": Wind, "⚽": Volleyball,
+  "🚗": Car, "🍺": Beer, "😡": Angry, "☎️": Phone, "📺": Tv, "😴": Moon,
+  "🧊": Snowflake, "📖": BookOpen, "📱": Award, "🍬": Candy, "🫧": Sparkle, "🧱": Blocks, "🎴": LayoutGrid, "💧": Droplet,
+  "🍇": Grape, "🥜": Nut, "🌻": Sprout, "🥕": Carrot, "🍠": Cookie,
+  "🧍": User, "👥": Users, "🏠": HomeIcon, "💼": Briefcase, "🍻": Beer,
+  "😰": AlertCircle, "😤": Zap, "😔": Frown, "😑": Meh, "😠": Angry, "😄": Laugh, "😌": Feather,
+};
+
+function Glyph({ emoji, size = 16, color, className = "" }) {
+  const Icon = EMOJI_ICON_MAP[emoji];
+  if (!Icon) return <span className={className}>{emoji}</span>;
+  return <Icon size={size} color={color} strokeWidth={1.75} className={className} style={{ display: "inline", verticalAlign: "-3px" }} />;
 }
 const playfair = { fontFamily: "var(--font-playfair)" };
 
@@ -496,12 +526,21 @@ function SubTabs({ tabs, active, onChange }) {
   );
 }
 
+// Caixinha de ícone padrão — usada em QUALQUER lugar do app que precise mostrar um
+// ícone com fundo colorido (cards de função, estatísticas, pequenas vitórias, matérias).
+// Um padrão só, em vez de cada tela inventar o seu.
+function IconChip({ Icon, emoji, color = C.gold, size = 34, iconSize = 18 }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.3), background: `${color}22` }} className="flex items-center justify-center flex-shrink-0">
+      {Icon ? <Icon size={iconSize} color={color} strokeWidth={2} /> : <Glyph emoji={emoji} size={iconSize} color={color} />}
+    </div>
+  );
+}
+
 function FunctionCard({ title, sub, Icon, onClick }) {
   return (
-    <button onClick={onClick} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-3.5 text-left">
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: `${C.gold}1f` }} className="flex items-center justify-center mb-2">
-        <Icon size={18} color={C.gold} strokeWidth={2} />
-      </div>
+    <button onClick={onClick} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 text-left">
+      <div className="mb-2"><IconChip Icon={Icon} /></div>
       <p style={{ ...bebas, letterSpacing: 0.3 }} className="text-sm leading-tight mb-0.5">{title}</p>
       <p className="text-[10px] opacity-55 leading-tight">{sub}</p>
     </button>
@@ -541,7 +580,7 @@ function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
       <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-6">
         <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-xs mb-2">MENSAGEM DO DIA</p>
         <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{coach.msg}</p>
-        {coach.tip && <p className="text-xs opacity-70 mt-2">💡 {coach.tip}</p>}
+        {coach.tip && <p className="text-xs opacity-70 mt-2 flex items-center gap-1.5"><Lightbulb size={13} color={C.gold} /> {coach.tip}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -630,8 +669,8 @@ function MedalhasTab(props) {
         </div>
       </div>
 
-      <button onClick={() => setShareOpen(true)} style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-4 text-sm">
-        📲 COMPARTILHAR MINHA JORNADA
+      <button onClick={() => setShareOpen(true)} style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-4 text-sm flex items-center justify-center gap-2">
+        <Share2 size={16} /> COMPARTILHAR MINHA JORNADA
       </button>
 
       {shareOpen && (
@@ -695,10 +734,10 @@ function JornadaTab(props) {
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <StatCard icon="💰" iconBg={`${C.gold}30`} label="economizado" value={`R$ ${moneySaved.toFixed(0)}`} />
-            <StatCard icon="🌱" iconBg="#4ade8030" label="CO₂ não emitido*" value={co2Display} />
-            <StatCard icon="⏳" iconBg="#60a5fa30" label="tempo de vida" value={formatMinutesAsLifeTime(lifeMinutes)} />
-            <StatCard icon="🔥" iconBg={`${C.red}30`} label="maior sequência" value={`${longestStreakDays}d`} />
+            <StatCard Icon={Wallet} color={C.gold} label="economizado" value={`R$ ${moneySaved.toFixed(0)}`} />
+            <StatCard Icon={Leaf} color="#4ade80" label="CO₂ não emitido*" value={co2Display} />
+            <StatCard Icon={Hourglass} color="#60a5fa" label="tempo de vida" value={formatMinutesAsLifeTime(lifeMinutes)} />
+            <StatCard Icon={Flame} color={C.red} label="maior sequência" value={`${longestStreakDays}d`} />
           </div>
           <p className="text-[10px] opacity-30 mt-2">*estimativa aproximada, não é uma medição real</p>
         </div>
@@ -711,7 +750,7 @@ function JornadaTab(props) {
             return (
               <div key={i} className="text-sm flex gap-2 items-start">
                 {reached ? <CheckCircle2 size={16} color={C.gold} className="flex-shrink-0 mt-0.5" /> : <Circle size={16} color={C.cream} opacity={0.3} className="flex-shrink-0 mt-0.5" />}
-                <span className={reached ? "" : "opacity-50"}>{m.icon} <b>{m.label}</b> — {m.fact}</span>
+                <span className={`flex items-center gap-1.5 ${reached ? "" : "opacity-50"}`}><Glyph emoji={m.icon} size={14} color={reached ? C.gold : C.cream} /> <b>{m.label}</b> — {m.fact}</span>
               </div>
             );
           })}
@@ -802,7 +841,7 @@ function FissuraTab(props) {
                 <div className="flex flex-wrap gap-1.5">
                   {triggerCounts.map(([tag, count]) => {
                     const t = TRIGGER_OPTIONS.find((x) => x.key === tag);
-                    return <span key={tag} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{t?.icon} {t?.label} · {count}</span>;
+                    return <span key={tag} style={{ background: C.navySoft }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"><Glyph emoji={t?.icon} size={12} /> {t?.label} · {count}</span>;
                   })}
                 </div>
               )}
@@ -821,7 +860,7 @@ function FissuraTab(props) {
                   <div className="flex flex-wrap gap-1.5">
                     {diaryStats.companyCounts.map(([key, count]) => {
                       const c = COMPANY_OPTIONS.find((x) => x.key === key);
-                      return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{c?.icon} {c?.label} · {count}</span>;
+                      return <span key={key} style={{ background: C.navySoft }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"><Glyph emoji={c?.icon} size={12} /> {c?.label} · {count}</span>;
                     })}
                   </div>
                 </div>
@@ -832,7 +871,7 @@ function FissuraTab(props) {
                   <div className="flex flex-wrap gap-1.5">
                     {diaryStats.emotionCounts.map(([key, count]) => {
                       const e = EMOTION_BEFORE_OPTIONS.find((x) => x.key === key);
-                      return <span key={key} style={{ background: C.navySoft }} className="text-xs px-2 py-1 rounded-full">{e?.icon} {e?.label} · {count}</span>;
+                      return <span key={key} style={{ background: C.navySoft }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"><Glyph emoji={e?.icon} size={12} /> {e?.label} · {count}</span>;
                     })}
                   </div>
                 </div>
@@ -851,12 +890,16 @@ function FissuraTab(props) {
           ) : (
             <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1">
               {[...cravings].reverse().slice(0, showAllCravings ? cravings.length : 12).map((c, i) => {
-                const intensityInfo = { leve: { icon: "😐", label: "Leve" }, media: { icon: "😣", label: "Média" }, forte: { icon: "😭", label: "Forte" } }[c.intensity] || {};
+                const intensityInfo = { leve: { label: "Leve" }, media: { label: "Média" }, forte: { label: "Forte" } }[c.intensity] || {};
+                const IntensityIcon = INTENSITY_ICONS[c.intensity] || Meh;
                 const tech = SOS_TECHNIQUES.find((t) => t.id === c.technique);
                 const date = new Date(c.created_at);
                 return (
                   <div key={c.id || i} style={{ background: C.navySoft }} className="rounded-lg px-3 py-2 flex items-center justify-between text-xs">
-                    <span>{intensityInfo.icon} {intensityInfo.label}{tech ? ` · ${tech.icon} ${tech.title}` : ""}</span>
+                    <span className="flex items-center gap-1.5">
+                      <IntensityIcon size={14} color={C.cream} /> {intensityInfo.label}
+                      {tech && <> · <Glyph emoji={tech.icon} size={13} /> {tech.title}</>}
+                    </span>
                     <span className="opacity-50">{date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
                   </div>
                 );
@@ -883,8 +926,8 @@ function FissuraTab(props) {
               return (
                 <div key={p.id} style={{ background: C.navySoft }} className="rounded-xl p-3 flex justify-between items-center">
                   <div>
-                    <p className="text-sm">{t?.icon} {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
-                    {p.reminder_time && <p className="text-xs opacity-50 mt-0.5">🔔 lembrete às {p.reminder_time.slice(0, 5)}</p>}
+                    <p className="text-sm flex items-center gap-1.5"><Glyph emoji={t?.icon} size={14} /> {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
+                    {p.reminder_time && <p className="text-xs opacity-50 mt-0.5 flex items-center gap-1"><Bell size={12} /> lembrete às {p.reminder_time.slice(0, 5)}</p>}
                   </div>
                   <button onClick={() => onRemovePlan(p.id)} className="opacity-50"><X size={16} /></button>
                 </div>
@@ -970,13 +1013,13 @@ function BemEstarTab(props) {
       )}
 
       {sub === "vitorias" && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {EMOTIONAL_MILESTONES.map((m) => {
             const has = milestonesMarked.some((x) => x.milestone_key === m.key);
             return (
-              <button key={m.key} onClick={() => onToggleMilestone(m.key)} style={{ background: has ? `${C.red}22` : C.navySoft, border: `1px solid ${has ? C.red : C.line}` }} className="rounded-xl p-3 text-left">
-                <p className="text-lg mb-1">{m.icon}</p>
-                <p className={`text-xs ${has ? "" : "opacity-60"}`}>{m.label}</p>
+              <button key={m.key} onClick={() => onToggleMilestone(m.key)} style={{ background: has ? `${C.red}22` : C.navySoft, border: `1px solid ${has ? C.red : C.line}` }} className="rounded-2xl p-4 text-left">
+                <div className="mb-2"><IconChip emoji={m.icon} color={has ? C.red : C.gold} /></div>
+                <p className={`text-xs leading-tight ${has ? "" : "opacity-60"}`}>{m.label}</p>
               </button>
             );
           })}
@@ -988,8 +1031,8 @@ function BemEstarTab(props) {
           <div style={{ background: C.navySoft }} className="rounded-xl p-3.5 mb-3">
             <div className="flex flex-wrap gap-1.5 mb-3">
               {MOVEMENT_ACTIVITIES.map((a) => (
-                <button key={a.key} onClick={() => setMovActivity(a.key)} style={{ background: movActivity === a.key ? C.red : "transparent", border: `1px solid ${movActivity === a.key ? C.red : C.line}` }} className="text-xs px-2 py-1 rounded-full">
-                  {a.icon} {a.label}
+                <button key={a.key} onClick={() => setMovActivity(a.key)} style={{ background: movActivity === a.key ? C.red : "transparent", border: `1px solid ${movActivity === a.key ? C.red : C.line}` }} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full">
+                  <Glyph emoji={a.icon} size={13} /> {a.label}
                 </button>
               ))}
             </div>
@@ -1042,17 +1085,17 @@ function AprendaTab() {
             {videos.map((v) => {
               const embed = youtubeEmbed(v.url || "");
               return (
-                <div key={v.id} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl overflow-hidden">
+                <div key={v.id} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl overflow-hidden">
                   {embed ? (
                     <div style={{ position: "relative", paddingTop: "56.25%" }}>
                       <iframe src={embed} title={v.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} allowFullScreen />
                     </div>
                   ) : (
-                    <a href={v.url} target="_blank" style={{ display: "block", padding: "1rem", color: C.gold }} className="text-sm">
-                      ▶ assistir vídeo ↗
+                    <a href={v.url} target="_blank" style={{ color: C.gold }} className="p-4 flex items-center gap-2 text-sm">
+                      <Play size={16} strokeWidth={2} /> assistir vídeo ↗
                     </a>
                   )}
-                  <div className="p-3.5">
+                  <div className="p-4">
                     <p className="text-sm font-bold">{v.title}</p>
                     {v.description && <p className="text-xs opacity-60 mt-1">{v.description}</p>}
                   </div>
@@ -1066,18 +1109,21 @@ function AprendaTab() {
       {textos.length > 0 && (
         <div className="mb-8">
           <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">TEXTOS</p>
-          <div className="space-y-2">
-            {textos.map((t) => (
-              <div key={t.id} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5">
-                <button onClick={() => setOpen(open === `t${t.id}` ? null : `t${t.id}`)} className="w-full text-left flex justify-between items-center">
-                  <span className="text-sm font-bold">{t.title}</span>
-                  <span className="opacity-50">{open === `t${t.id}` ? "−" : "+"}</span>
-                </button>
-                {open === `t${t.id}` && (
-                  <div className="mt-2 text-sm opacity-80 leading-relaxed whitespace-pre-line">{t.body}</div>
-                )}
-              </div>
-            ))}
+          <div className="space-y-3">
+            {textos.map((t) => {
+              const isOpen = open === `t${t.id}`;
+              return (
+                <div key={t.id} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4">
+                  <button onClick={() => setOpen(isOpen ? null : `t${t.id}`)} className="w-full text-left flex justify-between items-center gap-3">
+                    <span className="text-sm font-bold">{t.title}</span>
+                    {isOpen ? <ChevronUp size={18} color={C.cream} opacity={0.6} className="flex-shrink-0" /> : <ChevronDown size={18} color={C.cream} opacity={0.6} className="flex-shrink-0" />}
+                  </button>
+                  {isOpen && (
+                    <div className="mt-2 text-sm opacity-80 leading-relaxed whitespace-pre-line">{t.body}</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1085,12 +1131,12 @@ function AprendaTab() {
       {materias.length > 0 && (
         <div className="mb-8">
           <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MATÉRIAS</p>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {materias.map((m) => (
               <a key={m.id} href={m.url} target="_blank"
-                style={{ background: `linear-gradient(90deg, ${C.gold}14, ${C.navySoft} 25%)`, border: `1px solid ${C.line}`, borderLeftWidth: 3, borderLeftColor: C.gold }}
-                className="flex items-start gap-3 rounded-xl p-3.5">
-                <span className="text-lg leading-none mt-0.5">📰</span>
+                style={{ background: C.navySoft, border: `1px solid ${C.line}` }}
+                className="flex items-start gap-3 rounded-2xl p-4">
+                <IconChip Icon={Newspaper} />
                 <div className="flex-1 min-w-0">
                   <p style={{ ...playfair }} className="text-sm italic leading-snug">{m.title}</p>
                   {m.description && <p className="text-xs opacity-60 mt-1">{m.description}</p>}
@@ -1104,16 +1150,19 @@ function AprendaTab() {
 
       <div>
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">SABIA QUE...</p>
-        <div className="space-y-2">
-          {LEARN_CARDS.map((c, i) => (
-            <div key={i} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5">
-              <button onClick={() => setOpen(open === i ? null : i)} className="w-full text-left flex justify-between items-center">
-                <span className="text-sm">{c.title}</span>
-                <span className="opacity-50">{open === i ? "−" : "+"}</span>
-              </button>
-              {open === i && <p className="text-sm opacity-70 mt-2 leading-relaxed">{c.text}</p>}
-            </div>
-          ))}
+        <div className="space-y-3">
+          {LEARN_CARDS.map((c, i) => {
+            const isOpen = open === i;
+            return (
+              <div key={i} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4">
+                <button onClick={() => setOpen(isOpen ? null : i)} className="w-full text-left flex justify-between items-center gap-3">
+                  <span className="text-sm">{c.title}</span>
+                  {isOpen ? <ChevronUp size={18} color={C.cream} opacity={0.6} className="flex-shrink-0" /> : <ChevronDown size={18} color={C.cream} opacity={0.6} className="flex-shrink-0" />}
+                </button>
+                {isOpen && <p className="text-sm opacity-70 mt-2 leading-relaxed">{c.text}</p>}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -1216,8 +1265,8 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
           Baixe sua imagem para compartilhar nas redes sociais. No celular, ela abre pra você salvar direto nas suas fotos; no computador, baixa na pasta de downloads.
         </p>
 
-        <button onClick={generateImage} disabled={generating} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1, opacity: generating ? 0.6 : 1 }} className="w-full rounded-full py-3 mb-2">
-          {generating ? "GERANDO..." : "📥 BAIXAR MINHA IMAGEM"}
+        <button onClick={generateImage} disabled={generating} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1, opacity: generating ? 0.6 : 1 }} className="w-full rounded-full py-3 mb-2 flex items-center justify-center gap-2">
+          {generating ? "GERANDO..." : <><Download size={16} /> BAIXAR MINHA IMAGEM</>}
         </button>
         <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2">fechar</button>
       </div>
@@ -1302,8 +1351,8 @@ function PushToggleButton({ session, supabase }) {
   return (
     <div className="text-right">
       <button onClick={status === "on" ? deactivate : activate} disabled={status === "working" || status === "checking"}
-        style={{ color: status === "on" ? "#4ade80" : C.gold }} className="text-xs underline">
-        {status === "working" ? "..." : status === "on" ? "🔔 lembretes ativados" : "🔕 ativar lembretes"}
+        style={{ color: status === "on" ? "#4ade80" : C.gold }} className="text-xs underline inline-flex items-center gap-1">
+        {status === "working" ? "..." : status === "on" ? <><Bell size={12} /> lembretes ativados</> : <><BellOff size={12} /> ativar lembretes</>}
       </button>
       {error && <p className="text-[10px] mt-1" style={{ color: C.red }}>{error}</p>}
     </div>
@@ -1459,7 +1508,7 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onSignOut,
 
       <button onClick={onRereadWelcome} style={{ color: C.gold }} className="w-full text-sm py-2 mb-2 underline">reler minha decisão de parar</button>
       {onOpenAprenda && (
-        <button onClick={onOpenAprenda} style={{ color: C.gold }} className="w-full text-sm py-2 mb-2 underline">📚 conteúdos sobre parar de fumar</button>
+        <button onClick={onOpenAprenda} style={{ color: C.gold }} className="w-full text-sm py-2 mb-2 underline inline-flex items-center justify-center gap-1.5"><BookOpen size={14} /> conteúdos sobre parar de fumar</button>
       )}
       <button onClick={onSignOut} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-sm py-2 mb-6 underline">sair da conta</button>
 
@@ -1492,7 +1541,7 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onSignOut,
 function EmphasisDisclaimer() {
   return (
     <div style={{ background: `${C.red}15`, border: `1.5px solid ${C.red}` }} className="rounded-2xl p-4 my-6">
-      <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-sm mb-2">⚕ APOIO PROFISSIONAL</p>
+      <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-sm mb-2 flex items-center gap-2"><Stethoscope size={16} /> APOIO PROFISSIONAL</p>
       <p className="text-xs leading-relaxed opacity-90 mb-2">
         Este aplicativo tem caráter educativo e de apoio. Ele <b>não substitui</b> acompanhamento médico, psicológico ou tratamento para dependência de nicotina. O Respira é um companheiro de jornada, não uma promessa de cura.
       </p>
@@ -1513,12 +1562,10 @@ function Stat({ label, value }) {
   );
 }
 
-function StatCard({ icon, iconBg, label, value }) {
+function StatCard({ Icon, color, label, value }) {
   return (
     <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4">
-      <div style={{ width: 34, height: 34, borderRadius: "9999px", background: iconBg }} className="flex items-center justify-center mb-2">
-        <span style={{ fontSize: "1.05rem" }}>{icon}</span>
-      </div>
+      <div className="mb-2"><IconChip Icon={Icon} color={color} /></div>
       <p className="text-[11px] opacity-60">{label}</p>
       <p style={{ ...bebas }} className="text-xl mt-0.5">{value}</p>
     </div>
@@ -1630,7 +1677,7 @@ function MemoryGame() {
       </div>
       {won && (
         <div className="text-center mb-2">
-          <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Você venceu em {moves} jogadas!</p>
+          <p className="text-sm mb-2 flex items-center justify-center gap-1.5" style={{ color: "#4ade80" }}><PartyPopper size={16} /> Você venceu em {moves} jogadas!</p>
           <button onClick={() => newRound(images)} style={{ color: C.gold }} className="text-sm underline">jogar de novo</button>
         </div>
       )}
@@ -1701,8 +1748,8 @@ function BubbleWrapGame() {
 
   return (
     <div>
-      <p className="text-xs opacity-60 text-center mb-3">
-        {allPopped ? "todinhas! 🎉" : `${popped.size}/${TOTAL} estouradas`}
+      <p className="text-xs opacity-60 text-center mb-3 flex items-center justify-center gap-1.5">
+        {allPopped ? <>todinhas! <PartyPopper size={14} /></> : `${popped.size}/${TOTAL} estouradas`}
       </p>
       <div
         style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 8 }}
@@ -1733,7 +1780,7 @@ function BubbleWrapGame() {
       </div>
       {allPopped ? (
         <div className="text-center mb-2">
-          <p className="text-sm mb-2" style={{ color: "#4ade80" }}>🎉 Bora de novo?</p>
+          <p className="text-sm mb-2 flex items-center justify-center gap-1.5" style={{ color: "#4ade80" }}><PartyPopper size={16} /> Bora de novo?</p>
           <button onClick={reset} style={{ color: C.gold }} className="text-sm underline">outra folha de bolhas</button>
         </div>
       ) : (
@@ -1878,7 +1925,7 @@ function TetrisGame() {
     }
   }));
 
-  const ctrlBtn = { background: C.navySoft, border: `1px solid ${C.line}`, borderRadius: 10, width: 58, height: 50, fontSize: "1.3rem" };
+  const ctrlBtn = { background: C.navySoft, border: `1px solid ${C.line}`, borderRadius: 10, width: 58, height: 50, display: "flex", alignItems: "center", justifyContent: "center" };
 
   return (
     <div>
@@ -1909,10 +1956,10 @@ function TetrisGame() {
         </div>
       ) : (
         <div className="flex justify-center gap-2 mt-4">
-          <button onClick={() => tryMove(0, -1)} style={ctrlBtn}>⬅️</button>
-          <button onClick={rotate} style={ctrlBtn}>🔄</button>
-          <button onClick={drop} style={ctrlBtn}>⬇️</button>
-          <button onClick={() => tryMove(0, 1)} style={ctrlBtn}>➡️</button>
+          <button onClick={() => tryMove(0, -1)} style={ctrlBtn}><ArrowLeft size={20} color={C.cream} /></button>
+          <button onClick={rotate} style={ctrlBtn}><RotateCw size={20} color={C.cream} /></button>
+          <button onClick={drop} style={ctrlBtn}><ArrowDown size={20} color={C.cream} /></button>
+          <button onClick={() => tryMove(0, 1)} style={ctrlBtn}><ArrowRight size={20} color={C.cream} /></button>
         </div>
       )}
     </div>
@@ -1949,9 +1996,9 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
           <p style={{ color: C.cream, ...bebas, letterSpacing: 1 }} className="text-lg mb-2">ESTOU COM VONTADE DE FUMAR</p>
           <p style={{ ...playfair }} className="italic text-sm opacity-80 mb-6">Quanto está difícil?</p>
           <div className="space-y-2">
-            <button onClick={() => setIntensity("leve")} style={{ background: C.navySoft }} className="w-full rounded-xl py-3.5 text-sm">😐 Leve</button>
-            <button onClick={() => setIntensity("media")} style={{ background: C.navySoft }} className="w-full rounded-xl py-3.5 text-sm">😣 Média</button>
-            <button onClick={() => setIntensity("forte")} style={{ background: C.navySoft }} className="w-full rounded-xl py-3.5 text-sm">😭 Muito forte</button>
+            <button onClick={() => setIntensity("leve")} style={{ background: C.navySoft }} className="w-full rounded-2xl py-3.5 text-sm flex items-center justify-center gap-2"><Meh size={18} /> Leve</button>
+            <button onClick={() => setIntensity("media")} style={{ background: C.navySoft }} className="w-full rounded-2xl py-3.5 text-sm flex items-center justify-center gap-2"><Frown size={18} /> Média</button>
+            <button onClick={() => setIntensity("forte")} style={{ background: C.navySoft }} className="w-full rounded-2xl py-3.5 text-sm flex items-center justify-center gap-2"><Angry size={18} /> Muito forte</button>
           </div>
           <p style={{ ...bebas, letterSpacing: 1 }} className="text-[10px] opacity-40 text-center mb-2 mt-3">OU PEDE AJUDA A ALGUÉM AGORA</p>
           <ShareRow text="Estou na fissura de cigarro, me ajuda? Vamos conversar.." />
@@ -1980,8 +2027,8 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
             <>
               <p className="text-sm mb-4">Ainda quer fumar?</p>
               <div className="flex gap-2">
-                <button onClick={() => setAfterAnswer("melhorou")} style={{ background: C.navySoft }} className="flex-1 rounded-xl py-3 text-sm">🙂 Melhorou</button>
-                <button onClick={() => { setIntensity("forte"); setAfterAnswer(null); setTimerDone(false); }} style={{ background: C.navySoft }} className="flex-1 rounded-xl py-3 text-sm">😕 Ainda quero</button>
+                <button onClick={() => setAfterAnswer("melhorou")} style={{ background: C.navySoft }} className="flex-1 rounded-2xl py-3 text-sm flex items-center justify-center gap-1.5"><Smile size={16} /> Melhorou</button>
+                <button onClick={() => { setIntensity("forte"); setAfterAnswer(null); setTimerDone(false); }} style={{ background: C.navySoft }} className="flex-1 rounded-2xl py-3 text-sm flex items-center justify-center gap-1.5"><Frown size={16} /> Ainda quero</button>
               </div>
             </>
           )}
@@ -2014,8 +2061,8 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
           <p style={{ color: C.cream, ...playfair }} className="italic text-sm text-center mb-5 opacity-90">Escolhe uma técnica:</p>
           <div className="space-y-2 mb-4">
             {SOS_TECHNIQUES.map((t) => (
-              <button key={t.id} onClick={() => setActive(t.id)} style={{ background: C.navySoft }} className="w-full text-left rounded-xl p-3.5 flex items-center gap-3">
-                <span>{t.icon}</span>
+              <button key={t.id} onClick={() => setActive(t.id)} style={{ background: C.navySoft }} className="w-full text-left rounded-2xl p-3.5 flex items-center gap-3">
+                <IconChip emoji={t.icon} size={32} iconSize={16} />
                 <span style={{ color: C.cream, ...bebas, letterSpacing: 0.5 }} className="text-base">{t.title}</span>
               </button>
             ))}
@@ -2034,7 +2081,7 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
   return (
     <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-50 ${isGame ? "p-3" : "p-6"}`}>
       <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className={`rounded-3xl w-full text-center max-h-[90vh] overflow-y-auto ${isGame ? "max-w-2xl p-4 sm:p-6" : "max-w-sm p-6"}`}>
-        <p style={{ color: C.red, ...bebas, letterSpacing: 1 }} className="text-lg mb-4">{tech.icon} {tech.title.toUpperCase()}</p>
+        <p style={{ color: C.red, ...bebas, letterSpacing: 1 }} className="text-lg mb-4 flex items-center justify-center gap-2"><Glyph emoji={tech.icon} size={20} color={C.red} /> {tech.title.toUpperCase()}</p>
 
         {active === "respirar" && (
           <div className="flex items-center justify-center h-36 mb-4">
@@ -2068,8 +2115,8 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
             <p className="text-sm opacity-80 mb-3 text-center">Seu kit fissura — escolhe algo pra ter sempre por perto:</p>
             <div className="grid grid-cols-2 gap-2">
               {FISSURE_KIT_ITEMS.map((item) => (
-                <div key={item.key} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-2.5">
-                  <p className="text-xs font-bold">{item.icon} {item.label}</p>
+                <div key={item.key} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-3">
+                  <p className="text-xs font-bold flex items-center gap-1.5"><Glyph emoji={item.icon} size={14} color={C.gold} /> {item.label}</p>
                   <p className="text-[11px] opacity-60 mt-0.5">{item.examples}</p>
                 </div>
               ))}
@@ -2117,7 +2164,7 @@ function RelapseModal({ onClose, onChoose }) {
           <p style={{ ...playfair }} className="italic text-sm leading-relaxed mb-4">O que aconteceu?</p>
           <div className="grid grid-cols-2 gap-2 mb-3">
             {RELAPSE_CAUSES.map((c) => (
-              <button key={c.key} onClick={() => setCause(c.key)} style={{ background: C.navySoft }} className="rounded-xl p-3 text-sm text-left">{c.icon} {c.label}</button>
+              <button key={c.key} onClick={() => setCause(c.key)} style={{ background: C.navySoft }} className="rounded-2xl p-3 text-sm text-left flex items-center gap-2"><Glyph emoji={c.icon} size={15} /> {c.label}</button>
             ))}
           </div>
           <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-xs py-2">cancelar</button>
@@ -2138,7 +2185,7 @@ function RelapseModal({ onClose, onChoose }) {
           <div className="grid grid-cols-2 gap-2 mb-4">
             {COMPANY_OPTIONS.map((c) => (
               <button key={c.key} onClick={() => setCompany(c.key === company ? null : c.key)}
-                style={{ background: company === c.key ? C.red : C.navySoft }} className="rounded-xl p-2.5 text-sm text-left">{c.icon} {c.label}</button>
+                style={{ background: company === c.key ? C.red : C.navySoft }} className="rounded-2xl p-2.5 text-sm text-left flex items-center gap-2"><Glyph emoji={c.icon} size={15} /> {c.label}</button>
             ))}
           </div>
 
@@ -2146,7 +2193,7 @@ function RelapseModal({ onClose, onChoose }) {
           <div className="grid grid-cols-2 gap-2 mb-4">
             {EMOTION_BEFORE_OPTIONS.map((e) => (
               <button key={e.key} onClick={() => setEmotion(e.key === emotion ? null : e.key)}
-                style={{ background: emotion === e.key ? C.red : C.navySoft }} className="rounded-xl p-2.5 text-sm text-left">{e.icon} {e.label}</button>
+                style={{ background: emotion === e.key ? C.red : C.navySoft }} className="rounded-2xl p-2.5 text-sm text-left flex items-center gap-2"><Glyph emoji={e.icon} size={15} /> {e.label}</button>
             ))}
           </div>
 
@@ -2200,10 +2247,10 @@ function RelapseModal({ onClose, onChoose }) {
 
 function LoginScreen({ supabase }) {
   const FEATURES = [
-    { icon: "🆘", title: "Botão SOS", text: "quando a fissura bater, técnicas rápidas e até um joguinho pra passar o momento" },
-    { icon: "📅", title: "Missões do dia", text: "pequenas ações diárias que ajudam a segurar a barra sem perceber o esforço" },
-    { icon: "📊", title: "Seu progresso", text: "dias sem fumar, dinheiro economizado, cigarros evitados, tempo de vida recuperado" },
-    { icon: "🫂", title: "Sem julgamento", text: "recaiu? tudo bem. o app te ajuda a entender o porquê e continuar de onde parou" },
+    { Icon: LifeBuoy, title: "Botão SOS", text: "quando a fissura bater, técnicas rápidas e até um joguinho pra passar o momento" },
+    { Icon: Calendar, title: "Missões do dia", text: "pequenas ações diárias que ajudam a segurar a barra sem perceber o esforço" },
+    { Icon: Activity, title: "Seu progresso", text: "dias sem fumar, dinheiro economizado, cigarros evitados, tempo de vida recuperado" },
+    { Icon: Heart, title: "Sem julgamento", text: "recaiu? tudo bem. o app te ajuda a entender o porquê e continuar de onde parou" },
   ];
 
   return (
@@ -2221,8 +2268,8 @@ function LoginScreen({ supabase }) {
 
         <div className="text-left space-y-3 mb-8">
           {FEATURES.map((f, i) => (
-            <div key={i} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-xl p-3.5 flex gap-3">
-              <span className="text-xl">{f.icon}</span>
+            <div key={i} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-3.5 flex gap-3">
+              <IconChip Icon={f.Icon} />
               <div>
                 <p className="text-sm font-bold">{f.title}</p>
                 <p className="text-xs opacity-70 mt-0.5">{f.text}</p>
@@ -2341,8 +2388,8 @@ function Onboarding({ supabase, session, onDone }) {
                 const s = SUBSTITUTE_OPTIONS.find((x) => x.key === p.sub);
                 return (
                   <div key={i} style={{ background: C.navySoft }} className="rounded-xl p-3 flex justify-between items-center">
-                    <p className="text-sm">{t?.icon} {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
-                    <button onClick={() => setPlanPairs((cur) => cur.filter((_, j) => j !== i))} className="opacity-50">✕</button>
+                    <p className="text-sm flex items-center gap-1.5"><Glyph emoji={t?.icon} size={14} /> {t?.label} → <span style={{ color: C.red }}>{s?.label}</span></p>
+                    <button onClick={() => setPlanPairs((cur) => cur.filter((_, j) => j !== i))} className="opacity-50"><X size={16} /></button>
                   </div>
                 );
               })}
