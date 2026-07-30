@@ -1359,14 +1359,26 @@ function PushToggleButton({ session, supabase }) {
   );
 }
 
+const COMMUNITY_RULES = [
+  "Aqui é sem julgamento — recaída, dúvida boba, desabafo, tudo tem espaço.",
+  "Respeito sempre: nada de preconceito, piada de mau gosto ou ataque pessoal.",
+  "Isso não substitui orientação médica — não prometa cura nem incentive parar de tratamento.",
+  "Nada de conteúdo sexual, spam ou divulgação de produtos.",
+  "Denúncias existem pra manter o espaço seguro — usa com responsabilidade.",
+];
+
 function CommunityTab({ supabase, session, profile }) {
   const [posts, setPosts] = useState(null);
   const [reactions, setReactions] = useState({});
+  const [replies, setReplies] = useState({});
+  const [openThreads, setOpenThreads] = useState(() => new Set());
+  const [replyDrafts, setReplyDrafts] = useState({});
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [posting, setPosting] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [reportedIds, setReportedIds] = useState(() => new Set());
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1374,7 +1386,8 @@ function CommunityTab({ supabase, session, profile }) {
     const { data: p } = await supabase.from("quit_forum_posts").select("*").order("created_at", { ascending: false }).limit(100);
     setPosts(p ?? []);
     if (p && p.length) {
-      const { data: r } = await supabase.from("quit_forum_reactions").select("*").in("post_id", p.map((x) => x.id));
+      const ids = p.map((x) => x.id);
+      const { data: r } = await supabase.from("quit_forum_reactions").select("*").in("post_id", ids);
       const map = {};
       (r ?? []).forEach((row) => {
         map[row.post_id] = map[row.post_id] || {};
@@ -1382,6 +1395,14 @@ function CommunityTab({ supabase, session, profile }) {
         if (row.user_id === session.user.id) map[row.post_id]._mine = row.reaction;
       });
       setReactions(map);
+
+      const { data: rep } = await supabase.from("quit_forum_replies").select("*").in("post_id", ids).order("created_at", { ascending: true });
+      const rmap = {};
+      (rep ?? []).forEach((row) => {
+        rmap[row.post_id] = rmap[row.post_id] || [];
+        rmap[row.post_id].push(row);
+      });
+      setReplies(rmap);
     }
   }
 
@@ -1426,15 +1447,63 @@ function CommunityTab({ supabase, session, profile }) {
 
   async function removePost(postId) { await supabase.from("quit_forum_posts").delete().eq("id", postId); setPosts((cur) => cur.filter((p) => p.id !== postId)); }
 
+  async function restorePost(postId) {
+    await supabase.from("quit_forum_posts").update({ approved: true }).eq("id", postId);
+    setPosts((cur) => cur.map((p) => (p.id === postId ? { ...p, approved: true } : p)));
+  }
+
+  function toggleThread(postId) {
+    setOpenThreads((cur) => {
+      const next = new Set(cur);
+      if (next.has(postId)) next.delete(postId); else next.add(postId);
+      return next;
+    });
+  }
+
+  async function submitReply(postId) {
+    const text = (replyDrafts[postId] || "").trim();
+    if (!text) return;
+    if (containsBlockedTerm(text)) { setReplyDrafts((cur) => ({ ...cur, [postId]: text })); setError("Sua resposta contém um termo não permitido."); return; }
+    const { data, error: err } = await supabase.from("quit_forum_replies").insert({
+      post_id: postId,
+      user_id: session.user.id,
+      display_name: profile.display_name || session.user.user_metadata?.full_name || "Alguém da comunidade",
+      photo_url: session.user.user_metadata?.avatar_url || null,
+      content: text,
+    }).select().single();
+    if (err) return;
+    setReplies((cur) => ({ ...cur, [postId]: [...(cur[postId] || []), data] }));
+    setReplyDrafts((cur) => ({ ...cur, [postId]: "" }));
+  }
+
+  async function removeReply(postId, replyId) {
+    await supabase.from("quit_forum_replies").delete().eq("id", replyId);
+    setReplies((cur) => ({ ...cur, [postId]: (cur[postId] || []).filter((r) => r.id !== replyId) }));
+  }
+
   return (
     <div>
+      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4">
+        <button onClick={() => setRulesOpen((v) => !v)} className="w-full flex items-center justify-between">
+          <span className="text-xs flex items-center gap-1.5" style={{ color: C.gold }}><ListChecks size={14} /> regras de respeito da comunidade</span>
+          {rulesOpen ? <ChevronUp size={16} color={C.gold} /> : <ChevronDown size={16} color={C.gold} />}
+        </button>
+        {rulesOpen && (
+          <ul className="mt-3 space-y-1.5">
+            {COMMUNITY_RULES.map((r, i) => (
+              <li key={i} className="text-xs opacity-70 flex gap-2"><span style={{ color: C.gold }}>·</span>{r}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4">
         <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={2} placeholder="Compartilha algo sobre o seu processo..."
           style={{ background: "transparent", color: C.cream, borderColor: C.line }} className="w-full outline-none resize-none text-sm border-b pb-2 placeholder-white/40" />
         {error && <p className="text-xs mt-2" style={{ color: C.red }}>{error}</p>}
         <div className="flex items-center justify-between mt-2">
           <button onClick={submitPost} disabled={posting || !content.trim()} style={{ color: C.red, opacity: posting || !content.trim() ? 0.4 : 1 }} className="text-sm">publicar</button>
-          <span className="text-[10px] opacity-30">fórum aberto — denúncias de verdade ajudam a manter o espaço seguro</span>
+          <span className="text-[10px] opacity-30">fórum aberto — respeita as regras aqui em cima</span>
         </div>
       </div>
 
@@ -1446,31 +1515,45 @@ function CommunityTab({ supabase, session, profile }) {
         <div className="space-y-3">
           {posts.map((p) => {
             const canDelete = p.user_id === session.user.id || profile.is_admin;
-            const isMine = p.user_id === session.user.id;
-            const underReview = !p.approved && isMine;
+            const hidden = !p.approved;
             const alreadyReported = reportedIds.has(p.id);
+            const postReplies = replies[p.id] || [];
+            const threadOpen = openThreads.has(p.id);
             return (
-              <div key={p.id} style={{ background: C.navySoft, border: `1px solid ${underReview ? C.gold : C.line}`, opacity: underReview ? 0.75 : 1 }} className="rounded-2xl p-4">
+              <div key={p.id} style={{ background: C.navySoft, border: `1px solid ${hidden ? C.gold : C.line}`, opacity: hidden && !profile.is_admin ? 0.75 : 1 }} className="rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     {p.photo_url && <img src={p.photo_url} alt="" className="w-6 h-6 rounded-full" />}
                     <span className="text-xs opacity-70">{p.display_name}</span>
-                    {underReview && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${C.gold}22`, color: C.gold }}>em análise (denunciado)</span>}
+                    {hidden && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${C.gold}22`, color: C.gold }}>
+                        {profile.is_admin ? "oculto por denúncias" : "em análise (denunciado)"}
+                      </span>
+                    )}
                   </div>
-                  {canDelete && <button onClick={() => removePost(p.id)} className="text-xs opacity-40">excluir</button>}
+                  <div className="flex items-center gap-3">
+                    {hidden && profile.is_admin && <button onClick={() => restorePost(p.id)} className="text-xs" style={{ color: "#4ade80" }}>liberar</button>}
+                    {canDelete && <button onClick={() => removePost(p.id)} className="text-xs opacity-40">excluir</button>}
+                  </div>
                 </div>
                 <p className="text-sm mb-3">{p.content}</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-1.5">
-                    {FORUM_REACTIONS.map((r) => {
-                      const count = reactions[p.id]?.[r.key] || 0;
-                      const mine = reactions[p.id]?._mine === r.key;
-                      return (
-                        <button key={r.key} onClick={() => react(p.id, r.key)} style={{ opacity: mine ? 1 : 0.5, background: mine ? `${C.red}22` : "transparent" }} className="text-xs px-1.5 py-0.5 rounded-full">
-                          {r.icon}{count > 0 ? ` ${count}` : ""}
-                        </button>
-                      );
-                    })}
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1.5">
+                      {FORUM_REACTIONS.map((r) => {
+                        const count = reactions[p.id]?.[r.key] || 0;
+                        const mine = reactions[p.id]?._mine === r.key;
+                        return (
+                          <button key={r.key} onClick={() => react(p.id, r.key)} style={{ opacity: mine ? 1 : 0.5, background: mine ? `${C.red}22` : "transparent" }} className="text-xs px-1.5 py-0.5 rounded-full">
+                            {r.icon}{count > 0 ? ` ${count}` : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button onClick={() => toggleThread(p.id)} className="text-xs opacity-60 flex items-center gap-1">
+                      <ListChecks size={12} />
+                      {postReplies.length > 0 ? `${postReplies.length} resposta${postReplies.length !== 1 ? "s" : ""}` : "responder"}
+                    </button>
                   </div>
                   {!canDelete && (
                     alreadyReported ? (
@@ -1480,6 +1563,35 @@ function CommunityTab({ supabase, session, profile }) {
                     )
                   )}
                 </div>
+
+                {threadOpen && (
+                  <div className="mt-3 pt-3 space-y-2.5" style={{ borderTop: `1px solid ${C.line}` }}>
+                    {postReplies.map((r) => {
+                      const canDeleteReply = r.user_id === session.user.id || profile.is_admin;
+                      return (
+                        <div key={r.id} className="flex items-start gap-2 pl-2" style={{ borderLeft: `2px solid ${C.line}` }}>
+                          {r.photo_url && <img src={r.photo_url} alt="" className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs opacity-70">{r.display_name}</p>
+                            <p className="text-sm">{r.content}</p>
+                          </div>
+                          {canDeleteReply && <button onClick={() => removeReply(p.id, r.id)} className="text-xs opacity-30 flex-shrink-0"><X size={12} /></button>}
+                        </div>
+                      );
+                    })}
+                    <div className="flex gap-2">
+                      <input
+                        value={replyDrafts[p.id] || ""}
+                        onChange={(e) => setReplyDrafts((cur) => ({ ...cur, [p.id]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") submitReply(p.id); }}
+                        placeholder="escreve uma resposta..."
+                        style={{ background: C.navy, color: C.cream }}
+                        className="flex-1 rounded-full px-3 py-1.5 text-xs outline-none placeholder-white/40"
+                      />
+                      <button onClick={() => submitReply(p.id)} disabled={!(replyDrafts[p.id] || "").trim()} style={{ color: C.red, opacity: (replyDrafts[p.id] || "").trim() ? 1 : 0.4 }} className="text-xs flex-shrink-0">enviar</button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
