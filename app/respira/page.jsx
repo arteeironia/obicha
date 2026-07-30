@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy, CheckCircle2, Circle, Lock, X } from "lucide-react";
+import { Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy, CheckCircle2, Circle, Lock, X, Laugh, Smile, Meh, Frown, Angry, Sprout, Flame, Droplet, CloudSun, Leaf, TreePine, Star, Sparkles, Medal, Trophy } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   WELCOME_TEXT,
@@ -32,6 +32,14 @@ import {
 
 const C = { cream: "#F5EFE4", navy: "#101B2D", navySoft: "#1B2A42", red: "#C63B32", gold: "#D4A843", line: "#2A3B57" };
 const bebas = { fontFamily: "var(--font-bebas)" };
+const MOOD_ICONS = { excelente: Laugh, bom: Smile, dificil: Frown, pessimo: Angry };
+const SELFESTEEM_ICONS = { 1: Angry, 2: Frown, 3: Meh, 4: Smile, 5: Laugh };
+const BADGE_ICONS = { "🌱": Sprout, "🔥": Flame, "💧": Droplet, "🌤️": CloudSun, "🌿": Leaf, "🌳": TreePine, "⭐": Star, "✨": Sparkles, "🏅": Medal, "🏆": Trophy };
+
+function BadgeGlyph({ emoji, size = 20, color }) {
+  const Icon = BADGE_ICONS[emoji] || Star;
+  return <Icon size={size} color={color} strokeWidth={1.75} />;
+}
 const playfair = { fontFamily: "var(--font-playfair)" };
 
 function ShareRow({ text }) {
@@ -525,7 +533,7 @@ function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
 
       {nextBadge && (
         <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}55` }} className="rounded-2xl px-4 py-3 mb-5 flex items-center gap-2.5">
-          <span>⭐</span>
+          <BadgeGlyph emoji={nextBadge.icon} size={20} color={C.gold} />
           <p className="text-sm">Faltam só <b style={{ color: C.gold }}>{nextBadge.days - days}</b> dias pro selo de <b style={{ color: C.gold }}>{nextBadge.label}</b>.</p>
         </div>
       )}
@@ -571,12 +579,16 @@ function MissaoHumorTab({ dayNumber, dailyState, onToggleMission, onSetMood, onS
       <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4">
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-xs opacity-70 mb-3">HOJE FOI...</p>
         <div className="flex justify-between mb-3">
-          {MOOD_OPTIONS.map((m) => (
-            <button key={m.key} onClick={() => onSetMood(m.key)} className="flex flex-col items-center gap-1">
-              <span style={{ fontSize: "1.6rem", opacity: dailyState?.mood === m.key ? 1 : 0.4 }}>{m.icon}</span>
-              <span className="text-[10px] opacity-60">{m.label}</span>
-            </button>
-          ))}
+          {MOOD_OPTIONS.map((m) => {
+            const active = dailyState?.mood === m.key;
+            const MoodIcon = MOOD_ICONS[m.key] || Meh;
+            return (
+              <button key={m.key} onClick={() => onSetMood(m.key)} className="flex flex-col items-center gap-1">
+                <MoodIcon size={26} color={active ? C.gold : C.cream} opacity={active ? 1 : 0.4} strokeWidth={1.75} />
+                <span className="text-[10px] opacity-60">{m.label}</span>
+              </button>
+            );
+          })}
         </div>
         <textarea value={diaryDraft} onChange={(e) => setDiaryDraft(e.target.value)} onBlur={() => onSaveDiary(diaryDraft)}
           placeholder="quer registrar algo sobre hoje?" rows={2}
@@ -608,7 +620,7 @@ function MedalhasTab(props) {
                   fontSize: unlocked ? "1.6rem" : "1.3rem",
                   opacity: unlocked ? 1 : 0.4,
                 }}>
-                  {unlocked ? b.icon : <Lock size={18} color={C.cream} opacity={0.4} />}
+                  {unlocked ? <BadgeGlyph emoji={b.icon} size={22} color={C.gold} /> : <Lock size={18} color={C.cream} opacity={0.4} />}
                 </div>
                 <p className={`text-[10px] text-center mt-1.5 ${unlocked ? "" : "opacity-40"}`}>{b.label}</p>
                 {isNext && <p className="text-[9px] mt-0.5" style={{ color: C.gold }}>faltam {b.days - dayNumber}d</p>}
@@ -679,7 +691,7 @@ function JornadaTab(props) {
             </div>
           </div>
           {nextBadge && (
-            <p className="text-[10px] opacity-40 text-center mb-3">faltam {nextBadge.days - dayNumber}d pro selo {nextBadge.icon} {nextBadge.label}</p>
+            <p className="text-[10px] opacity-40 text-center mb-3 flex items-center justify-center gap-1">faltam {nextBadge.days - dayNumber}d pro selo <BadgeGlyph emoji={nextBadge.icon} size={12} color={C.gold} /> {nextBadge.label}</p>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -931,9 +943,15 @@ function BemEstarTab(props) {
 
           <p className="text-xs opacity-70 mb-2">Como você se sente essa semana, de um jeito geral?</p>
           <div className="flex justify-between mb-4">
-            {SELFESTEEM_OPTIONS.map((o) => (
-              <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ fontSize: "1.8rem", opacity: thisWeekRating === o.value ? 1 : 0.35, transform: thisWeekRating === o.value ? "scale(1.15)" : "scale(1)", transition: "all .2s" }}>{o.icon}</button>
-            ))}
+            {SELFESTEEM_OPTIONS.map((o) => {
+              const active = thisWeekRating === o.value;
+              const RatingIcon = SELFESTEEM_ICONS[o.value] || Meh;
+              return (
+                <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ opacity: active ? 1 : 0.35, transform: active ? "scale(1.15)" : "scale(1)", transition: "all .2s" }}>
+                  <RatingIcon size={30} color={C.gold} strokeWidth={1.75} />
+                </button>
+              );
+            })}
           </div>
 
           {selfesteemChecks.length > 1 ? (
