@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   WELCOME_TEXT,
@@ -154,10 +155,16 @@ export default function RespiraPage() {
 
   return (
     <div style={{ background: C.navy, color: C.cream }} className="min-h-screen">
-      <SiteHeader menuOpen={menuOpen} setMenuOpen={setMenuOpen} onSignOut={() => supabase.auth.signOut()} />
+      <SiteHeader
+        menuOpen={menuOpen} setMenuOpen={setMenuOpen} onSignOut={() => supabase.auth.signOut()}
+        isHub={tab === "hoje"}
+        title={FN_CARDS.find((c) => c.key === tab)?.title}
+        onBack={() => setTab("hoje")}
+        onOpenSOS={() => setSosOpen(true)}
+      />
 
-      <div className="max-w-md mx-auto px-5 pb-32 pt-6">
-        {isFuture && (
+      <div className="max-w-md mx-auto px-5 pb-10 pt-6">
+        {isFuture && tab === "hoje" && (
           <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}` }} className="rounded-2xl p-3.5 mb-5 text-center">
             <p className="text-sm">
               Sua contagem de dias começa em <span style={{ color: C.gold, ...bebas }}>{new Date(quitAt).toLocaleDateString("pt-BR")}</span>. Até lá, aproveita pra explorar o app, montar seu plano e conhecer a comunidade.
@@ -169,46 +176,12 @@ export default function RespiraPage() {
           isFuture ? (
             <CountdownView quitAt={quitAt} now={now} />
           ) : (
-            <TodayTab
-              profile={profile}
-              dayNumber={dayNumber}
-              elapsedMin={elapsedMin}
-              cigsAvoided={cigsAvoided}
-              moneySaved={moneySaved}
-              cravingsSurvived={cravingsSurvived}
-              longestStreakDays={longestStreakDays}
-              dailyState={dailyState}
-              onOpenAprenda={() => setTab("aprenda")}
-              onOpenSOS={() => setSosOpen(true)}
-              onToggleMission={async (mission) => {
-                const done = dailyState?.missions_done || [];
-                const next = done.includes(mission) ? done.filter((m) => m !== mission) : [...done, mission];
-                const { data } = await supabase.from("quit_daily_state")
-                  .upsert({ user_id: session.user.id, day_key: dayKey(), missions_done: next, mood: dailyState?.mood, diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
-                  .select().single();
-                setDailyState(data);
-              }}
-              onSetMood={async (mood) => {
-                const { data } = await supabase.from("quit_daily_state")
-                  .upsert({ user_id: session.user.id, day_key: dayKey(), mood, missions_done: dailyState?.missions_done || [], diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
-                  .select().single();
-                setDailyState(data);
-              }}
-              onSaveDiary={async (text) => {
-                const { data } = await supabase.from("quit_daily_state")
-                  .upsert({ user_id: session.user.id, day_key: dayKey(), diary_text: text, missions_done: dailyState?.missions_done || [], mood: dailyState?.mood }, { onConflict: "user_id,day_key" })
-                  .select().single();
-                setDailyState(data);
-              }}
-            />
+            <HubHome profile={profile} dayNumber={dayNumber} elapsedMin={elapsedMin} onNavigate={setTab} />
           )
         )}
 
-        {tab === "painel" && (
-          <PanelTab
-            profile={profile}
-            session={session}
-            supabase={supabase}
+        {tab === "jornada" && (
+          <JornadaTab
             elapsedMin={elapsedMin}
             dayNumber={dayNumber}
             cigsAvoided={cigsAvoided}
@@ -216,13 +189,40 @@ export default function RespiraPage() {
             co2Grams={co2Grams}
             lifeMinutes={lifeMinutes}
             cravingsSurvived={cravingsSurvived}
+            longestStreakDays={longestStreakDays}
+          />
+        )}
+
+        {tab === "fissura" && (
+          <FissuraTab
+            session={session}
+            supabase={supabase}
             cravings={cravings}
             relapses={relapses}
-            longestStreakDays={longestStreakDays}
             plans={plans}
-            milestonesMarked={milestonesMarked}
-            movementLogs={movementLogs}
+            onAddPlan={async (trigger_tag, substitute, reminder_time) => {
+              const { data } = await supabase.from("quit_emergency_plans").insert({ user_id: session.user.id, trigger_tag, substitute, reminder_time: reminder_time || null }).select().single();
+              setPlans((cur) => [...cur, data]);
+            }}
+            onRemovePlan={async (id) => {
+              await supabase.from("quit_emergency_plans").delete().eq("id", id);
+              setPlans((cur) => cur.filter((p) => p.id !== id));
+            }}
+            onOpenRelapse={() => setRelapseOpen(true)}
+          />
+        )}
+
+        {tab === "bemestar" && (
+          <BemEstarTab
+            dayNumber={dayNumber}
             selfesteemChecks={selfesteemChecks}
+            onSelfesteemCheck={async (rating) => {
+              const { data } = await supabase.from("quit_selfesteem_checks")
+                .upsert({ user_id: session.user.id, week_key: weekKey(), rating }, { onConflict: "user_id,week_key" })
+                .select().single();
+              setSelfesteemChecks((cur) => [...cur.filter((c) => c.week_key !== data.week_key), data]);
+            }}
+            milestonesMarked={milestonesMarked}
             onToggleMilestone={async (key) => {
               const has = milestonesMarked.some((m) => m.milestone_key === key);
               if (has) {
@@ -233,33 +233,48 @@ export default function RespiraPage() {
                 setMilestonesMarked((cur) => [...cur, data]);
               }
             }}
-            onAddPlan={async (trigger_tag, substitute, reminder_time) => {
-              const { data } = await supabase.from("quit_emergency_plans").insert({ user_id: session.user.id, trigger_tag, substitute, reminder_time: reminder_time || null }).select().single();
-              setPlans((cur) => [...cur, data]);
-            }}
-            onRemovePlan={async (id) => {
-              await supabase.from("quit_emergency_plans").delete().eq("id", id);
-              setPlans((cur) => cur.filter((p) => p.id !== id));
-            }}
+            movementLogs={movementLogs}
             onLogMovement={async (activity, minutes) => {
               const { data } = await supabase.from("quit_movement_logs").insert({ user_id: session.user.id, activity, minutes }).select().single();
               setMovementLogs((cur) => [data, ...cur]);
             }}
-            onSelfesteemCheck={async (rating) => {
-              const { data } = await supabase.from("quit_selfesteem_checks")
-                .upsert({ user_id: session.user.id, week_key: weekKey(), rating }, { onConflict: "user_id,week_key" })
-                .select().single();
-              setSelfesteemChecks((cur) => [...cur.filter((c) => c.week_key !== data.week_key), data]);
-            }}
-            onOpenRelapse={() => setRelapseOpen(true)}
           />
         )}
 
-        {tab === "aprenda" && <AprendaTab />}
+        {tab === "missao" && (
+          <MissaoHumorTab
+            dayNumber={dayNumber}
+            dailyState={dailyState}
+            onToggleMission={async (mission) => {
+              const done = dailyState?.missions_done || [];
+              const next = done.includes(mission) ? done.filter((m) => m !== mission) : [...done, mission];
+              const { data } = await supabase.from("quit_daily_state")
+                .upsert({ user_id: session.user.id, day_key: dayKey(), missions_done: next, mood: dailyState?.mood, diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
+                .select().single();
+              setDailyState(data);
+            }}
+            onSetMood={async (mood) => {
+              const { data } = await supabase.from("quit_daily_state")
+                .upsert({ user_id: session.user.id, day_key: dayKey(), mood, missions_done: dailyState?.missions_done || [], diary_text: dailyState?.diary_text }, { onConflict: "user_id,day_key" })
+                .select().single();
+              setDailyState(data);
+            }}
+            onSaveDiary={async (text) => {
+              const { data } = await supabase.from("quit_daily_state")
+                .upsert({ user_id: session.user.id, day_key: dayKey(), diary_text: text, missions_done: dailyState?.missions_done || [], mood: dailyState?.mood }, { onConflict: "user_id,day_key" })
+                .select().single();
+              setDailyState(data);
+            }}
+          />
+        )}
+
+        {tab === "dicas" && <AprendaTab />}
+
+        {tab === "medalhas" && <MedalhasTab dayNumber={dayNumber} moneySaved={moneySaved} cigsAvoided={cigsAvoided} />}
 
         {tab === "comunidade" && <CommunityTab supabase={supabase} session={session} profile={profile} />}
 
-        {tab === "config" && (
+        {tab === "perfil" && (
           <ConfigTab
             profile={profile}
             onSave={async (fields) => {
@@ -267,7 +282,7 @@ export default function RespiraPage() {
               setProfile((p) => ({ ...p, ...fields }));
             }}
             onRereadWelcome={() => setWelcomeOpen(true)}
-            onOpenAprenda={() => setTab("aprenda")}
+            onOpenAprenda={() => setTab("dicas")}
             onSignOut={() => supabase.auth.signOut()}
             onDeleteAccount={async () => {
               const { data: { session: freshSession } } = await supabase.auth.getSession();
@@ -288,7 +303,6 @@ export default function RespiraPage() {
         <EmphasisDisclaimer />
       </div>
 
-      <BottomNav tab={tab} setTab={setTab} onOpenSOS={() => setSosOpen(true)} />
       {sosOpen && (
         <SOSModal
           why={profile.why_text}
@@ -326,7 +340,7 @@ export default function RespiraPage() {
 }
 
 // ---------- Header ----------
-function SiteHeader({ menuOpen, setMenuOpen, onSignOut }) {
+function SiteHeader({ menuOpen, setMenuOpen, onSignOut, isHub, title, onBack, onOpenSOS }) {
   const navItems = [
     { label: "Manifesto", href: "https://www.obicha.com.br/#manifesto" },
     { label: "Produtos", href: "https://www.obicha.com.br/#produtos" },
@@ -336,13 +350,27 @@ function SiteHeader({ menuOpen, setMenuOpen, onSignOut }) {
   ];
   return (
     <header style={{ borderBottom: `1px solid ${C.line}` }} className="sticky top-0 z-40">
-      <div style={{ background: C.navy }} className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
-        <a href="https://www.obicha.com.br" style={{ ...bebas, color: C.cream }} className="text-xl tracking-wide">Ô BICHA<span style={{ color: C.red }}>!</span></a>
-        <div className="flex items-center gap-4">
-          <button onClick={onSignOut} style={{ color: C.cream, opacity: 0.5 }} className="text-[11px] underline">sair</button>
-          <button onClick={() => setMenuOpen(true)} style={{ color: C.cream }} aria-label="menu">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+      <div style={{ background: C.navy }} className="max-w-md mx-auto px-5 py-3.5 flex items-center justify-between">
+        {isHub ? (
+          <a href="https://www.obicha.com.br" style={{ ...bebas, color: C.cream }} className="text-xl tracking-wide">Ô BICHA<span style={{ color: C.red }}>!</span></a>
+        ) : (
+          <button onClick={onBack} className="flex items-center gap-2.5">
+            <span style={{ background: C.navySoft, width: 30, height: 30, borderRadius: "9999px" }} className="flex items-center justify-center">
+              <ArrowLeft size={16} color={C.cream} />
+            </span>
+            <span style={{ ...bebas, letterSpacing: 0.5, color: C.cream }} className="text-base">{title}</span>
           </button>
+        )}
+
+        <div className="flex items-center gap-3">
+          <button onClick={onOpenSOS} style={{ background: C.red, ...bebas, letterSpacing: 0.5, color: C.cream }} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs">
+            <LifeBuoy size={14} /> SOS
+          </button>
+          {isHub && (
+            <button onClick={() => setMenuOpen(true)} style={{ color: C.cream }} aria-label="menu">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            </button>
+          )}
         </div>
       </div>
       {menuOpen && (
@@ -364,49 +392,6 @@ function SiteHeader({ menuOpen, setMenuOpen, onSignOut }) {
         </div>
       )}
     </header>
-  );
-}
-
-function BottomNav({ tab, setTab, onOpenSOS }) {
-  const leftItems = [
-    { key: "hoje", label: "Hoje", icon: "🏠" },
-    { key: "painel", label: "Minha jornada", icon: "🫁" },
-  ];
-  const rightItems = [
-    { key: "comunidade", label: "Comunidade", icon: "👥" },
-    { key: "config", label: "Perfil", icon: "👤" },
-  ];
-
-  function NavBtn({ item }) {
-    const active = tab === item.key;
-    return (
-      <button onClick={() => setTab(item.key)} className="flex flex-col items-center gap-0.5 flex-1 py-1">
-        <span style={{ fontSize: "1.25rem", opacity: active ? 1 : 0.45 }}>{item.icon}</span>
-        <span style={{ color: active ? C.gold : C.cream, opacity: active ? 1 : 0.45, ...bebas, letterSpacing: 0.3 }} className="text-[9px] leading-none">{item.label}</span>
-      </button>
-    );
-  }
-
-  return (
-    <div style={{ background: C.navy, borderTop: `1px solid ${C.line}` }} className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="max-w-md mx-auto flex items-end justify-between px-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)", paddingTop: 6 }}>
-        {leftItems.map((item) => <NavBtn key={item.key} item={item} />)}
-
-        <button onClick={onOpenSOS} className="flex flex-col items-center flex-1 -mt-6" aria-label="Estou com vontade de fumar">
-          <span
-            style={{
-              background: C.red, width: 54, height: 54, borderRadius: "9999px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: `0 6px 18px ${C.red}80`, border: `3px solid ${C.navy}`,
-            }}
-          >
-            <span style={{ ...bebas, letterSpacing: 0.5, fontSize: "0.75rem", color: C.cream }}>SOS</span>
-          </span>
-        </button>
-
-        {rightItems.map((item) => <NavBtn key={item.key} item={item} />)}
-      </div>
-    </div>
   );
 }
 
@@ -470,29 +455,32 @@ function RecoveryDial({ days }) {
   );
 }
 
-function DetailStat({ icon, title, value, note }) {
+const FN_CARDS = [
+  { key: "jornada", title: "Minha jornada", sub: "Estatísticas e recuperação do corpo", Icon: Activity },
+  { key: "fissura", title: "Fissura", sub: "Diário, padrões e plano de emergência", Icon: Wind },
+  { key: "bemestar", title: "Bem-estar", sub: "Autoestima, vitórias e movimento", Icon: Heart },
+  { key: "missao", title: "Missão & Humor", sub: "Seu check-in de hoje", Icon: ListChecks },
+  { key: "dicas", title: "Dicas", sub: "Vídeos, textos e leituras", Icon: BookOpen },
+  { key: "medalhas", title: "Medalhas", sub: "Selos conquistados", Icon: Award },
+  { key: "comunidade", title: "Comunidade", sub: "Veja quem tá na mesma", Icon: Users },
+  { key: "perfil", title: "Perfil", sub: "Seus dados, seu porquê, sua conta", Icon: User },
+];
+
+function FunctionCard({ title, sub, Icon, onClick }) {
   return (
-    <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 flex flex-col">
-      <div className="flex items-center gap-2 mb-2">
-        <div style={{ width: 32, height: 32, borderRadius: "9999px", border: `1.5px solid ${C.line}` }} className="flex items-center justify-center flex-shrink-0">
-          <span style={{ fontSize: "0.9rem" }}>{icon}</span>
-        </div>
-        <p className="text-[11px] opacity-70 leading-tight">{title}</p>
+    <button onClick={onClick} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-3.5 text-left">
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: `${C.gold}1f` }} className="flex items-center justify-center mb-2">
+        <Icon size={18} color={C.gold} strokeWidth={2} />
       </div>
-      <p style={{ ...bebas }} className="text-xl mb-1">{value}</p>
-      <p className="text-[10px] opacity-45 leading-tight mt-auto">{note}</p>
-    </div>
+      <p style={{ ...bebas, letterSpacing: 0.3 }} className="text-sm leading-tight mb-0.5">{title}</p>
+      <p className="text-[10px] opacity-55 leading-tight">{sub}</p>
+    </button>
   );
 }
 
-function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cravingsSurvived, longestStreakDays, dailyState, onToggleMission, onSetMood, onSaveDiary, onOpenAprenda, onOpenSOS }) {
+function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
   const coach = getCoachMessage(dayNumber);
-  const missions = getMissionsForDay(dayNumber);
-  const done = dailyState?.missions_done || [];
   const days = Math.floor(elapsedMin / 1440);
-  const [diaryDraft, setDiaryDraft] = useState(dailyState?.diary_text || "");
-  useEffect(() => setDiaryDraft(dailyState?.diary_text || ""), [dailyState?.diary_text]);
-
   const firstName = (profile.display_name || "").split(" ")[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
@@ -520,37 +508,29 @@ function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cra
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <DetailStat icon="💰" title="Dinheiro economizado" value={`R$ ${moneySaved.toFixed(0)}`} note="Imagina o que mais dá pra fazer com isso." />
-        <DetailStat icon="🫁" title="Cigarros evitados" value={Math.floor(cigsAvoided)} note="É muito cigarro a menos no seu corpo." />
-        <DetailStat icon="⏳" title="Tempo recuperado" value={formatMinutesAsLifeTime(cigsAvoided * 11)} note="Tempo pra você. Pra viver melhor." />
-        <DetailStat icon="🔥" title="Maior sequência" value={`${longestStreakDays ?? days} dias`} note="Seu recorde atual. Bora superar?" />
-      </div>
-
-      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p style={{ color: C.gold }} className="text-sm font-bold mb-1">✨ Você está mandando bem!</p>
-          <p className="text-xs opacity-70 leading-relaxed">Seu corpo já está colhendo os primeiros benefícios. Continua assim.</p>
-        </div>
-        <span style={{ fontSize: "2rem", flexShrink: 0 }}>🌤️</span>
-      </div>
-
-      {onOpenSOS && (
-        <button onClick={onOpenSOS} style={{ background: C.red, border: `1px solid ${C.red}` }} className="w-full rounded-2xl p-4 mb-5 flex items-center gap-3 text-left">
-          <span style={{ fontSize: "1.6rem" }}>🚭</span>
-          <div>
-            <p style={{ ...bebas, letterSpacing: 0.5, color: C.cream }} className="text-base leading-tight">ESTOU COM VONTADE DE FUMAR</p>
-            <p className="text-xs opacity-80">Aperte aqui. A gente te ajuda.</p>
-          </div>
-        </button>
-      )}
-
-      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4">
+      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-6">
         <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-xs mb-2">MENSAGEM DO DIA</p>
         <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{coach.msg}</p>
         {coach.tip && <p className="text-xs opacity-70 mt-2">💡 {coach.tip}</p>}
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        {FN_CARDS.map((c) => (
+          <FunctionCard key={c.key} title={c.title} sub={c.sub} Icon={c.Icon} onClick={() => onNavigate(c.key)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MissaoHumorTab({ dayNumber, dailyState, onToggleMission, onSetMood, onSaveDiary }) {
+  const missions = getMissionsForDay(dayNumber);
+  const done = dailyState?.missions_done || [];
+  const [diaryDraft, setDiaryDraft] = useState(dailyState?.diary_text || "");
+  useEffect(() => setDiaryDraft(dailyState?.diary_text || ""), [dailyState?.diary_text]);
+
+  return (
+    <div>
       <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4">
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-xs opacity-70 mb-3">MISSÃO DO DIA</p>
         <div className="space-y-2">
@@ -577,74 +557,19 @@ function TodayTab({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, cra
           placeholder="quer registrar algo sobre hoje?" rows={2}
           style={{ background: "transparent", color: C.cream, borderColor: C.line }} className="w-full outline-none resize-none text-sm border-t pt-2 placeholder-white/40" />
       </div>
-
-      {onOpenAprenda && (
-        <button onClick={onOpenAprenda} style={{ color: C.gold }} className="w-full text-center text-xs underline mt-5">
-          📚 quer entender mais? conteúdos sobre parar de fumar
-        </button>
-      )}
     </div>
   );
 }
 
 // ---------- Painel ----------
-function PanelTab(props) {
-  const {
-    profile, session, supabase, elapsedMin, dayNumber, cigsAvoided, moneySaved, co2Grams, lifeMinutes, cravingsSurvived,
-    cravings, relapses, longestStreakDays, plans, milestonesMarked, movementLogs, selfesteemChecks,
-    onToggleMilestone, onAddPlan, onRemovePlan, onLogMovement, onSelfesteemCheck, onOpenRelapse,
-  } = props;
-
-  const [planTrigger, setPlanTrigger] = useState(TRIGGER_OPTIONS[0].key);
-  const [planSub, setPlanSub] = useState(SUBSTITUTE_OPTIONS[0].key);
-  const [planTime, setPlanTime] = useState("");
-  const [movActivity, setMovActivity] = useState(MOVEMENT_ACTIVITIES[0].key);
-  const [movMinutes, setMovMinutes] = useState(15);
+function MedalhasTab(props) {
+  const { dayNumber, moneySaved, cigsAvoided } = props;
   const [shareOpen, setShareOpen] = useState(false);
-  const [showAllCravings, setShowAllCravings] = useState(false);
-
-  const hourCounts = useMemo(() => {
-    const counts = new Array(24).fill(0);
-    cravings.forEach((c) => { counts[new Date(c.created_at).getHours()]++; });
-    return counts;
-  }, [cravings]);
-  const maxHour = Math.max(...hourCounts, 1);
-  const hasEnoughCravings = cravings.length >= 5;
-  const riskiestHour = hasEnoughCravings ? hourCounts.indexOf(Math.max(...hourCounts)) : null;
-
-  const triggerCounts = useMemo(() => {
-    const map = {};
-    cravings.forEach((c) => { if (c.trigger_tag) map[c.trigger_tag] = (map[c.trigger_tag] || 0) + 1; });
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [cravings]);
-
-  const diaryStats = useMemo(() => {
-    const withDiary = relapses.filter((r) => r.place_company || r.emotion_before || r.urge_intensity != null);
-    if (withDiary.length === 0) return null;
-    const countBy = (key) => {
-      const map = {};
-      withDiary.forEach((r) => { if (r[key]) map[r[key]] = (map[r[key]] || 0) + 1; });
-      return Object.entries(map).sort((a, b) => b[1] - a[1]);
-    };
-    const urges = withDiary.map((r) => r.urge_intensity).filter((v) => v != null);
-    const avgUrge = urges.length ? (urges.reduce((a, b) => a + b, 0) / urges.length).toFixed(1) : null;
-    return { count: withDiary.length, companyCounts: countBy("place_company"), emotionCounts: countBy("emotion_before"), avgUrge };
-  }, [relapses]);
-
-  const co2Display = co2Grams >= 1000 ? `${(co2Grams / 1000).toFixed(1)}kg` : `${Math.floor(co2Grams)}g`;
-
-  const nextBadge = BADGE_LEVELS.find((b) => dayNumber < b.days) || null;
-  const prevBadgeDays = [...BADGE_LEVELS].reverse().find((b) => dayNumber >= b.days)?.days || 0;
-  const gaugePct = nextBadge
-    ? Math.min(100, Math.max(0, Math.round(((dayNumber - prevBadgeDays) / (nextBadge.days - prevBadgeDays)) * 100)))
-    : 100;
-
-  const thisWeekRating = selfesteemChecks.find((c) => c.week_key === weekKey())?.rating;
 
   return (
     <div>
       <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MEDALHAS</p>
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">SELOS CONQUISTADOS</p>
         <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
           {BADGE_LEVELS.map((b, i) => {
             const unlocked = dayNumber >= b.days;
@@ -668,6 +593,30 @@ function PanelTab(props) {
         </div>
       </div>
 
+      <button onClick={() => setShareOpen(true)} style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-4 text-sm">
+        📲 COMPARTILHAR MINHA JORNADA
+      </button>
+
+      {shareOpen && (
+        <ShareJourneyModal dayNumber={dayNumber} moneySaved={moneySaved} cigsAvoided={cigsAvoided} onClose={() => setShareOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+function JornadaTab(props) {
+  const { elapsedMin, dayNumber, cigsAvoided, moneySaved, co2Grams, lifeMinutes, cravingsSurvived, longestStreakDays } = props;
+
+  const co2Display = co2Grams >= 1000 ? `${(co2Grams / 1000).toFixed(1)}kg` : `${Math.floor(co2Grams)}g`;
+
+  const nextBadge = BADGE_LEVELS.find((b) => dayNumber < b.days) || null;
+  const prevBadgeDays = [...BADGE_LEVELS].reverse().find((b) => dayNumber >= b.days)?.days || 0;
+  const gaugePct = nextBadge
+    ? Math.min(100, Math.max(0, Math.round(((dayNumber - prevBadgeDays) / (nextBadge.days - prevBadgeDays)) * 100)))
+    : 100;
+
+  return (
+    <div>
       <div className="mb-8">
         <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">ESTATÍSTICAS</p>
 
@@ -719,20 +668,64 @@ function PanelTab(props) {
       </div>
 
       <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">PEQUENAS VITÓRIAS</p>
-        <div className="grid grid-cols-2 gap-2">
-          {EMOTIONAL_MILESTONES.map((m) => {
-            const has = milestonesMarked.some((x) => x.milestone_key === m.key);
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">RECOMPENSAS</p>
+        <div className="space-y-2">
+          {REWARD_THRESHOLDS.map((r) => {
+            const unlocked = moneySaved >= r.amount;
             return (
-              <button key={m.key} onClick={() => onToggleMilestone(m.key)} style={{ background: has ? `${C.red}22` : C.navySoft, border: `1px solid ${has ? C.red : C.line}` }} className="rounded-xl p-3 text-left">
-                <p className="text-lg mb-1">{m.icon}</p>
-                <p className={`text-xs ${has ? "" : "opacity-60"}`}>{m.label}</p>
-              </button>
+              <div key={r.amount} style={{ background: C.navySoft, border: `1px solid ${unlocked ? C.gold : C.line}` }} className="rounded-xl p-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm">{r.label}</p>
+                  <p className="text-xs opacity-50">R$ {r.amount}</p>
+                </div>
+                {unlocked ? <span style={{ color: C.gold }} className="text-lg">✓</span> : <span className="text-xs opacity-40">faltam R$ {(r.amount - moneySaved).toFixed(0)}</span>}
+              </div>
             );
           })}
         </div>
       </div>
+    </div>
+  );
+}
 
+function FissuraTab(props) {
+  const { session, supabase, cravings, relapses, plans, onAddPlan, onRemovePlan, onOpenRelapse } = props;
+
+  const [planTrigger, setPlanTrigger] = useState(TRIGGER_OPTIONS[0].key);
+  const [planSub, setPlanSub] = useState(SUBSTITUTE_OPTIONS[0].key);
+  const [planTime, setPlanTime] = useState("");
+  const [showAllCravings, setShowAllCravings] = useState(false);
+
+  const hourCounts = useMemo(() => {
+    const counts = new Array(24).fill(0);
+    cravings.forEach((c) => { counts[new Date(c.created_at).getHours()]++; });
+    return counts;
+  }, [cravings]);
+  const maxHour = Math.max(...hourCounts, 1);
+  const hasEnoughCravings = cravings.length >= 5;
+  const riskiestHour = hasEnoughCravings ? hourCounts.indexOf(Math.max(...hourCounts)) : null;
+
+  const triggerCounts = useMemo(() => {
+    const map = {};
+    cravings.forEach((c) => { if (c.trigger_tag) map[c.trigger_tag] = (map[c.trigger_tag] || 0) + 1; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [cravings]);
+
+  const diaryStats = useMemo(() => {
+    const withDiary = relapses.filter((r) => r.place_company || r.emotion_before || r.urge_intensity != null);
+    if (withDiary.length === 0) return null;
+    const countBy = (key) => {
+      const map = {};
+      withDiary.forEach((r) => { if (r[key]) map[r[key]] = (map[r[key]] || 0) + 1; });
+      return Object.entries(map).sort((a, b) => b[1] - a[1]);
+    };
+    const urges = withDiary.map((r) => r.urge_intensity).filter((v) => v != null);
+    const avgUrge = urges.length ? (urges.reduce((a, b) => a + b, 0) / urges.length).toFixed(1) : null;
+    return { count: withDiary.length, companyCounts: countBy("place_company"), emotionCounts: countBy("emotion_before"), avgUrge };
+  }, [relapses]);
+
+  return (
+    <div>
       {hasEnoughCravings && (
         <div className="mb-8">
           <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">DESCUBRA SEUS PADRÕES</p>
@@ -809,78 +802,6 @@ function PanelTab(props) {
       </div>
 
       <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">RECOMPENSAS</p>
-        <div className="space-y-2">
-          {REWARD_THRESHOLDS.map((r) => {
-            const unlocked = moneySaved >= r.amount;
-            return (
-              <div key={r.amount} style={{ background: C.navySoft, border: `1px solid ${unlocked ? C.gold : C.line}` }} className="rounded-xl p-3.5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm">{r.label}</p>
-                  <p className="text-xs opacity-50">R$ {r.amount}</p>
-                </div>
-                {unlocked ? <span style={{ color: C.gold }} className="text-lg">✓</span> : <span className="text-xs opacity-40">faltam R$ {(r.amount - moneySaved).toFixed(0)}</span>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-sm mb-3">🪞 AUTOESTIMA</p>
-
-        <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}` }} className="rounded-2xl p-4 mb-4">
-          <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{getEsteemAffirmation(dayNumber)}</p>
-        </div>
-
-        <p className="text-xs opacity-70 mb-2">Como você se sente essa semana, de um jeito geral?</p>
-        <div className="flex justify-between mb-3">
-          {SELFESTEEM_OPTIONS.map((o) => (
-            <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ fontSize: "1.8rem", opacity: thisWeekRating === o.value ? 1 : 0.35, transform: thisWeekRating === o.value ? "scale(1.15)" : "scale(1)", transition: "all .2s" }}>{o.icon}</button>
-          ))}
-        </div>
-
-        {selfesteemChecks.length > 1 ? (
-          <>
-            <p className="text-[11px] opacity-50 mb-1.5">sua evolução, semana a semana</p>
-            <div className="flex items-end gap-1 h-14">
-              {selfesteemChecks.slice(-12).map((c, i) => (
-                <div key={i} style={{ height: `${(c.rating / 5) * 100}%`, background: C.gold }} className="flex-1 rounded-t opacity-70" />
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-[11px] opacity-40">responda toda semana pra começar a ver sua evolução aqui</p>
-        )}
-      </div>
-
-      <div className="mb-8">
-        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MOVIMENTO</p>
-        <div style={{ background: C.navySoft }} className="rounded-xl p-3.5 mb-3">
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {MOVEMENT_ACTIVITIES.map((a) => (
-              <button key={a.key} onClick={() => setMovActivity(a.key)} style={{ background: movActivity === a.key ? C.red : "transparent", border: `1px solid ${movActivity === a.key ? C.red : C.line}` }} className="text-xs px-2 py-1 rounded-full">
-                {a.icon} {a.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1.5 mb-3">
-            {MOVEMENT_DURATIONS.map((d) => (
-              <button key={d} onClick={() => setMovMinutes(d)} style={{ background: movMinutes === d ? C.red : "transparent", border: `1px solid ${movMinutes === d ? C.red : C.line}` }} className="flex-1 text-xs py-1.5 rounded-lg">
-                {d}min
-              </button>
-            ))}
-          </div>
-          <button onClick={() => onLogMovement(movActivity, movMinutes)} style={{ color: C.red }} className="w-full text-sm py-1">+ registrar</button>
-        </div>
-        {movementLogs.length > 0 && (
-          <p className="text-xs opacity-50">
-            {movementLogs.length} atividade{movementLogs.length !== 1 ? "s" : ""} registrada{movementLogs.length !== 1 ? "s" : ""} — além de cuidar do corpo, isso diminui suas chances de recaída.
-          </p>
-        )}
-      </div>
-
-      <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70">PLANO DE EMERGÊNCIA</p>
           <PushToggleButton session={session} supabase={supabase} />
@@ -915,17 +836,91 @@ function PanelTab(props) {
         </div>
       </div>
 
-      <button onClick={() => setShareOpen(true)} style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-8 text-sm">
-        📲 COMPARTILHAR MINHA JORNADA
-      </button>
-
-      {shareOpen && (
-        <ShareJourneyModal dayNumber={dayNumber} moneySaved={moneySaved} cigsAvoided={cigsAvoided} onClose={() => setShareOpen(false)} />
-      )}
-
       <button onClick={onOpenRelapse} style={{ color: C.cream, opacity: 0.4 }} className="w-full text-xs underline py-4">
         tive um deslize / preciso registrar uma recaída
       </button>
+    </div>
+  );
+}
+
+function BemEstarTab(props) {
+  const { dayNumber, selfesteemChecks, onSelfesteemCheck, milestonesMarked, onToggleMilestone, movementLogs, onLogMovement } = props;
+
+  const [movActivity, setMovActivity] = useState(MOVEMENT_ACTIVITIES[0].key);
+  const [movMinutes, setMovMinutes] = useState(15);
+
+  const thisWeekRating = selfesteemChecks.find((c) => c.week_key === weekKey())?.rating;
+
+  return (
+    <div>
+      <div className="mb-8">
+        <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-sm mb-3">🪞 AUTOESTIMA</p>
+
+        <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}` }} className="rounded-2xl p-4 mb-4">
+          <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{getEsteemAffirmation(dayNumber)}</p>
+        </div>
+
+        <p className="text-xs opacity-70 mb-2">Como você se sente essa semana, de um jeito geral?</p>
+        <div className="flex justify-between mb-3">
+          {SELFESTEEM_OPTIONS.map((o) => (
+            <button key={o.value} onClick={() => onSelfesteemCheck(o.value)} style={{ fontSize: "1.8rem", opacity: thisWeekRating === o.value ? 1 : 0.35, transform: thisWeekRating === o.value ? "scale(1.15)" : "scale(1)", transition: "all .2s" }}>{o.icon}</button>
+          ))}
+        </div>
+
+        {selfesteemChecks.length > 1 ? (
+          <>
+            <p className="text-[11px] opacity-50 mb-1.5">sua evolução, semana a semana</p>
+            <div className="flex items-end gap-1 h-14">
+              {selfesteemChecks.slice(-12).map((c, i) => (
+                <div key={i} style={{ height: `${(c.rating / 5) * 100}%`, background: C.gold }} className="flex-1 rounded-t opacity-70" />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-[11px] opacity-40">responda toda semana pra começar a ver sua evolução aqui</p>
+        )}
+      </div>
+
+      <div className="mb-8">
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">PEQUENAS VITÓRIAS</p>
+        <div className="grid grid-cols-2 gap-2">
+          {EMOTIONAL_MILESTONES.map((m) => {
+            const has = milestonesMarked.some((x) => x.milestone_key === m.key);
+            return (
+              <button key={m.key} onClick={() => onToggleMilestone(m.key)} style={{ background: has ? `${C.red}22` : C.navySoft, border: `1px solid ${has ? C.red : C.line}` }} className="rounded-xl p-3 text-left">
+                <p className="text-lg mb-1">{m.icon}</p>
+                <p className={`text-xs ${has ? "" : "opacity-60"}`}>{m.label}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">MOVIMENTO</p>
+        <div style={{ background: C.navySoft }} className="rounded-xl p-3.5 mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {MOVEMENT_ACTIVITIES.map((a) => (
+              <button key={a.key} onClick={() => setMovActivity(a.key)} style={{ background: movActivity === a.key ? C.red : "transparent", border: `1px solid ${movActivity === a.key ? C.red : C.line}` }} className="text-xs px-2 py-1 rounded-full">
+                {a.icon} {a.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1.5 mb-3">
+            {MOVEMENT_DURATIONS.map((d) => (
+              <button key={d} onClick={() => setMovMinutes(d)} style={{ background: movMinutes === d ? C.red : "transparent", border: `1px solid ${movMinutes === d ? C.red : C.line}` }} className="flex-1 text-xs py-1.5 rounded-lg">
+                {d}min
+              </button>
+            ))}
+          </div>
+          <button onClick={() => onLogMovement(movActivity, movMinutes)} style={{ color: C.red }} className="w-full text-sm py-1">+ registrar</button>
+        </div>
+        {movementLogs.length > 0 && (
+          <p className="text-xs opacity-50">
+            {movementLogs.length} atividade{movementLogs.length !== 1 ? "s" : ""} registrada{movementLogs.length !== 1 ? "s" : ""} — além de cuidar do corpo, isso diminui suas chances de recaída.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
