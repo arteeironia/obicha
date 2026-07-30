@@ -212,7 +212,11 @@ export default function RespiraPage() {
 
         {tab === "hoje" && (
           isFuture ? (
-            <CountdownView quitAt={quitAt} now={now} />
+            <div>
+              <CountdownView quitAt={quitAt} now={now} />
+              <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">EXPLORE O APP</p>
+              <FunctionCardGrid onNavigate={setTab} />
+            </div>
           ) : (
             <HubHome profile={profile} dayNumber={dayNumber} elapsedMin={elapsedMin} onNavigate={setTab} />
           )
@@ -547,6 +551,16 @@ function FunctionCard({ title, sub, Icon, onClick }) {
   );
 }
 
+function FunctionCardGrid({ onNavigate }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {FN_CARDS.map((c) => (
+        <FunctionCard key={c.key} title={c.title} sub={c.sub} Icon={c.Icon} onClick={() => onNavigate(c.key)} />
+      ))}
+    </div>
+  );
+}
+
 function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
   const coach = getCoachMessage(dayNumber);
   const days = Math.floor(elapsedMin / 1440);
@@ -583,11 +597,7 @@ function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
         {coach.tip && <p className="text-xs opacity-70 mt-2 flex items-center gap-1.5"><Lightbulb size={13} color={C.gold} /> {coach.tip}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {FN_CARDS.map((c) => (
-          <FunctionCard key={c.key} title={c.title} sub={c.sub} Icon={c.Icon} onClick={() => onNavigate(c.key)} />
-        ))}
-      </div>
+      <FunctionCardGrid onNavigate={onNavigate} />
     </div>
   );
 }
