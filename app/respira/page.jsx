@@ -213,7 +213,20 @@ export default function RespiraPage() {
         {tab === "hoje" && (
           isFuture ? (
             <div>
-              <CountdownView quitAt={quitAt} now={now} />
+              <CountdownView
+                quitAt={quitAt}
+                now={now}
+                onStartNow={async () => {
+                  const nowIso = new Date().toISOString();
+                  await supabase.from("quit_profiles").update({ quit_at: nowIso }).eq("user_id", session.user.id);
+                  setProfile((p) => ({ ...p, quit_at: nowIso }));
+                }}
+                onReschedule={async (dateStr) => {
+                  const iso = new Date(`${dateStr}T00:00:00`).toISOString();
+                  await supabase.from("quit_profiles").update({ quit_at: iso }).eq("user_id", session.user.id);
+                  setProfile((p) => ({ ...p, quit_at: iso }));
+                }}
+              />
               <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">EXPLORE O APP</p>
               <FunctionCardGrid onNavigate={setTab} />
             </div>
@@ -325,6 +338,11 @@ export default function RespiraPage() {
             }}
             onRereadWelcome={() => setWelcomeOpen(true)}
             onOpenAprenda={() => setTab("dicas")}
+            onChangeQuitDate={async (dateStr) => {
+              const iso = new Date(`${dateStr}T00:00:00`).toISOString();
+              await supabase.from("quit_profiles").update({ quit_at: iso }).eq("user_id", session.user.id);
+              setProfile((p) => ({ ...p, quit_at: iso }));
+            }}
             onSignOut={() => supabase.auth.signOut()}
             onDeleteAccount={async () => {
               const { data: { session: freshSession } } = await supabase.auth.getSession();
@@ -437,16 +455,39 @@ function SiteHeader({ menuOpen, setMenuOpen, onSignOut, isHub, title, onBack, on
   );
 }
 
-function CountdownView({ quitAt, now }) {
+function CountdownView({ quitAt, now, onStartNow, onReschedule }) {
   const remainMin = Math.max(0, (quitAt - now) / 60000);
   const days = Math.floor(remainMin / 1440);
   const hours = Math.floor((remainMin % 1440) / 60);
   const mins = Math.floor(remainMin % 60);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [newDate, setNewDate] = useState("");
+
   return (
     <div className="text-center mb-6">
       <p style={{ ...bebas, fontSize: "4rem", lineHeight: 0.9, color: C.cream }}>{days}</p>
       <p style={{ ...playfair }} className="italic text-sm opacity-80">dia{days !== 1 ? "s" : ""} até sua data de parar</p>
       <p className="text-xs opacity-60 mt-1 font-mono mb-6">{String(hours).padStart(2, "0")}h {String(mins).padStart(2, "0")}m</p>
+
+      <button onClick={onStartNow} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3.5 mb-3">
+        VOU PARAR AGORA
+      </button>
+
+      {rescheduling ? (
+        <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 text-left mb-6">
+          <p className="text-xs opacity-70 mb-2">Sem problema — a gente se programa e às vezes precisa ajustar. Nova data:</p>
+          <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)}
+            style={{ background: C.navy, color: C.cream, borderColor: C.line }} className="w-full rounded-lg px-3 py-2 text-sm outline-none border mb-3" />
+          <div className="flex gap-2">
+            <button onClick={() => { if (newDate) { onReschedule(newDate); setRescheduling(false); } }} disabled={!newDate}
+              style={{ color: C.gold, opacity: newDate ? 1 : 0.4 }} className="text-sm">salvar nova data</button>
+            <button onClick={() => setRescheduling(false)} style={{ color: C.cream, opacity: 0.5 }} className="text-sm">cancelar</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setRescheduling(true)} style={{ color: C.cream, opacity: 0.5 }} className="text-xs underline mb-6">mudar minha data de parar</button>
+      )}
+
       <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 text-left">
         <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-xs mb-2">ENQUANTO ISSO...</p>
         <p className="text-sm opacity-80 leading-relaxed">
@@ -568,6 +609,14 @@ function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const nextBadge = BADGE_LEVELS.find((b) => dayNumber < b.days) || null;
+  const [communityStats, setCommunityStats] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/respira/community-stats")
+      .then((r) => r.json())
+      .then(setCommunityStats)
+      .catch(() => setCommunityStats(null));
+  }, []);
 
   return (
     <div>
@@ -591,11 +640,17 @@ function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
         </div>
       )}
 
-      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-6">
+      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-4">
         <p style={{ ...bebas, letterSpacing: 1, color: C.red }} className="text-xs mb-2">MENSAGEM DO DIA</p>
         <p style={{ ...playfair }} className="italic text-sm leading-relaxed">{coach.msg}</p>
         {coach.tip && <p className="text-xs opacity-70 mt-2 flex items-center gap-1.5"><Lightbulb size={13} color={C.gold} /> {coach.tip}</p>}
       </div>
+
+      {communityStats && communityStats.cigarrosEvitados > 0 && (
+        <p className="text-xs opacity-50 text-center mb-6">
+          🤝 juntos, a comunidade Respira já evitou <b style={{ color: C.gold }}>{communityStats.cigarrosEvitados.toLocaleString("pt-BR")}</b> cigarros
+        </p>
+      )}
 
       <FunctionCardGrid onNavigate={onNavigate} />
     </div>
@@ -1624,7 +1679,7 @@ function CommunityTab({ supabase, session, profile }) {
   );
 }
 
-function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onSignOut, onDeleteAccount }) {
+function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onChangeQuitDate, onSignOut, onDeleteAccount }) {
   const [cigsPerDay, setCigsPerDay] = useState(profile.cigs_per_day);
   const [pricePerPack, setPricePerPack] = useState(profile.price_per_pack);
   const [cigsPerPack, setCigsPerPack] = useState(profile.cigs_per_pack);
@@ -1632,6 +1687,9 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onSignOut,
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [editingDate, setEditingDate] = useState(false);
+  const [newDate, setNewDate] = useState(() => new Date(profile.quit_at).toISOString().slice(0, 10));
+  const isFutureDate = new Date(profile.quit_at).getTime() > Date.now();
 
   async function handleDelete() {
     setDeleting(true);
@@ -1646,6 +1704,25 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onSignOut,
 
   return (
     <div>
+      <div style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-4 mb-5">
+        <p className="text-xs opacity-70 mb-1">minha data de parar</p>
+        <p style={{ ...bebas }} className="text-xl mb-2">{new Date(profile.quit_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+        {editingDate ? (
+          <div>
+            <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)}
+              style={{ background: C.navy, color: C.cream, borderColor: C.line }} className="w-full rounded-lg px-3 py-2 text-sm outline-none border mb-3" />
+            <div className="flex gap-2">
+              <button onClick={() => { onChangeQuitDate(newDate); setEditingDate(false); }} style={{ color: C.gold }} className="text-sm">salvar</button>
+              <button onClick={() => setEditingDate(false)} style={{ color: C.cream, opacity: 0.5 }} className="text-sm">cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setEditingDate(true)} style={{ color: C.gold }} className="text-xs underline">
+            {isFutureDate ? "mudar minha data de parar" : "reiniciar a contagem a partir de outra data"}
+          </button>
+        )}
+      </div>
+
       {[["cigarros por dia", cigsPerDay, setCigsPerDay], ["preço do maço (R$)", pricePerPack, setPricePerPack], ["cigarros por maço", cigsPerPack, setCigsPerPack]].map(([label, val, set]) => (
         <label key={label} className="block mb-4">
           <span className="text-xs opacity-70">{label}</span>
@@ -2399,6 +2476,15 @@ function RelapseModal({ onClose, onChoose }) {
 }
 
 function LoginScreen({ supabase }) {
+  const [communityStats, setCommunityStats] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/respira/community-stats")
+      .then((r) => r.json())
+      .then(setCommunityStats)
+      .catch(() => setCommunityStats(null));
+  }, []);
+
   const FEATURES = [
     { Icon: LifeBuoy, title: "Botão SOS", text: "quando a fissura bater, técnicas rápidas e até um joguinho pra passar o momento" },
     { Icon: Calendar, title: "Missões do dia", text: "pequenas ações diárias que ajudam a segurar a barra sem perceber o esforço" },
@@ -2415,9 +2501,17 @@ function LoginScreen({ supabase }) {
         <img src="/respira-snarf.webp" alt="" className="mx-auto mb-4" style={{ maxWidth: 220, width: "100%" }} />
 
         <p style={{ color: C.cream, ...playfair }} className="italic text-base opacity-90 mb-2">Parar de fumar é um presente pra versão mais bonita de você.</p>
-        <p className="text-sm opacity-70 mb-8 leading-relaxed">
+        <p className="text-sm opacity-70 mb-4 leading-relaxed">
           O Respira é uma ferramenta do Ô bicha! desenvolvida pra apoiar quem tá tentando (ou já decidiu) parar de fumar — um companheiro de bolso pros dias mais difíceis dessa jornada.
         </p>
+
+        {communityStats && communityStats.cigarrosEvitados > 0 && (
+          <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}55` }} className="rounded-2xl px-4 py-3 mb-8">
+            <p className="text-sm">
+              A comunidade já evitou <b style={{ color: C.gold }}>{communityStats.cigarrosEvitados.toLocaleString("pt-BR")}</b> cigarros juntos. Bora fazer parte disso?
+            </p>
+          </div>
+        )}
 
         <div className="text-left space-y-3 mb-8">
           {FEATURES.map((f, i) => (
