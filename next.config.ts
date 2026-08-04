@@ -10,7 +10,7 @@ const CSP = [
   "img-src 'self' data: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co https://vitals.vercel-insights.com https://www.facebook.com https://connect.facebook.net",
-  "frame-src 'self' https://accounts.google.com",
+  "frame-src 'self' https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com",
   "frame-ancestors 'self'",
   "form-action 'self' https://accounts.google.com",
   "base-uri 'self'",
