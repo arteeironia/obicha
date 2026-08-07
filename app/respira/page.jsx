@@ -551,7 +551,7 @@ const FN_CARDS = [
   { key: "jornada", title: "Minha jornada", sub: "Estatísticas e recuperação do corpo", Icon: Activity },
   { key: "fissura", title: "Fissura", sub: "Diário, padrões e plano de emergência", Icon: Wind },
   { key: "bemestar", title: "Bem-estar", sub: "Autoestima, vitórias e movimento", Icon: Heart },
-  { key: "missao", title: "Missão & Humor", sub: "Seu check-in de hoje", Icon: ListChecks },
+  { key: "missao", title: "Missão, Humor & Diário", sub: "Check-in de hoje e seus registros", Icon: ListChecks },
   { key: "dicas", title: "Dicas", sub: "Vídeos, textos e leituras", Icon: BookOpen },
   { key: "medalhas", title: "Medalhas", sub: "Selos conquistados", Icon: Award },
   { key: "comunidade", title: "Comunidade", sub: "Veja quem tá na mesma", Icon: Users },
@@ -571,9 +571,10 @@ function SubTabs({ tabs, active, onChange }) {
             color: C.cream,
             ...bebas, letterSpacing: 0.5,
           }}
-          className="flex-shrink-0 rounded-full px-4 py-2 text-xs"
+          className="flex-shrink-0 rounded-full px-4 py-2 text-xs flex items-center gap-1.5"
         >
           {t.label}
+          {t.dot && <span style={{ width: 6, height: 6, borderRadius: "9999px", background: C.gold, flexShrink: 0 }} />}
         </button>
       ))}
     </div>
@@ -688,7 +689,7 @@ function MissaoHumorTab({ dayNumber, dailyState, diaryEntries, onToggleMission, 
         onChange={setSub}
         tabs={[
           { key: "checkin", label: "Check-in de hoje" },
-          { key: "diario", label: "Diário" },
+          { key: "diario", label: "Diário", dot: !dailyState?.diary_text },
         ]}
       />
 
@@ -2254,14 +2255,25 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
   const [active, setActive] = useState(null);
   const [breathPhase, setBreathPhase] = useState(0);
   const [timerDone, setTimerDone] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const [afterAnswer, setAfterAnswer] = useState(null);
 
   useEffect(() => {
     if (!intensity || intensity === "forte") return;
     setTimerDone(false);
-    const seconds = intensity === "leve" ? 180 : 120;
-    const id = setTimeout(() => setTimerDone(true), seconds * 1000);
-    return () => clearTimeout(id);
+    const totalSeconds = intensity === "leve" ? 180 : 120;
+    setSecondsLeft(totalSeconds);
+    const id = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(id);
+          setTimerDone(true);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
   }, [intensity]);
 
   useEffect(() => {
@@ -2298,14 +2310,24 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
           <p style={{ ...playfair }} className="italic text-sm opacity-90 mb-6">
             {intensity === "leve" ? "Aguenta só 3 minutos comigo." : "Vamos tentar algo rápido antes de decidir."}
           </p>
-          <div className="flex items-center justify-center h-32 mb-6">
-            <div style={{ width: 90, height: 90, borderRadius: "9999px", background: `${C.red}33`, border: `2px solid ${C.red}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: C.cream, ...bebas }} className="text-xs">{timerDone ? "pronto" : "respira"}</span>
+          <div className="flex items-center justify-center h-32 mb-3">
+            <div style={{ width: 100, height: 100, borderRadius: "9999px", background: `${C.red}33`, border: `2px solid ${C.red}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              {timerDone ? (
+                <span style={{ color: C.cream, ...bebas }} className="text-xs">pronto</span>
+              ) : (
+                <>
+                  <span style={{ color: C.cream, ...bebas }} className="text-2xl leading-none">
+                    {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
+                  </span>
+                  <span style={{ color: C.cream, opacity: 0.6 }} className="text-[10px] mt-1">respira</span>
+                </>
+              )}
             </div>
           </div>
-          {!timerDone ? (
-            <p className="text-xs opacity-50">essa fissura tá passando…</p>
-          ) : (
+          {!timerDone && (
+            <p className="text-xs opacity-50 mb-3">essa fissura tá passando…</p>
+          )}
+          {timerDone && (
             <>
               <p className="text-sm mb-4">Ainda quer fumar?</p>
               <div className="flex gap-2">
