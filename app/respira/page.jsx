@@ -234,7 +234,7 @@ export default function RespiraPage() {
               <FunctionCardGrid onNavigate={setTab} />
             </div>
           ) : (
-            <HubHome profile={profile} dayNumber={dayNumber} elapsedMin={elapsedMin} onNavigate={setTab} />
+            <HubHome profile={profile} dayNumber={dayNumber} elapsedMin={elapsedMin} cigsAvoided={cigsAvoided} moneySaved={moneySaved} onNavigate={setTab} />
           )
         )}
 
@@ -612,7 +612,7 @@ function FunctionCardGrid({ onNavigate }) {
   );
 }
 
-function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
+function HubHome({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, onNavigate }) {
   const coach = getCoachMessage(dayNumber);
   const days = Math.floor(elapsedMin / 1440);
   const firstName = (profile.display_name || "").split(" ")[0];
@@ -620,6 +620,7 @@ function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const nextBadge = BADGE_LEVELS.find((b) => dayNumber < b.days) || null;
   const [communityStats, setCommunityStats] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/respira/community-stats")
@@ -642,6 +643,11 @@ function HubHome({ profile, dayNumber, elapsedMin, onNavigate }) {
       <div className="flex justify-center mb-5">
         <RecoveryDial days={days} />
       </div>
+
+      <button onClick={() => setShareOpen(true)} style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-5 flex items-center justify-center gap-2 text-sm">
+        <Share2 size={16} /> COMPARTILHAR MINHA JORNADA
+      </button>
+      {shareOpen && <ShareJourneyModal dayNumber={days} moneySaved={moneySaved} cigsAvoided={cigsAvoided} onClose={() => setShareOpen(false)} />}
 
       {nextBadge && (
         <div style={{ background: `${C.gold}15`, border: `1px solid ${C.gold}55` }} className="rounded-2xl px-4 py-3 mb-5 flex items-center gap-2.5">
@@ -1290,11 +1296,11 @@ function AprendaTab() {
 function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
   const canvasRef = useRef(null);
   const [generating, setGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const shareMsg = `Decidi parar de fumar 🚭\nDia ${dayNumber} sem cigarro\nobicha.com.br/respira`;
   const encoded = encodeURIComponent(shareMsg);
 
-  async function generateImage() {
-    setGenerating(true);
+  function drawCard() {
     const canvas = canvasRef.current;
     canvas.width = 1080;
     canvas.height = 1920;
@@ -1339,6 +1345,18 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
     ctx.font = "italic 36px serif";
     ctx.fillStyle = "rgba(245,239,228,0.7)";
     ctx.fillText("um companheiro de jornada, não uma promessa de cura", 540, 1780);
+  }
+
+  useEffect(() => {
+    drawCard();
+    setPreviewUrl(canvasRef.current.toDataURL("image/png"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function generateImage() {
+    setGenerating(true);
+    const canvas = canvasRef.current;
+    drawCard();
 
     canvas.toBlob(async (blob) => {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -1369,8 +1387,12 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
       <canvas ref={canvasRef} style={{ display: "none" }} />
-      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className="rounded-3xl p-6 max-w-sm w-full">
+      <div style={{ background: C.navy, border: `1px solid ${C.line}` }} className="rounded-3xl p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto">
         <p style={{ ...bebas, letterSpacing: 1, color: C.gold }} className="text-sm mb-4">COMPARTILHAR NAS REDES</p>
+
+        {previewUrl && (
+          <img src={previewUrl} alt="Prévia da imagem pra compartilhar" style={{ aspectRatio: "9/16" }} className="w-full rounded-2xl mb-4 border" />
+        )}
 
         <div className="grid grid-cols-4 gap-2 mb-4">
           <a href={`https://www.threads.net/intent/post?text=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">Threads</a>
