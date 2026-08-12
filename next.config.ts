@@ -38,13 +38,6 @@ const nextConfig: NextConfig = {
       headers: securityHeaders,
     },
     {
-      // Cache de assets estáticos — 1 ano
-      source: '/_next/static/:path*',
-      headers: [
-        { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-      ],
-    },
-    {
       // Cache de imagens públicas — 7 dias
       source: '/(.*)\\.(png|jpg|jpeg|gif|webp|svg|ico)',
       headers: [
