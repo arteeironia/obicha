@@ -9,7 +9,7 @@ import {
   Phone, Tv, Moon, Snowflake, Candy, Blocks, LayoutGrid, Grape, Nut, Carrot, Cookie,
   Home as HomeIcon, Briefcase, AlertCircle, Zap, Feather, Lightbulb, Bell, BellOff,
   Share2, Newspaper, ChevronDown, ChevronUp, Utensils, Shirt, Sparkle, Volleyball, Play, Wallet, Hourglass, Calendar,
-  Download, Stethoscope, RotateCw, ArrowRight, ArrowDown,
+  Download, Stethoscope, RotateCw, ArrowRight, ArrowDown, Brain, Clock, CalendarDays, CalendarRange,
 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
@@ -63,6 +63,7 @@ const EMOJI_ICON_MAP = {
   "🍇": Grape, "🥜": Nut, "🌻": Sprout, "🥕": Carrot, "🍠": Cookie,
   "🧍": User, "👥": Users, "🏠": HomeIcon, "💼": Briefcase, "🍻": Beer,
   "😰": AlertCircle, "😤": Zap, "😔": Frown, "😑": Meh, "😠": Angry, "😄": Laugh, "😌": Feather,
+  "🩸": Droplet, "💓": Heart, "🌬️": Wind, "🧠": Brain,
 };
 
 function Glyph({ emoji, size = 16, color, className = "" }) {
@@ -612,6 +613,32 @@ function FunctionCardGrid({ onNavigate }) {
   );
 }
 
+function TimeBreakdown({ elapsedMin }) {
+  const totalHours = Math.floor(elapsedMin / 60);
+  const totalDays = Math.floor(elapsedMin / 1440);
+  const totalMonths = Math.floor(elapsedMin / (1440 * 30));
+  const totalYears = Math.floor(elapsedMin / (1440 * 365));
+
+  const items = [
+    { label: "horas", value: totalHours, Icon: Clock },
+    { label: "dias", value: totalDays, Icon: CalendarDays },
+    { label: "meses", value: totalMonths, Icon: CalendarRange },
+    { label: "anos", value: totalYears, Icon: Trophy },
+  ];
+
+  return (
+    <div className="grid grid-cols-4 gap-2 mb-5">
+      {items.map((it) => (
+        <div key={it.label} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="rounded-2xl p-3 text-center">
+          <it.Icon size={16} color={C.gold} className="mx-auto mb-1.5" />
+          <p style={{ ...bebas }} className="text-lg leading-none">{it.value}</p>
+          <p className="text-[9px] opacity-55 mt-1">{it.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HubHome({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, onNavigate }) {
   const coach = getCoachMessage(dayNumber);
   const days = Math.floor(elapsedMin / 1440);
@@ -643,6 +670,8 @@ function HubHome({ profile, dayNumber, elapsedMin, cigsAvoided, moneySaved, onNa
       <div className="flex justify-center mb-5">
         <RecoveryDial days={days} />
       </div>
+
+      <TimeBreakdown elapsedMin={elapsedMin} />
 
       <button onClick={() => setShareOpen(true)} style={{ background: C.navySoft, border: `1px solid ${C.gold}`, color: C.gold, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3 mb-5 flex items-center justify-center gap-2 text-sm">
         <Share2 size={16} /> COMPARTILHAR MINHA JORNADA
