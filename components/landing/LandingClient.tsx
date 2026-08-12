@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { hasAnalyticsConsent } from '@/lib/cookie-consent'
 
-type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; collections?: { id: number; name: string; slug: string }[]; manual_variants?: any }
+type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; slug?: string | null; collections?: { id: number; name: string; slug: string }[]; manual_variants?: any }
 type Category = { id: number; value: string; label: string; active: boolean }
 type SocialPost = { id: number; platform: string; url: string }
 type PinterestPin = { id: number; image_url: string; pin_url: string | null }
@@ -337,7 +338,13 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                 }
                 <div style={{ padding:'1.2rem' }}>
                   <div style={{ fontFamily:'var(--font-bebas)', fontSize:'.7rem', letterSpacing:'3px', color:'var(--gold)', marginBottom:'.3rem' }}>{catLabel(p.category)}</div>
-                  <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>{p.name}</div>
+                  <div style={{ fontFamily:'var(--font-playfair)', fontSize:'1.05rem', fontWeight:700, marginBottom:'.8rem', lineHeight:1.3 }}>
+                    {p.slug ? (
+                      <Link href={`/produtos/${p.slug}`} style={{ color:'inherit', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='inherit'}>
+                        {p.name}
+                      </Link>
+                    ) : p.name}
+                  </div>
                   {(() => {
                     let variants: any[] = p.manual_variants
                     if (typeof variants === 'string') { try { variants = JSON.parse(variants) } catch { variants = [] } }

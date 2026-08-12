@@ -80,7 +80,7 @@ function ShareRow({ text }) {
     <div style={{ display: "flex", gap: ".5rem" }}>
       <a href={`https://www.threads.net/intent/post?text=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>Threads</a>
       <a href={`https://twitter.com/intent/tweet?text=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>X</a>
-      <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://obicha.com.br/respira")}&quote=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>Facebook</a>
+      <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://www.obicha.com.br/respira")}&quote=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>Facebook</a>
       <a href={`https://wa.me/?text=${encoded}`} target="_blank" style={{ ...linkStyle, background: C.navySoft, color: C.cream }}>WhatsApp</a>
     </div>
   );
@@ -1426,7 +1426,7 @@ function ShareJourneyModal({ dayNumber, moneySaved, cigsAvoided, onClose }) {
         <div className="grid grid-cols-4 gap-2 mb-4">
           <a href={`https://www.threads.net/intent/post?text=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">Threads</a>
           <a href={`https://twitter.com/intent/tweet?text=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">X</a>
-          <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://obicha.com.br/respira")}&quote=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">Facebook</a>
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://www.obicha.com.br/respira")}&quote=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">Facebook</a>
           <a href={`https://wa.me/?text=${encoded}`} target="_blank" style={{ background: C.navySoft }} className="rounded-xl py-3 text-center text-xs">WhatsApp</a>
         </div>
 

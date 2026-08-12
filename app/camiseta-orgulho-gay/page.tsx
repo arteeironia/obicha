@@ -4,7 +4,7 @@ export const metadata: Metadata = {
   title: 'Camiseta Orgulho Gay — Para a Parada e o Dia a Dia | Ô bicha!',
   description: 'Camisetas orgulho gay com estampas exclusivas. Perfeitas para a Parada LGBT de São Paulo e para quem vive o orgulho todos os dias. Compre na Ô bicha! — feito no Brasil.',
   keywords: ['camiseta orgulho gay', 'camiseta parada gay', 'camiseta pride', 'camiseta parada LGBT São Paulo', 'roupa orgulho gay', 'camiseta gay São Paulo'],
-  alternates: { canonical: 'https://obicha.com.br/camiseta-orgulho-gay' },
+  alternates: { canonical: 'https://www.obicha.com.br/camiseta-orgulho-gay' },
 }
 
 export default function CamisetaOrgulhoGay() {
@@ -55,7 +55,7 @@ export default function CamisetaOrgulhoGay() {
       </a>
 
       <p style={{ fontSize: '.9rem', color: '#666', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-        <a href="https://obicha.com.br" style={{ color: '#C0281C' }}>← Voltar para a Ô bicha!</a>
+        <a href="https://www.obicha.com.br" style={{ color: '#C0281C' }}>← Voltar para a Ô bicha!</a>
       </p>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -63,8 +63,8 @@ export default function CamisetaOrgulhoGay() {
         "@type": "CollectionPage",
         "name": "Camiseta Orgulho Gay — Ô bicha!",
         "description": "Camisetas orgulho gay com estampas exclusivas. Perfeitas para a Parada LGBT de São Paulo.",
-        "url": "https://obicha.com.br/camiseta-orgulho-gay",
-        "provider": { "@type": "Organization", "name": "Ô bicha!", "url": "https://obicha.com.br" }
+        "url": "https://www.obicha.com.br/camiseta-orgulho-gay",
+        "provider": { "@type": "Organization", "name": "Ô bicha!", "url": "https://www.obicha.com.br" }
       })}} />
     </main>
   )

@@ -42,6 +42,21 @@ export async function getFeaturedProducts() {
   return data
 }
 
+function slugify(text: string): string {
+  return text
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/g, '')
+}
+
+export async function getProductBySlug(slug: string) {
+  const [product] = await sql`SELECT * FROM products WHERE slug = ${slug} LIMIT 1`
+  return product || null
+}
+
 export async function getProducts(category?: string) {
   const key = `products_${category || 'all'}`
   const cached = getCache(key)
@@ -58,9 +73,11 @@ export async function createProduct(data: {
   image_url?: string; description?: string; featured?: boolean; collection_name?: string; supplier?: string
   show_on_site?: boolean; manual_variants?: any[]
 }) {
+  const baseSlug = slugify(data.name)
+  const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-6)}`
   const [product] = await sql`
-    INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier, show_on_site, manual_variants)
-    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${sql.json(data.manual_variants || [])})
+    INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier, show_on_site, manual_variants, slug)
+    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${sql.json(data.manual_variants || [])}, ${uniqueSlug})
     RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)
   return product

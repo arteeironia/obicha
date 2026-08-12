@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Moda Queer Brasileira — Camisetas e Roupas LGBTQ+ | Ô bicha!',
   description: 'Moda queer feita no Brasil. Camisetas, ecobags e canecas com estampas que falam por você. Expressão, identidade e resistência em cada peça. Conheça a Ô bicha!',
   keywords: ['moda queer', 'roupa queer Brasil', 'camiseta queer', 'moda LGBTQ', 'roupa LGBT Brasil', 'estampa queer', 'moda alternativa gay'],
-  alternates: { canonical: 'https://obicha.com.br/moda-queer' },
+  alternates: { canonical: 'https://www.obicha.com.br/moda-queer' },
 }
 
 export default async function ModaQueer() {
@@ -59,7 +59,7 @@ export default async function ModaQueer() {
       </p>
 
       <p style={{ fontSize: '.9rem', color: '#666', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-        <a href="https://obicha.com.br" style={{ color: '#C0281C' }}>← Voltar para a Ô bicha!</a>
+        <a href="https://www.obicha.com.br" style={{ color: '#C0281C' }}>← Voltar para a Ô bicha!</a>
       </p>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -67,8 +67,8 @@ export default async function ModaQueer() {
         "@type": "CollectionPage",
         "name": "Moda Queer Brasileira — Ô bicha!",
         "description": "Moda queer feita no Brasil. Camisetas e roupas LGBTQ+ com estampas de expressão e resistência.",
-        "url": "https://obicha.com.br/moda-queer",
-        "provider": { "@type": "Organization", "name": "Ô bicha!", "url": "https://obicha.com.br" }
+        "url": "https://www.obicha.com.br/moda-queer",
+        "provider": { "@type": "Organization", "name": "Ô bicha!", "url": "https://www.obicha.com.br" }
       })}} />
     </main>
   )

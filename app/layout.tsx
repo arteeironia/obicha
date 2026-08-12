@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Ô bicha! — Camisetas com Orgulho',
     description: 'Deboche, amor e resistência. Feito no Brasil.',
-    url: 'https://obicha.com.br',
+    url: 'https://www.obicha.com.br',
     siteName: 'Ô bicha!',
     locale: 'pt_BR',
     type: 'website',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     images: ['/banner.png'],
   },
   robots: { index: true, follow: true },
-  alternates: { canonical: 'https://obicha.com.br' },
+  alternates: { canonical: 'https://www.obicha.com.br' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

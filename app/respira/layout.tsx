@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Respira — por Ô bicha!',
     description: 'Um companheiro de bolso pra quem tá tentando (ou já decidiu) parar de fumar.',
-    url: 'https://obicha.com.br/respira',
+    url: 'https://www.obicha.com.br/respira',
     siteName: 'Respira — Ô bicha!',
     locale: 'pt_BR',
     type: 'website',

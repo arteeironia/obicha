@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: '/admin/',
       },
     ],
-    sitemap: 'https://obicha.com.br/sitemap.xml',
+    sitemap: 'https://www.obicha.com.br/sitemap.xml',
   }
 }

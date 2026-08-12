@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Camisetas LGBT — Ô bicha!',
     description: 'Estampas com orgulho, deboche e resistência. Feitas no Brasil.',
-    url: 'https://obicha.com.br/camisetas-lgbt',
+    url: 'https://www.obicha.com.br/camisetas-lgbt',
   },
-  alternates: { canonical: 'https://obicha.com.br/camisetas-lgbt' },
+  alternates: { canonical: 'https://www.obicha.com.br/camisetas-lgbt' },
 }
 
 export default async function CamisetasLGBT() {
@@ -74,7 +74,7 @@ export default async function CamisetasLGBT() {
       </p>
 
       <p style={{ fontSize: '.9rem', color: '#666', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-        <a href="https://obicha.com.br" style={{ color: '#C0281C' }}>← Voltar para a Ô bicha!</a>
+        <a href="https://www.obicha.com.br" style={{ color: '#C0281C' }}>← Voltar para a Ô bicha!</a>
       </p>
 
       {/* Schema markup */}
@@ -83,11 +83,11 @@ export default async function CamisetasLGBT() {
         "@type": "CollectionPage",
         "name": "Camisetas LGBT — Ô bicha!",
         "description": "Camisetas LGBT feitas no Brasil com orgulho. Estampas exclusivas para a comunidade gay, lésbica, queer e trans.",
-        "url": "https://obicha.com.br/camisetas-lgbt",
+        "url": "https://www.obicha.com.br/camisetas-lgbt",
         "provider": {
           "@type": "Organization",
           "name": "Ô bicha!",
-          "url": "https://obicha.com.br"
+          "url": "https://www.obicha.com.br"
         }
       })}} />
     </main>

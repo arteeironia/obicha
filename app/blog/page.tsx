@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Blog — Ô bicha!',
     description: 'Coleções, causas sociais, projetos e tudo que move a Ô bicha!.',
-    url: 'https://obicha.com.br/blog',
+    url: 'https://www.obicha.com.br/blog',
   },
 }
 
