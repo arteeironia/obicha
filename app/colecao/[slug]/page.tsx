@@ -61,7 +61,7 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
         .sidebar-cta:hover { background:var(--gold); color:var(--navy); }
         .main { margin-left:var(--sidebar); min-height:100vh; padding:5rem 4rem; }
         .product-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; transition:all .4s; }
-        .product-card:hover { border-color:var(--gold); transform:translateY(-6px); box-shadow:0 20px 40px rgba(0,0,0,.4); }
+        .product-card:hover { border-color:var(--gold); box-shadow:0 12px 24px rgba(0,0,0,.35); }
         .btn-loja { padding:.4rem 1rem; background:var(--red); color:var(--creme); font-family:var(--font-bebas); letter-spacing:1px; font-size:.8rem; text-decoration:none; border-radius:2px; transition:background .3s; }
         .btn-loja:hover { background:var(--gold); }
         .back-link { display:inline-flex; align-items:center; gap:.5rem; font-family:var(--font-bebas); font-size:.85rem; letter-spacing:2px; color:var(--gold); text-decoration:none; opacity:.7; transition:opacity .3s; margin-bottom:3rem; }
@@ -83,7 +83,7 @@ export default async function ColecaoPage({ params }: { params: Promise<{ slug: 
           <Link href="/parcerias" className="sidebar-link"><svg viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 15a4 4 0 00-8 0v1h8v-1z"/></svg>Parcerias</Link>
         </nav>
         <div className="sidebar-bottom">
-          <a href="https://umapenca.com/obicha/" target="_blank" className="sidebar-cta">Entrar na Loja</a>
+          <Link href="/produtos" className="sidebar-cta">Ver Produtos</Link>
         </div>
       </aside>
 

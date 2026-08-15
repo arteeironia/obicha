@@ -63,7 +63,6 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
   }, [products])
 
   const catLabel = (cat: string) => categories.find(c => c.value === cat)?.label || cat
-  const categoryValues = ['todos', ...categories.map(c => c.value)]
 
   const filteredProducts = displayProducts.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase())
@@ -132,7 +131,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .social-icon-link svg { width:18px; height:18px; fill:rgba(242,235,217,.6); transition:fill .3s; }
         .social-icon-link:hover svg { fill:var(--gold); }
         .product-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; transition:all .4s; }
-        .product-card:hover { border-color:var(--gold); transform:translateY(-6px); box-shadow:0 20px 40px rgba(0,0,0,.4); }
+        .product-card:hover { border-color:var(--gold); box-shadow:0 12px 24px rgba(0,0,0,.35); }
         .product-card-img-wrap { position:relative; cursor:zoom-in; overflow:hidden; }
         .product-card-img-wrap img { transition:transform .4s ease; }
         .product-card-img-wrap:hover img { transform:scale(1.06); }
@@ -313,15 +312,6 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
               onChange={e => setSearch(e.target.value)}
               style={{ padding:'.6rem 1.2rem', background:'rgba(255,255,255,.05)', border:'1px solid rgba(212,168,67,.3)', color:'var(--creme)', fontFamily:'var(--font-dm)', fontSize:'.9rem', outline:'none', width:'min(400px,90vw)', borderRadius:2 }}
             />
-          </div>
-
-          <div style={{ display:'flex', justifyContent:'center', gap:'.5rem', marginBottom:'3rem', flexWrap:'wrap' }}>
-            {categoryValues.map(cat => (
-              <a key={cat} href={cat === 'todos' ? '/#produtos' : `/categoria/${cat}`}
-                style={{ padding:'.5rem 1.5rem', border:'1px solid', borderColor:'rgba(212,168,67,.4)', background:'transparent', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'2px', fontSize:'.9rem', cursor:'pointer', transition:'all .3s', borderRadius:2, textDecoration:'none', display:'inline-block' }}>
-                {cat === 'todos' ? 'Todos' : catLabel(cat)}
-              </a>
-            ))}
           </div>
 
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:'2rem', maxWidth:1200, margin:'0 auto' }}>

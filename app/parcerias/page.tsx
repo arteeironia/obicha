@@ -73,7 +73,7 @@ export default function ParceriasPage() {
           <Link href="/projeto-social" className="sidebar-link"><svg viewBox="0 0 20 20"><path d="M10 17S3 12.5 3 7.5A4 4 0 0110 5a4 4 0 017 2.5C17 12.5 10 17 10 17z"/><path d="M10 9v4M8 11h4"/></svg>Projeto Social</Link>
         </nav>
         <div className="sidebar-bottom">
-          <a href="https://umapenca.com/obicha/" target="_blank" className="sidebar-cta">Entrar na Loja</a>
+          <Link href="/produtos" className="sidebar-cta">Ver Produtos</Link>
         </div>
       </aside>
 

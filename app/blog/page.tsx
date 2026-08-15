@@ -90,7 +90,7 @@ export default async function BlogPage() {
           </Link>
         </nav>
         <div className="sidebar-bottom">
-          <a href="https://umapenca.com/obicha/" target="_blank" className="sidebar-cta">Entrar na Loja</a>
+          <Link href="/produtos" className="sidebar-cta">Ver Produtos</Link>
         </div>
       </aside>
 
