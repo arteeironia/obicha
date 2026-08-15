@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import postgres from 'postgres'
+import ZoomableProductImage from '@/components/ZoomableProductImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -176,7 +177,7 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
         <div className="product-detail" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3.5rem', maxWidth: 1100, marginBottom: '5rem' }}>
           <div>
             {product.image_url ? (
-              <img src={product.image_url} alt={product.name} style={{ width: '100%', borderRadius: 4, border: '1px solid rgba(212,168,67,.15)' }} />
+              <ZoomableProductImage src={product.image_url} alt={product.name} square={false} />
             ) : (
               <div style={{ width: '100%', aspectRatio: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.05)', fontSize: '4rem', opacity: .3, borderRadius: 4 }}>👕</div>
             )}

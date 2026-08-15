@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import postgres from 'postgres'
+import ZoomableProductImage from '@/components/ZoomableProductImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -136,7 +137,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
               return (
               <div key={p.id} className="product-card">
                 {p.image_url
-                  ? <img src={p.image_url} alt={p.name} style={{ width:'100%', aspectRatio:1, objectFit:'cover', display:'block' }} />
+                  ? <ZoomableProductImage src={p.image_url} alt={p.name} />
                   : <div style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', fontSize:'3rem', opacity:.3 }}>👕</div>
                 }
                 <div style={{ padding:'1.2rem' }}>
