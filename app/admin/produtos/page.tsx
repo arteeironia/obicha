@@ -22,7 +22,7 @@ const inputStyle = {
   outline: 'none', fontFamily: 'inherit', fontSize: '0.9rem',
 }
 
-function parseVariants(mv: any): {type: string; price: string; link: string}[] {
+function parseVariants(mv: any): {type: string; price: string; link: string; image_url?: string}[] {
   if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
   return Array.isArray(mv) ? mv : []
 }
@@ -54,7 +54,7 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string}[] })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string; image_url?: string}[] })
   const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -251,14 +251,34 @@ export default function AdminProdutos() {
                 </div>
                 {form.manual_variants.map((v, i) => (
                   <div key={i} style={{ display:'flex', gap:'.5rem', marginBottom:'.5rem', alignItems:'center' }}>
+                    <label style={{ flexShrink:0, cursor:'pointer', width:34, height:34, borderRadius:4, overflow:'hidden', border:'1px solid rgba(212,168,67,0.3)', display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,0.05)' }} title="Foto específica dessa variante (opcional)">
+                      {v.image_url
+                        ? <img src={v.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                        : <span style={{ fontSize:'1rem', opacity:.4 }}>📷</span>
+                      }
+                      <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const fd = new FormData()
+                        fd.append('file', file)
+                        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                        const { url } = await res.json()
+                        const mv = [...form.manual_variants]
+                        mv[i] = { ...mv[i], image_url: url }
+                        setForm(f => ({ ...f, manual_variants: mv }))
+                      }} />
+                    </label>
                     <span style={{ fontSize:'.8rem', color:'var(--gold)', minWidth:140, flexShrink:0 }}>{v.type}</span>
                     <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:1, minWidth:0 }} placeholder="Preço" value={v.price} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], price: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
                     <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:2, minWidth:0 }} placeholder="Link do produto" value={v.link} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], link: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
+                    {v.image_url && (
+                      <button type="button" onClick={() => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], image_url: ''}; setForm(f => ({...f, manual_variants: mv})) }} style={{ color:'var(--creme)', opacity:.4, flexShrink:0, fontSize:'.75rem' }} title="Remover foto específica">↺</button>
+                    )}
                     <button type="button" onClick={() => setForm(f => ({...f, manual_variants: f.manual_variants.filter((_,j) => j !== i)}))} style={{ color:'var(--red)', flexShrink:0 }}>✕</button>
                   </div>
                 ))}
                 {form.manual_variants.length === 0 && <p style={{ fontSize:'.78rem', opacity:.4 }}>Opcional — clique nos tipos acima se essa estampa existir em mais de um modelo.</p>}
-                {form.manual_variants.length > 0 && <p style={{ fontSize:'.78rem', opacity:.4, marginTop:'.5rem' }}>Preço e link do produto agora são definidos por cada variante acima — não há mais um único preço/link geral.</p>}
+                {form.manual_variants.length > 0 && <p style={{ fontSize:'.78rem', opacity:.4, marginTop:'.5rem' }}>Preço e link do produto agora são definidos por cada variante acima — não há mais um único preço/link geral. A foto (📷) é opcional: sem ela, usa a foto principal da estampa.</p>}
               </div>
 
               <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>

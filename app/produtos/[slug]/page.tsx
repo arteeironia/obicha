@@ -201,9 +201,14 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '.7rem' }}>
                   {variants.map((v, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.9rem 1.1rem', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.15)', borderRadius: 4 }}>
-                      <div>
-                        <p style={{ fontWeight: 700, fontSize: '.95rem' }}>{v.type}</p>
-                        <p style={{ opacity: .6, fontSize: '.85rem' }}>{v.price}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '.9rem' }}>
+                        {(v.image_url || product.image_url) && (
+                          <img src={v.image_url || product.image_url} alt={`${product.name} — ${v.type}`} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, border: '1px solid rgba(212,168,67,.15)', flexShrink: 0 }} />
+                        )}
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: '.95rem' }}>{v.type}</p>
+                          <p style={{ opacity: .6, fontSize: '.85rem' }}>{v.price}</p>
+                        </div>
                       </div>
                       <a href={v.link} target="_blank" className="btn-loja-sm">Comprar na loja</a>
                     </div>
