@@ -203,7 +203,9 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.9rem 1.1rem', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.15)', borderRadius: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '.9rem' }}>
                         {(v.image_url || product.image_url) && (
-                          <img src={v.image_url || product.image_url} alt={`${product.name} — ${v.type}`} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, border: '1px solid rgba(212,168,67,.15)', flexShrink: 0 }} />
+                          <div style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(212,168,67,.15)' }}>
+                            <ZoomableProductImage src={v.image_url || product.image_url} alt={`${product.name} — ${v.type}`} />
+                          </div>
                         )}
                         <div>
                           <p style={{ fontWeight: 700, fontSize: '.95rem' }}>{v.type}</p>
