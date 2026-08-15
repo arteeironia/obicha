@@ -1,22 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+let styleInjected = false
+function injectHoverStyleOnce() {
+  if (styleInjected) return
+  const style = document.createElement('style')
+  style.textContent = `
+    .zoomable-img-wrap { overflow: hidden; cursor: zoom-in; }
+    .zoomable-img-wrap img { transition: transform .4s ease; display: block; }
+    .zoomable-img-wrap:hover img { transform: scale(1.06); }
+  `
+  document.head.appendChild(style)
+  styleInjected = true
+}
 
 export default function ZoomableProductImage({ src, alt, square = true }: { src: string; alt: string; square?: boolean }) {
   const [open, setOpen] = useState(false)
 
+  useEffect(() => {
+    injectHoverStyleOnce()
+  }, [])
+
   return (
     <>
-      <div
-        onClick={() => setOpen(true)}
-        style={{ cursor: 'zoom-in', overflow: 'hidden' }}
-      >
+      <div className="zoomable-img-wrap" onClick={() => setOpen(true)}>
         <img
           src={src}
           alt={alt}
-          style={{ width: '100%', aspectRatio: square ? 1 : undefined, objectFit: 'cover', display: 'block', borderRadius: square ? 0 : 4, border: square ? 'none' : '1px solid rgba(212,168,67,.15)', transition: 'transform .4s ease' }}
-          onMouseEnter={(e) => ((e.target as HTMLElement).style.transform = 'scale(1.06)')}
-          onMouseLeave={(e) => ((e.target as HTMLElement).style.transform = 'scale(1)')}
+          style={{
+            width: '100%',
+            aspectRatio: square ? 1 : undefined,
+            objectFit: 'cover',
+            borderRadius: square ? 0 : 4,
+            border: square ? 'none' : '1px solid rgba(212,168,67,.15)',
+          }}
         />
       </div>
 
