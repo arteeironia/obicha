@@ -13,7 +13,27 @@ export const metadata: Metadata = {
 }
 
 export default async function ProdutosPage() {
-  const products = await sql`SELECT id, name, slug, image_url, price, category FROM products WHERE slug IS NOT NULL ORDER BY created_at DESC`
+  const products = await sql`SELECT id, name, slug, image_url, price, category, manual_variants FROM products WHERE slug IS NOT NULL ORDER BY created_at DESC`
+
+  function parseVariants(mv: any): { type: string; price: string; link: string }[] {
+    if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
+    return Array.isArray(mv) ? mv : []
+  }
+
+  function priceToNumber(price: string): number {
+    const match = (price || '').replace(/\./g, '').match(/(\d+),?(\d{0,2})/)
+    if (!match) return Infinity
+    return parseFloat(`${match[1]}.${match[2] ? match[2].padEnd(2, '0') : '00'}`)
+  }
+
+  function displayPriceFor(p: any): string {
+    const variants = parseVariants(p.manual_variants)
+    if (variants.length === 0) return p.price
+    if (variants.length === 1) return variants[0].price
+    const cheapest = [...variants].sort((a, b) => priceToNumber(a.price) - priceToNumber(b.price))[0]
+    const allSamePrice = variants.every((v) => v.price === variants[0].price)
+    return allSamePrice ? variants[0].price : `A partir de ${cheapest.price}`
+  }
 
   return (
     <>
@@ -76,7 +96,7 @@ export default async function ProdutosPage() {
               }
               <div style={{ padding: '1.1rem' }}>
                 <p style={{ fontSize: '.95rem', fontWeight: 700, lineHeight: 1.35, marginBottom: '.5rem' }}>{p.name}</p>
-                <p style={{ fontSize: '.85rem', opacity: .6 }}>{p.price}</p>
+                <p style={{ fontSize: '.85rem', opacity: .6 }}>{displayPriceFor(p)}</p>
               </div>
             </Link>
           ))}

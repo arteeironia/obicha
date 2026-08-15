@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { pickRepresentativeVariant } from '@/lib/category-variant-map'
 
 type Product = {
   id: number; name: string; category: string; price: string; link: string
@@ -115,8 +116,9 @@ export default function AdminProdutos() {
     setSaving(true)
     const method = editProduct ? 'PATCH' : 'POST'
     // quando há variantes, preço/link do produto viram apenas fallback — usa a primeira variante como referência
-    const derived = form.manual_variants.length > 0
-      ? { price: form.manual_variants[0].price || form.price, link: form.manual_variants[0].link || form.link }
+    const repVariant = pickRepresentativeVariant(form.category, form.manual_variants)
+    const derived = repVariant
+      ? { price: repVariant.price || form.price, link: repVariant.link || form.link }
       : { price: form.price, link: form.link }
     const payload = { ...form, ...derived }
     const body = editProduct ? { id: editProduct.id, ...payload } : payload

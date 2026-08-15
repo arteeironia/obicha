@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
-function parseVariants(mv: any): { type: string; price: string; link: string }[] {
+function parseVariants(mv: any): { type: string; price: string; link: string; image_url?: string }[] {
   if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
   return Array.isArray(mv) ? mv : []
 }

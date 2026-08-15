@@ -45,7 +45,7 @@ const CATEGORY_TO_VARIANT_TYPE: Record<string, string> = {
   bottoms: 'Kit de Bottons',
 }
 
-function parseVariants(mv: any): { type: string; price: string; link: string }[] {
+function parseVariants(mv: any): { type: string; price: string; link: string; image_url?: string }[] {
   if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
   return Array.isArray(mv) ? mv : []
 }
