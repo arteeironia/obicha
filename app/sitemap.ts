@@ -12,6 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: 'https://www.obicha.com.br/blog', lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.8 },
     { url: 'https://www.obicha.com.br/parcerias', lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.5 },
     { url: 'https://www.obicha.com.br/projeto-social', lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.5 },
+    { url: 'https://www.obicha.com.br/vote-lgbt', lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.5 },
     // Páginas SEO escondidas
     { url: 'https://www.obicha.com.br/camisetas-lgbt', lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.9 },
     { url: 'https://www.obicha.com.br/moda-queer', lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.9 },

@@ -195,6 +195,10 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 17S3 12.5 3 7.5A4 4 0 0110 5a4 4 0 017 2.5C17 12.5 10 17 10 17z"/><path d="M10 9v4M8 11h4"/></svg></span>
             Projeto Social
           </a>
+          <a href="/vote-lgbt" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
+            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 3a7 7 0 100 14 7 7 0 000-14z"/><path d="M10 6v4l3 2"/></svg></span>
+            Voto que Representa
+          </a>
           <a href="/respira" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
             <span className="sl-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3-1.3 3-3 3"/></svg></span>
             Respira
@@ -480,6 +484,8 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <a href="/parcerias" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Parcerias</a>
             <span style={{ color:'rgba(242,235,217,.15)' }}>·</span>
             <a href="/projeto-social" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Projeto Social</a>
+            <span style={{ color:'rgba(242,235,217,.15)' }}>·</span>
+            <a href="/vote-lgbt" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Voto que Representa</a>
             <span style={{ color:'rgba(242,235,217,.15)' }}>·</span>
             <a href="/politica-de-privacidade" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Política de Privacidade</a>
           </div>
