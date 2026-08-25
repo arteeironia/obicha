@@ -398,8 +398,8 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(250px,1fr))', gap:'2rem' }}>
               {[
-                { num:'01', icon:<CommitmentIcon1/>, title:'100% Algodão Sustentável', desc:'Fibra natural de alta qualidade. Toque macio, caimento perfeito e durabilidade que resiste à moda descartável.' },
-                { num:'02', icon:<CommitmentIcon2/>, title:'Selo PETA Cruelty Free', desc:'Orgulhosamente vegana. Nenhum componente ou etapa da nossa produção envolve qualquer crueldade animal.' },
+                { num:'01', icon:<CommitmentIcon1/>, title:'Materiais de Qualidade', desc:'Camiseta em algodão, dry fit, moletom e mais — cada modelo com o tecido certo pra seu uso. Toque macio, caimento e durabilidade que resistem à moda descartável.' },
+                { num:'02', icon:<CommitmentIcon2/>, title:'Produção Sob Demanda', desc:'Cada peça é fabricada só depois do seu pedido, junto com nossas parceiras de produção. Sem estoque parado, sem desperdício de peça que não seria vendida.' },
                 { num:'03', icon:<CommitmentIcon3/>, title:'Impressão DTG Premium', desc:'Estampas fundidas diretamente no tecido. Cores vibrantes, alta definição e toque zero — sem camada plástica.' },
                 { num:'04', icon:<CommitmentIcon4/>, title:'Impacto Social Real', desc:'Parte de cada venda vai direto ao Instituto Amargen. Você não compra só uma peça — você financia transformação.' },
               ].map(item => (
