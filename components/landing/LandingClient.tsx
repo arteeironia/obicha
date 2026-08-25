@@ -436,7 +436,9 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
               <div>
                 <p style={{ fontFamily:'var(--font-bebas)', fontSize:'1.05rem', letterSpacing:'1px', color:'var(--gold)', marginBottom:'.8rem' }}>ONDE VOCÊ COMPRA</p>
                 <p style={{ fontSize:'.92rem', lineHeight:1.75, opacity:.8 }}>
-                  A Ô bicha! cria as estampas e a identidade de cada produto. A venda, o pagamento, a produção e o envio são feitos diretamente pela loja parceira responsável por aquele modelo. Dúvidas sobre pedido, prazo, troca ou pagamento? O canal de atendimento é o da loja onde a compra foi concluída.
+                  A Ô bicha! cria as estampas e a identidade de cada produto. O pedido, o pagamento, a fabricação e o envio são feitos pelas nossas fábricas parceiras — Reserva INK e Uma Penca. Mas o atendimento é sempre com a gente: qualquer dúvida sobre seu pedido, prazo, troca ou pagamento, é só chamar pelo{' '}
+                  <a href={whatsappUrl} target="_blank" style={{ color:'var(--gold)' }}>WhatsApp</a>, pelo e-mail{' '}
+                  <a href="mailto:faleconosco@obicha.com.br" style={{ color:'var(--gold)' }}>faleconosco@obicha.com.br</a> ou pelas nossas redes sociais.
                 </p>
               </div>
             </div>
