@@ -237,23 +237,6 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
           </div>
         </section>
 
-        <div className="diagonal-break" style={{ background:'var(--navy)' }}><style>{`.diagonal-break:nth-of-type(1)::after{background:var(--creme)}`}</style></div>
-        <section id="manifesto" style={{ background:'var(--creme)', color:'var(--navy)', padding:'6rem 2rem', overflow:'hidden', position:'relative' }}>
-          <div style={{ maxWidth:900, margin:'0 auto', position:'relative' }}>
-            <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--red)', display:'block', marginBottom:'.5rem' }}>★ Manifesto ★</span>
-            <h1 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(2.5rem,6vw,5rem)', fontWeight:900, lineHeight:1, marginBottom:'2rem', color:'var(--navy)' }}>
-              Desde sempre,<br /><em style={{ color:'var(--red)' }}>um grito de liberdade.</em>
-            </h1>
-            <blockquote style={{ fontFamily:'var(--font-playfair)', fontStyle:'italic', fontSize:'1.4rem', color:'var(--red)', borderLeft:'4px solid var(--gold)', paddingLeft:'1.5rem', margin:'2.5rem 0', lineHeight:1.5 }}>
-              "Pegamos uma palavra que tentaram usar para nos silenciar — e a transformamos no nosso maior selo de orgulho, autoridade visual e estilo."
-            </blockquote>
-            <div style={{ fontSize:'1.05rem', lineHeight:1.9, color:'#2a2a2a', maxWidth:700 }}>
-              <p>A Ô bicha! não nasceu para passar despercebida. Nós surgimos da urgência de ressignificar. Unimos a estética clássica do design tipográfico, a vibração da Pop Art e a paixão pela cultura geek para criar mais do que roupas e acessórios: criamos <strong>manifestos portáteis.</strong></p>
-              <p style={{ marginTop:'1.2rem' }}>Nossas camisetas, ecobags, canecas e bottoms são feitos para quem ocupa as ruas com marra, representatividade e muito deboche fino. Em algodão, estonada, dry fit ou modal tech — sempre com estampa que tem algo a dizer.</p>
-            </div>
-          </div>
-        </section>
-
         {slides.length > 0 && (
           <section id="destaques" style={{ background:'var(--navy)', padding:'4rem 0 2rem' }}>
             <div style={{ textAlign:'center', marginBottom:'2rem', padding:'0 2rem' }}>
@@ -394,6 +377,23 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <div className="diagonal-break" style={{ background:'var(--navy)' }}><style>{`.diagonal-break:nth-of-type(1)::after{background:var(--creme)}`}</style></div>
+        <section id="manifesto" style={{ background:'var(--creme)', color:'var(--navy)', padding:'6rem 2rem', overflow:'hidden', position:'relative' }}>
+          <div style={{ maxWidth:900, margin:'0 auto', position:'relative' }}>
+            <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--red)', display:'block', marginBottom:'.5rem' }}>★ Manifesto ★</span>
+            <h1 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(2.5rem,6vw,5rem)', fontWeight:900, lineHeight:1, marginBottom:'2rem', color:'var(--navy)' }}>
+              Desde sempre,<br /><em style={{ color:'var(--red)' }}>um grito de liberdade.</em>
+            </h1>
+            <blockquote style={{ fontFamily:'var(--font-playfair)', fontStyle:'italic', fontSize:'1.4rem', color:'var(--red)', borderLeft:'4px solid var(--gold)', paddingLeft:'1.5rem', margin:'2.5rem 0', lineHeight:1.5 }}>
+              "Pegamos uma palavra que tentaram usar para nos silenciar — e a transformamos no nosso maior selo de orgulho, autoridade visual e estilo."
+            </blockquote>
+            <div style={{ fontSize:'1.05rem', lineHeight:1.9, color:'#2a2a2a', maxWidth:700 }}>
+              <p>A Ô bicha! não nasceu para passar despercebida. Nós surgimos da urgência de ressignificar. Unimos a estética clássica do design tipográfico, a vibração da Pop Art e a paixão pela cultura geek para criar mais do que roupas e acessórios: criamos <strong>manifestos portáteis.</strong></p>
+              <p style={{ marginTop:'1.2rem' }}>Nossas camisetas, ecobags, canecas e bottoms são feitos para quem ocupa as ruas com marra, representatividade e muito deboche fino. Em algodão, estonada, dry fit ou modal tech — sempre com estampa que tem algo a dizer.</p>
+            </div>
           </div>
         </section>
 
