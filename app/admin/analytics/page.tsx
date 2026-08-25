@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-type TopItem = { path?: string; label?: string; source?: string; views?: string; clicks?: string; visits?: string }
+type TopItem = { path?: string; label?: string; source?: string; supplier?: string; collection?: string; views?: string; clicks?: string; visits?: string }
 type Totals = { total_pageviews: string; total_clicks: string; pageviews_hoje: string; clicks_hoje: string }
 type DailyView = { day: string; views: string }
 
@@ -17,7 +17,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-function RankTable({ title, items, valueKey, labelKey }: { title: string; items: TopItem[]; valueKey: 'views' | 'clicks' | 'visits'; labelKey: 'path' | 'label' | 'source' }) {
+function RankTable({ title, items, valueKey, labelKey }: { title: string; items: TopItem[]; valueKey: 'views' | 'clicks' | 'visits'; labelKey: 'path' | 'label' | 'source' | 'supplier' | 'collection' }) {
   const max = Math.max(...items.map(i => parseInt(i[valueKey] || '0')), 1)
   return (
     <div style={cardStyle} className="p-5">
@@ -49,7 +49,7 @@ function RankTable({ title, items, valueKey, labelKey }: { title: string; items:
 
 export default function AnalyticsPage() {
   const [days, setDays] = useState(30)
-  const [data, setData] = useState<{ topPages: TopItem[]; topProducts: TopItem[]; topReferrers: TopItem[]; totals: Totals; dailyViews: DailyView[] } | null>(null)
+  const [data, setData] = useState<{ topPages: TopItem[]; topProducts: TopItem[]; topReferrers: TopItem[]; totals: Totals; dailyViews: DailyView[]; topSuppliers: TopItem[]; topCollections: TopItem[] } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -103,6 +103,11 @@ export default function AnalyticsPage() {
             <RankTable title="Páginas mais visitadas" items={data.topPages} valueKey="views" labelKey="path" />
             <RankTable title="Produtos mais clicados" items={data.topProducts} valueKey="clicks" labelKey="label" />
             <RankTable title="De onde vem o tráfego" items={data.topReferrers} valueKey="visits" labelKey="source" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <RankTable title="Cliques por fabricante" items={data.topSuppliers} valueKey="clicks" labelKey="supplier" />
+            <RankTable title="Cliques por coleção" items={data.topCollections} valueKey="clicks" labelKey="collection" />
           </div>
         </>
       )}

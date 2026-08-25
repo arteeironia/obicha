@@ -5,9 +5,9 @@ const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
 export async function POST(request: NextRequest) {
   try {
-    const { event_type, path, label, referrer } = await request.json()
+    const { event_type, path, label, referrer, meta } = await request.json()
     if (!event_type) return NextResponse.json({ error: 'event_type obrigatório' }, { status: 400 })
-    await sql`INSERT INTO analytics_events (event_type, path, label, referrer) VALUES (${event_type}, ${path || null}, ${label || null}, ${referrer || null})`
+    await sql`INSERT INTO analytics_events (event_type, path, label, referrer, meta) VALUES (${event_type}, ${path || null}, ${label || null}, ${referrer || null}, ${meta ? sql.json(meta) : null})`
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const days = parseInt(searchParams.get('days') || '30')
 
-  const [topPages, topProducts, topReferrers, totals, dailyViews] = await Promise.all([
+  const [topPages, topProducts, topReferrers, totals, dailyViews, topSuppliers, topCollections] = await Promise.all([
     sql`SELECT path, COUNT(*) as views FROM analytics_events
         WHERE event_type = 'pageview' AND created_at >= NOW() - (${days} || ' days')::interval AND path IS NOT NULL
         GROUP BY path ORDER BY views DESC LIMIT 15`,
@@ -45,7 +45,13 @@ export async function GET(request: NextRequest) {
         FROM analytics_events
         WHERE created_at >= NOW() - (${days} || ' days')::interval
         GROUP BY DATE(created_at) ORDER BY day ASC`,
+    sql`SELECT meta->>'supplier' as supplier, COUNT(*) as clicks FROM analytics_events
+        WHERE event_type = 'product_click' AND created_at >= NOW() - (${days} || ' days')::interval AND meta->>'supplier' IS NOT NULL
+        GROUP BY meta->>'supplier' ORDER BY clicks DESC LIMIT 10`,
+    sql`SELECT meta->>'collection' as collection, COUNT(*) as clicks FROM analytics_events
+        WHERE event_type = 'product_click' AND created_at >= NOW() - (${days} || ' days')::interval AND meta->>'collection' IS NOT NULL
+        GROUP BY meta->>'collection' ORDER BY clicks DESC LIMIT 10`,
   ])
 
-  return NextResponse.json({ topPages, topProducts, topReferrers, totals: totals[0], dailyViews })
+  return NextResponse.json({ topPages, topProducts, topReferrers, totals: totals[0], dailyViews, topSuppliers, topCollections })
 }

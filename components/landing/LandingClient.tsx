@@ -34,14 +34,21 @@ function getEmbedHTML(post: SocialPost) {
   return `<a href="${post.url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--gold);font-family:var(--font-bebas);letter-spacing:2px;">VER POST ↗</a>`
 }
 
-function trackProductClick(label: string) {
+function trackProductClick(label: string, meta?: { collection?: string; supplier?: string; position?: string }) {
   if (!hasAnalyticsConsent()) return
   fetch('/api/analytics', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event_type: 'product_click', label, path: typeof window !== 'undefined' ? window.location.pathname : null }),
+    body: JSON.stringify({ event_type: 'product_click', label, path: typeof window !== 'undefined' ? window.location.pathname : null, meta }),
     keepalive: true,
   }).catch(() => {})
+}
+
+const VARIANT_SUPPLIER_MAP: Record<string, string> = {
+  'Camiseta': 'reserva-ink', 'Regata': 'reserva-ink', 'Cropped': 'reserva-ink', 'Cropped Moletom': 'reserva-ink',
+  'Camiseta Oversized': 'reserva-ink', 'Camiseta Algodão Peruano': 'reserva-ink', 'Camiseta Infantil': 'reserva-ink',
+  'Hoodie Moletom': 'reserva-ink', 'Suéter Moletom': 'reserva-ink',
+  'Dry Fit': 'uma-penca', 'Ecobag': 'uma-penca', 'Caneca': 'uma-penca', 'Kit de Bottons': 'uma-penca',
 }
 
 export default function LandingClient({ products, socialPosts, pinterestPins, siteConfig, highlights, categories }: Props) {
@@ -225,7 +232,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <p style={{ fontFamily:'var(--font-playfair)', fontStyle:'italic', fontSize:'clamp(1.2rem,3vw,1.8rem)', color:'var(--creme)', marginBottom:'2.5rem', opacity:.9 }}>
               Desde sempre, <strong style={{ color:'var(--gold)', fontStyle:'normal' }}>um grito de liberdade.</strong>
             </p>
-            <a href="#produtos" className="btn-primary">Ver Produtos</a>
+            <a href="#produtos" className="btn-primary">Ver Estampas</a>
             <a href="#manifesto" className="btn-secondary">Nossa História</a>
           </div>
         </section>
@@ -349,7 +356,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                           {variants.map((v, i) => (
                             <div key={i} className="variant-badge-wrap" style={{ position:'relative', display:'inline-block' }}>
                               <a href={v.link || p.link} target="_blank"
-                                onClick={() => trackProductClick(`${p.name} — ${v.type}`)}
+                                onClick={() => trackProductClick(`${p.name} — ${v.type}`, { supplier: VARIANT_SUPPLIER_MAP[v.type] || p.supplier || undefined, collection: p.collections?.[0]?.slug, position: 'landing_grid' })}
                                 style={{ display:'block', padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
                                 onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
                                 onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
@@ -367,7 +374,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                     return (
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                         <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                        <a href={p.link} target="_blank" onClick={() => trackProductClick(p.name)} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                        <a href={p.link} target="_blank" onClick={() => trackProductClick(p.name, { supplier: p.supplier || undefined, collection: p.collections?.[0]?.slug, position: 'landing_grid' })} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
                           onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
                           onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
                         >Ver na loja</a>
@@ -413,6 +420,32 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
           </div>
         </section>
 
+        <section id="como-funciona" style={{ background:'rgba(255,255,255,.02)', padding:'6rem 2rem' }}>
+          <div className="reveal" style={{ maxWidth:900, margin:'0 auto' }}>
+            <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
+              <span style={{ fontFamily:'var(--font-bebas)', fontSize:'.85rem', letterSpacing:'5px', color:'var(--gold)', display:'block', marginBottom:'.5rem' }}>★ Como Funciona ★</span>
+              <h2 style={{ fontFamily:'var(--font-playfair)', fontSize:'clamp(1.8rem,4.5vw,2.8rem)', fontWeight:900, lineHeight:1.15 }}>Da estampa até<br /><em style={{ color:'var(--gold)' }}>a sua casa.</em></h2>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'2.5rem' }}>
+              <div>
+                <p style={{ fontFamily:'var(--font-bebas)', fontSize:'1.05rem', letterSpacing:'1px', color:'var(--gold)', marginBottom:'.8rem' }}>PRODUÇÃO SOB DEMANDA</p>
+                <p style={{ fontSize:'.92rem', lineHeight:1.75, opacity:.8 }}>
+                  Cada peça é fabricada só depois que você faz o pedido, em parceria com nossas fábricas parceiras especializadas. Isso evita estoque parado e permite produzir cada item de acordo com a demanda real.
+                </p>
+              </div>
+              <div>
+                <p style={{ fontFamily:'var(--font-bebas)', fontSize:'1.05rem', letterSpacing:'1px', color:'var(--gold)', marginBottom:'.8rem' }}>ONDE VOCÊ COMPRA</p>
+                <p style={{ fontSize:'.92rem', lineHeight:1.75, opacity:.8 }}>
+                  A Ô bicha! cria as estampas e a identidade de cada produto. A venda, o pagamento, a produção e o envio são feitos diretamente pela loja parceira responsável por aquele modelo. Dúvidas sobre pedido, prazo, troca ou pagamento? O canal de atendimento é o da loja onde a compra foi concluída.
+                </p>
+              </div>
+            </div>
+            <p style={{ textAlign:'center', fontSize:'.78rem', opacity:.4, marginTop:'2.5rem', fontStyle:'italic', fontFamily:'var(--font-playfair)' }}>
+              Ao escolher um modelo, você é direcionado pra página da loja parceira pra finalizar a compra.
+            </p>
+          </div>
+        </section>
+
         <section id="amargen" style={{ background:'var(--red-deep)', padding:'6rem 2rem', position:'relative', overflow:'hidden' }}>
           <div className="amargen-grid reveal" style={{ maxWidth:1000, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5rem', alignItems:'center' }}>
             <div>
@@ -454,7 +487,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
               Vista o deboche.<br /><em style={{ color:'var(--red)' }}>Espalhe o amor.</em><br /><strong style={{ color:'var(--gold)' }}>Carregue a resistência.</strong>
             </h2>
             <p style={{ fontSize:'1.1rem', opacity:.7, marginBottom:'3rem', fontFamily:'var(--font-playfair)', fontStyle:'italic' }}>Deboche, amor e resistência. Feito no Brasil.</p>
-            <a href="#produtos" className="btn-primary" style={{ fontSize:'1.3rem', padding:'1.2rem 4rem' }}>Ver Produtos</a>
+            <a href="#produtos" className="btn-primary" style={{ fontSize:'1.3rem', padding:'1.2rem 4rem' }}>Ver Estampas</a>
           </div>
         </section>
 
