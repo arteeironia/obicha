@@ -57,7 +57,7 @@ function trackStoreExit(event: MouseEvent) {
       : null
   if (!supplier) return
 
-  const label = (anchor.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 120) || 'Ver na loja'
+  const label = (anchor.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120) || 'Ver na loja'
   fetch('/api/analytics', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
