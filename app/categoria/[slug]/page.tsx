@@ -135,7 +135,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
               const displayPrice = matchedVariant?.price || p.price
               const displayLink = matchedVariant?.link || p.link
               return (
-              <div key={p.id} className="product-card">
+              <div key={p.id} className="product-card" data-product-name={p.name}>
                 {p.image_url
                   ? <ZoomableProductImage src={p.image_url} alt={p.name} />
                   : <div style={{ width:'100%', aspectRatio:1, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', fontSize:'3rem', opacity:.3 }}>👕</div>

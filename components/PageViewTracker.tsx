@@ -3,73 +3,34 @@
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { hasAnalyticsConsent, CONSENT_EVENT } from '@/lib/cookie-consent'
-
-const SOURCE_KEY = 'obicha_analytics_entry_referrer'
+import { sendEvent, isAdminPath, supplierFromUrl } from '@/lib/analytics-client'
 
 function track(pathname: string) {
-  if (pathname === '/admin' || pathname.startsWith('/admin/')) return
-
-  // Keep the original external referrer throughout this tab's visit.
-  // Internal navigation must not replace the acquisition source.
-  let referrer: string | null = null
-  try {
-    const stored = sessionStorage.getItem(SOURCE_KEY)
-    if (stored !== null) {
-      referrer = stored || null
-    } else {
-      const initial = document.referrer
-      const external = initial && new URL(initial).origin !== window.location.origin
-      referrer = external ? initial : null
-      sessionStorage.setItem(SOURCE_KEY, referrer || '')
-    }
-  } catch {
-    // Storage may be blocked; avoid recording internal navigation as referral.
-    try {
-      const initial = document.referrer
-      referrer = initial && new URL(initial).origin !== window.location.origin ? initial : null
-    } catch { referrer = null }
-  }
-
-  fetch('/api/analytics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event_type: 'pageview', path: pathname, referrer }),
-    keepalive: true,
-  }).catch(() => {})
+  sendEvent('pageview', { path: pathname })
 }
 
-// Track exits to fulfillment partners across all storefront pages.
-// Existing tracked links opt out to avoid double counting.
+// Registra saídas para os fornecedores (Reserva Ink / Uma Penca) em todas as páginas da loja.
+// Links que já se registram sozinhos (data-analytics-tracked) são ignorados para não duplicar.
 function trackStoreExit(event: MouseEvent) {
-  if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) return
+  if (isAdminPath(window.location.pathname)) return
   if (!hasAnalyticsConsent()) return
   const target = event.target
   if (!(target instanceof Element)) return
   const anchor = target.closest('a[href]')
   if (!(anchor instanceof HTMLAnchorElement)) return
   if (anchor.hasAttribute('data-analytics-tracked')) return
-  let destination: URL
-  try { destination = new URL(anchor.href) } catch { return }
-  const hostname = destination.hostname.toLowerCase()
-  const supplier = hostname === 'umapenca.com' || hostname.endsWith('.umapenca.com') || hostname === 'lojaumapenca.obicha.com.br'
-    ? 'uma-penca'
-    : hostname === 'lojareservaink.obicha.com.br' || hostname.endsWith('.reservaink.com.br')
-      ? 'reserva-ink'
-      : null
+  const supplier = supplierFromUrl(anchor.href)
   if (!supplier) return
 
-  const label = (anchor.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120) || 'Ver na loja'
-  fetch('/api/analytics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      event_type: 'product_click',
-      path: window.location.pathname,
-      label: window.location.pathname + ' — ' + label,
-      meta: { supplier, position: 'store_exit' },
-    }),
-    keepalive: true,
-  }).catch(() => {})
+  // Produto clicado: card mais próximo (data-product-name); senão o texto do link
+  const product = anchor.closest('[data-product-name]')?.getAttribute('data-product-name')?.trim()
+  const text = (anchor.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120) || 'Ver na loja'
+  const label = product ? `${product} — ${text}` : `${window.location.pathname} — ${text}`
+  sendEvent('product_click', {
+    path: window.location.pathname,
+    label: label.slice(0, 200),
+    meta: { supplier, position: 'store_exit' },
+  })
 }
 
 export default function PageViewTracker() {
@@ -81,6 +42,7 @@ export default function PageViewTracker() {
   }, [])
 
   useEffect(() => {
+    if (isAdminPath(pathname)) return
     if (hasAnalyticsConsent()) track(pathname)
 
     function onConsentChange(e: Event) {

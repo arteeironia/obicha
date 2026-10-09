@@ -5,13 +5,17 @@ export type ConsentValue = 'accepted' | 'rejected' | null
 
 export function getConsent(): ConsentValue {
   if (typeof window === 'undefined') return null
-  const v = localStorage.getItem(CONSENT_KEY)
-  return v === 'accepted' || v === 'rejected' ? v : null
+  try {
+    const v = localStorage.getItem(CONSENT_KEY)
+    return v === 'accepted' || v === 'rejected' ? v : null
+  } catch {
+    return null // armazenamento bloqueado: tratar como sem consentimento
+  }
 }
 
 export function setConsent(value: 'accepted' | 'rejected') {
   if (typeof window === 'undefined') return
-  localStorage.setItem(CONSENT_KEY, value)
+  try { localStorage.setItem(CONSENT_KEY, value) } catch {}
   window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: value }))
 }
 
