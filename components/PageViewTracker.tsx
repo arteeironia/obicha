@@ -38,8 +38,46 @@ function track(pathname: string) {
   }).catch(() => {})
 }
 
+// Track exits to fulfillment partners across all storefront pages.
+// Existing tracked links opt out to avoid double counting.
+function trackStoreExit(event: MouseEvent) {
+  if (!hasAnalyticsConsent()) return
+  const target = event.target
+  if (!(target instanceof Element)) return
+  const anchor = target.closest('a[href]')
+  if (!(anchor instanceof HTMLAnchorElement)) return
+  if (anchor.hasAttribute('data-analytics-tracked')) return
+  let destination: URL
+  try { destination = new URL(anchor.href) } catch { return }
+  const hostname = destination.hostname.toLowerCase()
+  const supplier = hostname === 'umapenca.com' || hostname.endsWith('.umapenca.com')
+    ? 'uma-penca'
+    : hostname === 'lojareservaink.obicha.com.br' || hostname.endsWith('.reservaink.com.br')
+      ? 'reserva-ink'
+      : null
+  if (!supplier) return
+
+  const label = (anchor.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 120) || 'Ver na loja'
+  fetch('/api/analytics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      event_type: 'product_click',
+      path: window.location.pathname,
+      label: window.location.pathname + ' — ' + label,
+      meta: { supplier, position: 'store_exit' },
+    }),
+    keepalive: true,
+  }).catch(() => {})
+}
+
 export default function PageViewTracker() {
   const pathname = usePathname()
+
+  useEffect(() => {
+    document.addEventListener('click', trackStoreExit, true)
+    return () => document.removeEventListener('click', trackStoreExit, true)
+  }, [])
 
   useEffect(() => {
     if (hasAnalyticsConsent()) track(pathname)
