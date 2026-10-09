@@ -78,6 +78,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
   const [currentSlide, setCurrentSlide] = useState(0)
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [colOpen, setColOpen] = useState(false)
   const [active, setActive] = useState('hero')
 
   // Ordem previsível: destacados pelo administrador primeiro; depois o restante na ordem do catálogo
@@ -176,6 +177,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .sheet-head { display:flex; align-items:center; justify-content:space-between; padding:0 1.2rem .6rem; font-family:var(--font-bebas); letter-spacing:4px; color:var(--gold); }
         .sheet a { display:block; padding:.95rem 1.4rem; color:rgba(242,235,217,.85); text-decoration:none; font-family:var(--font-bebas); font-size:1.05rem; letter-spacing:2.5px; text-transform:uppercase; border-left:3px solid transparent; }
         .sheet a:hover { color:var(--gold); border-left-color:var(--gold); background:rgba(212,168,67,.06); }
+        .sheet a.sheet-all { margin-top:.4rem; border-top:1px solid rgba(212,168,67,.2); color:var(--gold); }
         .hero-link { display:inline-block; margin-left:1.6rem; color:rgba(242,235,217,.65); font-family:var(--font-dm); font-size:.9rem; text-decoration:underline; text-underline-offset:4px; transition:color .25s; }
         .hero-link:hover { color:var(--gold); }
         .variant-chip { display:flex; flex-direction:column; align-items:center; gap:1px; padding:.35rem .75rem; background:var(--red); color:var(--creme); text-decoration:none; border-radius:2px; transition:background .3s,color .3s; }
@@ -253,12 +255,13 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             </NavDropdown>
           )}
           {slides.length > 0 && (
-            <a href="#destaques" className={`topnav-link ${active === 'destaques' ? 'active' : ''}`} aria-current={active === 'destaques' ? 'true' : undefined}>Novidades</a>
+            <a href="#destaques" className={`topnav-link ${active === 'destaques' ? 'active' : ''}`} aria-current={active === 'destaques' ? 'true' : undefined}>Destaques</a>
           )}
           <NavDropdown label="Sobre Nós" active={['manifesto', 'compromissos', 'amargen'].includes(active)}>
-            {ABOUT_LINKS.slice(0, 6).map(([href, label]) => <a key={href} href={href}>{label}</a>)}
-            <hr />
-            {ABOUT_LINKS.slice(6).map(([href, label]) => <a key={href} href={href}>{label}</a>)}
+            {ABOUT_LINKS.slice(0, 4).map(([href, label]) => <a key={href} href={href}>{label}</a>)}
+          </NavDropdown>
+          <NavDropdown label="Mais" active={false}>
+            {ABOUT_LINKS.slice(4).map(([href, label]) => <a key={href} href={href}>{label}</a>)}
           </NavDropdown>
           <button type="button" className="topnav-link" onClick={openSearch} aria-label="Buscar produtos">
             <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13.5 13.5L17 17"/></svg>Busca
@@ -274,7 +277,17 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         </div>
       </header>
 
-      {menuOpen && <MoreSheet onClose={() => setMenuOpen(false)} />}
+      {menuOpen && (
+        <MoreSheet title="Menu" onClose={() => setMenuOpen(false)}>
+          {ABOUT_LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}
+        </MoreSheet>
+      )}
+      {colOpen && (
+        <MoreSheet title="Escolha uma coleção" onClose={() => setColOpen(false)}>
+          {collectionList.map(c => <a key={c.id} href={`/colecao/${c.slug}`}>{c.name}</a>)}
+          <a href="#produtos" className="sheet-all">Ver todos os produtos</a>
+        </MoreSheet>
+      )}
 
       <nav className="bottombar" aria-label="Navegação rápida">
         <a href="#hero" className={active === 'hero' || active === 'destaques' ? 'active' : ''}>
@@ -284,9 +297,9 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7l2-3h8l2 3"/><path d="M3 7h14v10H3z"/><path d="M8 7v2a2 2 0 004 0V7"/></svg>Produtos
         </a>
         {collectionList.length > 0 && (
-          <a href="#colecoes">
+          <button type="button" onClick={() => setColOpen(true)} aria-haspopup="dialog" aria-expanded={colOpen}>
             <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="6" height="6"/><rect x="11" y="3" width="6" height="6"/><rect x="3" y="11" width="6" height="6"/><rect x="11" y="11" width="6" height="6"/></svg>Coleções
-          </a>
+          </button>
         )}
         <button type="button" onClick={() => setMenuOpen(true)} aria-haspopup="dialog" aria-expanded={menuOpen}>
           <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1.2"/><circle cx="10" cy="10" r="1.2"/><circle cx="15.5" cy="10" r="1.2"/></svg>Mais
@@ -662,7 +675,7 @@ function NavDropdown({ label, active, children }: { label: string; active: boole
 }
 
 // Menu "Mais" (celular): folha inferior com foco preso, Esc fecha e devolve o foco
-function MoreSheet({ onClose }: { onClose: () => void }) {
+function MoreSheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -686,14 +699,14 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
-      <div className="sheet" ref={ref} role="dialog" aria-modal="true" aria-label="Menu" onKeyDown={onKeyDown} onClick={e => { if ((e.target as HTMLElement).closest('a')) onClose() }}>
+      <div className="sheet" ref={ref} role="dialog" aria-modal="true" aria-label={title} onKeyDown={onKeyDown} onClick={e => { if ((e.target as HTMLElement).closest('a')) onClose() }}>
         <div className="sheet-head">
-          <span>MENU</span>
+          <span>{title.toUpperCase()}</span>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar menu">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>
           </button>
         </div>
-        {ABOUT_LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}
+        {children}
       </div>
     </>
   )
