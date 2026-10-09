@@ -6,7 +6,7 @@ import {homeMarkup} from './home-markup'
 import {loadScript} from './scripts'
 import {socialDefaults,socialUrl} from './PublicShell'
 function safeLink(value:string|null){try{return value&&new URL(value).protocol==='https:'?value:undefined}catch{return undefined}}
-function cleanPrice(value:unknown){const text=String(value??'').trim();return text && !/^R\\$\\s*$/.test(text) ? text : null}
+function cleanPrice(value:unknown){const text=String(value??'').trim();return text && !/^R\$\s*$/.test(text) ? text : null}
 export default function Vitrine({products,content,posts,highlights,social,pins,config}:{products:Design[];content:HomeContent&{preview?:boolean};posts:any[];highlights:any[];social:any[];pins:any[];config:Record<string,string>}){
  const root=useRef<HTMLDivElement>(null);const [error,setError]=useState('');
  useEffect(()=>{let cancelled=false,dispose:(()=>void)|undefined;
