@@ -41,6 +41,7 @@ function track(pathname: string) {
 // Track exits to fulfillment partners across all storefront pages.
 // Existing tracked links opt out to avoid double counting.
 function trackStoreExit(event: MouseEvent) {
+  if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) return
   if (!hasAnalyticsConsent()) return
   const target = event.target
   if (!(target instanceof Element)) return
