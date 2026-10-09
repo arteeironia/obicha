@@ -338,7 +338,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                         <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
                           {variants.map((v, i) => (
                             <div key={i} className="variant-badge-wrap" style={{ position:'relative', display:'inline-block' }}>
-                              <a href={v.link || p.link} target="_blank"
+                              <a href={v.link || p.link} target="_blank" data-analytics-tracked
                                 onClick={() => trackProductClick(`${p.name} — ${v.type}`, { supplier: VARIANT_SUPPLIER_MAP[v.type] || p.supplier || undefined, collection: p.collections?.[0]?.slug, position: 'landing_grid' })}
                                 style={{ display:'block', padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
                                 onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
@@ -357,7 +357,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                     return (
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                         <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                        <a href={p.link} target="_blank" onClick={() => trackProductClick(p.name, { supplier: p.supplier || undefined, collection: p.collections?.[0]?.slug, position: 'landing_grid' })} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                        <a href={p.link} target="_blank" data-analytics-tracked onClick={() => trackProductClick(p.name, { supplier: p.supplier || undefined, collection: p.collections?.[0]?.slug, position: 'landing_grid' })} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
                           onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
                           onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
                         >Ver na loja</a>
