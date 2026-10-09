@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Bebas_Neue, Playfair_Display, DM_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
 import PageViewTracker from '@/components/PageViewTracker'
@@ -9,6 +9,9 @@ import './globals.css'
 const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--font-bebas', display: 'swap' })
 const playfairDisplay = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair', display: 'swap' })
 const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm', display: 'swap' })
+
+// viewport-fit=cover permite respeitar a área segura (env(safe-area-inset-*)) no celular
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }
 
 export const metadata: Metadata = {
   title: 'Ô bicha! — Camisetas LGBT, Gay e Queer com Orgulho',

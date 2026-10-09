@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { sendEvent } from '@/lib/analytics-client'
 
@@ -18,6 +18,29 @@ interface Props {
   siteConfig: Record<string, string>
   highlights: Highlight[]
   categories: Category[]
+}
+
+const ABOUT_LINKS: [string, string][] = [
+  ['#manifesto', 'Manifesto'], ['#compromissos', 'Nossa Missão'], ['#amargen', 'Nossa Causa'],
+  ['/projeto-social', 'Projeto Social'], ['/parcerias', 'Parcerias'], ['/blog', 'Blog'],
+  ['/respira', 'Respira'], ['/quiz', 'Quiz'], ['#social', 'Redes sociais'],
+]
+
+// "R$ 114,90" -> 114.9 (NaN se não houver preço legível)
+function priceNum(s?: string | null) {
+  if (!s) return NaN
+  return parseFloat(String(s).replace(/[^\d,]/g, '').replace(',', '.'))
+}
+
+function supplierLabel(s?: string | null) {
+  if (!s) return null
+  if (/penca/i.test(s)) return 'Uma Penca'
+  if (/reserva/i.test(s)) return 'Reserva Ink'
+  return null
+}
+
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 const platformLabel = (p: string) => ({ instagram: 'INSTAGRAM', tiktok: 'TIKTOK' }[p] || p.toUpperCase())
@@ -52,15 +75,23 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
   const whatsappUrl = siteConfig.whatsapp_url || 'https://wa.me/5519982925769'
 
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [search, setSearch] = useState('')
-  const [displayProducts, setDisplayProducts] = useState(products)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [active, setActive] = useState('hero')
 
-  // Embaralha a ordem dos produtos só depois de montado no navegador — cada visita mostra uma ordem diferente,
-  // sem causar erro de hidratação (o servidor e o primeiro render do cliente continuam iguais)
-  useEffect(() => {
-    setDisplayProducts([...products].sort(() => Math.random() - 0.5))
+  // Ordem previsível: destacados pelo administrador primeiro; depois o restante na ordem do catálogo
+  // (sort estável — não há dado confiável de "lançamento", então não se inventa essa categoria)
+  const displayProducts = useMemo(
+    () => [...products].sort((a, b) => Number(!!b.featured) - Number(!!a.featured)),
+    [products]
+  )
+
+  // Coleções existentes (somente as que têm produtos), para o menu e a faixa do celular
+  const collectionList = useMemo(() => {
+    const m = new Map<number, { id: number; name: string; slug: string }>()
+    products.forEach(p => (p.collections || []).forEach(c => { if (c.slug && !m.has(c.id)) m.set(c.id, c) }))
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
   }, [products])
 
   const catLabel = (cat: string) => categories.find(c => c.value === cat)?.label || cat
@@ -91,28 +122,82 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
     return () => observer.disconnect()
   }, [])
 
+  // Destaque discreto da seção ativa no menu
+  useEffect(() => {
+    const ids = ['hero', 'destaques', 'colecoes', 'produtos', 'manifesto', 'compromissos', 'amargen', 'social']
+    const els = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[]
+    if (!('IntersectionObserver' in window)) return
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id === 'colecoes' ? 'produtos' : e.target.id) })
+    }, { rootMargin: '-25% 0px -65% 0px' })
+    els.forEach(el => io.observe(el))
+    return () => io.disconnect()
+  }, [])
+
+  function openSearch() {
+    setMenuOpen(false)
+    const el = document.getElementById('busca-produtos') as HTMLInputElement | null
+    if (!el) return
+    const reduce = prefersReducedMotion()
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+    window.setTimeout(() => el.focus({ preventScroll: true }), reduce ? 0 : 450)
+  }
+
   return (
     <>
       <style>{`
-        :root { --creme:#F2EBD9; --navy:#1A2744; --red:#C0281C; --red-deep:#8B1A10; --gold:#D4A843; --sidebar:220px; }
+        :root { --creme:#F2EBD9; --navy:#1A2744; --red:#C0281C; --red-deep:#8B1A10; --gold:#D4A843; }
         *, *::before, *::after { box-sizing: border-box; }
         html, body { margin:0; padding:0; overflow-x:hidden; }
-        .sidebar { position:fixed; top:0; left:0; bottom:0; width:var(--sidebar); background:rgba(15,26,46,.97); border-right:1px solid rgba(212,168,67,.2); display:flex; flex-direction:column; z-index:200; backdrop-filter:blur(12px); }
-        .sidebar-logo { padding:1.8rem 1.5rem 1.5rem; border-bottom:1px solid rgba(212,168,67,.15); }
-        .sidebar-logo img { width:100%; max-width:160px; height:auto; display:block; }
-        .sidebar-nav { flex:1; padding:2rem 0; display:flex; flex-direction:column; gap:.3rem; overflow-y:auto; min-height:0; }
-        .sidebar-nav::-webkit-scrollbar { width:4px; }
-        .sidebar-nav::-webkit-scrollbar-thumb { background:rgba(212,168,67,.3); border-radius:2px; }
-        .sidebar-link { display:flex; align-items:center; gap:.8rem; padding:.75rem 1.5rem; color:rgba(242,235,217,.55); text-decoration:none; font-family:var(--font-bebas); font-size:.95rem; letter-spacing:2.5px; text-transform:uppercase; border-left:3px solid transparent; transition:all .25s; }
-        .sidebar-link:hover { color:var(--gold); border-left-color:var(--gold); background:rgba(212,168,67,.06); }
-        .sidebar-link .sl-icon { display:flex; align-items:center; width:20px; flex-shrink:0; opacity:.7; transition:opacity .25s; }
-        .sidebar-link:hover .sl-icon { opacity:1; }
-        .sidebar-link .sl-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
-        .main-content { margin-left:var(--sidebar); }
-        .hamburger { display:none; position:fixed; top:1rem; left:1rem; z-index:300; background:rgba(15,26,46,.95); border:1px solid rgba(212,168,67,.3); width:44px; height:44px; align-items:center; justify-content:center; cursor:pointer; flex-direction:column; gap:5px; padding:10px; }
-        .hamburger span { display:block; width:22px; height:2px; background:var(--gold); transition:all .3s; }
-        .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:199; }
-        @media(max-width:900px) { .sidebar { transform:translateX(-100%); transition:transform .3s; } .sidebar.open { transform:translateX(0); } .sidebar-overlay.open { display:block; } .main-content { margin-left:0; } .hamburger { display:flex; } }
+        .main-content { min-width:0; }
+        section[id], #colecoes { scroll-margin-top:72px; }
+        .topbar { position:sticky; top:0; z-index:200; height:64px; display:flex; align-items:center; gap:2rem; padding:0 clamp(1rem,3vw,2.5rem); background:rgba(15,26,46,.97); border-bottom:1px solid rgba(212,168,67,.2); backdrop-filter:blur(12px); }
+        .topbar-logo { display:flex; align-items:center; flex-shrink:0; }
+        .topbar-logo img { height:38px; width:auto; display:block; }
+        .topnav { display:flex; align-items:center; gap:.4rem; margin-left:auto; }
+        .topnav-link { position:relative; display:inline-flex; align-items:center; gap:.4rem; padding:.5rem .9rem; background:none; border:none; cursor:pointer; color:rgba(242,235,217,.65); text-decoration:none; font-family:var(--font-bebas); font-size:1rem; letter-spacing:2.5px; text-transform:uppercase; transition:color .25s; }
+        .topnav-link::after { content:''; position:absolute; left:.9rem; right:.9rem; bottom:.15rem; height:2px; background:var(--gold); transform:scaleX(0); transition:transform .25s; }
+        .topnav-link:hover, .topnav-link.active, .topnav-link[aria-expanded="true"] { color:var(--gold); }
+        .topnav-link.active::after, .topnav-link:hover::after { transform:scaleX(1); }
+        .topnav-link svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+        .topnav-menu { position:relative; }
+        .topnav-panel { position:absolute; top:calc(100% + 4px); right:0; min-width:240px; max-height:70vh; overflow-y:auto; padding:.5rem 0; background:rgba(15,26,46,.99); border:1px solid rgba(212,168,67,.3); box-shadow:0 16px 32px rgba(0,0,0,.45); z-index:250; }
+        .topnav-panel a { display:block; padding:.65rem 1.4rem; color:rgba(242,235,217,.75); text-decoration:none; font-family:var(--font-dm); font-size:.9rem; transition:background .2s,color .2s; }
+        .topnav-panel a:hover { background:rgba(212,168,67,.08); color:var(--gold); }
+        .topnav-panel hr { border:none; border-top:1px solid rgba(212,168,67,.15); margin:.4rem 0; }
+        .topbar-actions { display:none; margin-left:auto; gap:.4rem; }
+        .icon-btn { width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:none; border:1px solid rgba(212,168,67,.3); color:var(--gold); cursor:pointer; }
+        .icon-btn svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+        .topbar a:focus-visible, .topbar button:focus-visible, .bottombar a:focus-visible, .bottombar button:focus-visible, .sheet a:focus-visible, .sheet button:focus-visible, .col-chip:focus-visible { outline:2px solid var(--gold); outline-offset:3px; }
+        .bottombar { display:none; }
+        .col-strip { display:none; }
+        .sheet-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:400; }
+        .sheet { position:fixed; left:0; right:0; bottom:0; max-height:85vh; overflow-y:auto; z-index:401; background:rgba(15,26,46,.99); border-top:2px solid var(--gold); padding:1rem 0 calc(1.2rem + env(safe-area-inset-bottom)); }
+        .sheet-head { display:flex; align-items:center; justify-content:space-between; padding:0 1.2rem .6rem; font-family:var(--font-bebas); letter-spacing:4px; color:var(--gold); }
+        .sheet a { display:block; padding:.95rem 1.4rem; color:rgba(242,235,217,.85); text-decoration:none; font-family:var(--font-bebas); font-size:1.05rem; letter-spacing:2.5px; text-transform:uppercase; border-left:3px solid transparent; }
+        .sheet a:hover { color:var(--gold); border-left-color:var(--gold); background:rgba(212,168,67,.06); }
+        .hero-link { display:inline-block; margin-left:1.6rem; color:rgba(242,235,217,.65); font-family:var(--font-dm); font-size:.9rem; text-decoration:underline; text-underline-offset:4px; transition:color .25s; }
+        .hero-link:hover { color:var(--gold); }
+        .variant-chip { display:flex; flex-direction:column; align-items:center; gap:1px; padding:.35rem .75rem; background:var(--red); color:var(--creme); text-decoration:none; border-radius:2px; transition:background .3s,color .3s; }
+        .variant-chip .vc-type { font-family:var(--font-bebas); letter-spacing:1px; font-size:.78rem; line-height:1.1; white-space:nowrap; }
+        .variant-chip .vc-price { font-family:var(--font-dm); font-size:.72rem; opacity:.9; line-height:1.1; white-space:nowrap; }
+        .variant-chip:hover { background:var(--gold); color:var(--navy); }
+        .col-chip { flex:0 0 auto; padding:.55rem 1rem; border:1px solid rgba(212,168,67,.35); color:var(--creme); text-decoration:none; font-family:var(--font-bebas); letter-spacing:2px; font-size:.85rem; text-transform:uppercase; white-space:nowrap; }
+        .col-chip:hover { border-color:var(--gold); color:var(--gold); }
+        @media(max-width:900px) {
+          .topbar { height:56px; gap:1rem; }
+          .topbar-logo img { height:32px; }
+          .topnav { display:none; }
+          .topbar-actions { display:flex; }
+          section[id], #colecoes { scroll-margin-top:68px; }
+          .main-content { padding-bottom:calc(64px + env(safe-area-inset-bottom)); }
+          .bottombar { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:150; padding-bottom:env(safe-area-inset-bottom); background:rgba(15,26,46,.98); border-top:1px solid rgba(212,168,67,.3); backdrop-filter:blur(12px); }
+          .bottombar a, .bottombar button { flex:1; min-height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:none; border:none; cursor:pointer; color:rgba(242,235,217,.6); text-decoration:none; font-family:var(--font-bebas); font-size:.78rem; letter-spacing:2px; text-transform:uppercase; }
+          .bottombar svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+          .bottombar .active { color:var(--gold); }
+          .col-strip { display:flex; gap:.6rem; overflow-x:auto; max-width:100%; padding:0 0 .6rem; margin:0 0 1.2rem; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+        }
+        @media(prefers-reduced-motion: reduce) { .topnav-link::after, .variant-chip, .product-card { transition:none; } }
         .reveal { opacity:0; transform:translateY(30px); transition:opacity .7s ease,transform .7s ease; }
         .reveal.visible { opacity:1; transform:translateY(0); }
         .reveal.no-observe { opacity:1; transform:none; }
@@ -136,8 +221,6 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         .product-card-img-wrap { position:relative; cursor:zoom-in; overflow:hidden; }
         .product-card-img-wrap img { transition:transform .4s ease; }
         .product-card-img-wrap:hover img { transform:scale(1.06); }
-        .variant-price-tooltip { opacity:0; transition:opacity .2s; }
-        .variant-badge-wrap:hover .variant-price-tooltip, .variant-badge-wrap:active .variant-price-tooltip { opacity:1; }
         .social-card { background:rgba(255,255,255,.03); border:1px solid rgba(212,168,67,.15); border-radius:4px; overflow:hidden; min-height:480px; contain:layout style; }
         .social-card blockquote { min-height:440px; }
         .commitment-card { background:var(--navy); color:var(--creme); padding:2.5rem 2rem; border-radius:4px; border-top:3px solid var(--gold); transition:transform .3s; position:relative; overflow:hidden; }
@@ -158,72 +241,75 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
         {lightboxImg && <img src={lightboxImg} alt="Produto" onClick={e => e.stopPropagation()} />}
       </div>
 
-      <button className="hamburger" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Menu">
-        <span /><span /><span />
-      </button>
-      <div className={`sidebar-overlay ${mobileMenuOpen ? 'open' : ''}`} onClick={() => setMobileMenuOpen(false)} />
-
-      <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
-        <div className="sidebar-logo">
-          <a href="#hero" onClick={() => setMobileMenuOpen(false)}>
-            <img src="/Logo_-_O_Bicha.png" alt="Ô bicha!" />
-          </a>
-        </div>
-        <nav className="sidebar-nav">
-          {[['#manifesto','Manifesto'],['#produtos','Produtos'],['#compromissos','Missão'],['#amargen','Causa'],['#social','Redes']].map(([href, label]) => (
-            <a key={href} href={href} className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
-              <span className="sl-icon">
-                <svg viewBox="0 0 20 20">
-                  {href === '#manifesto' && <path d="M3 5h14M3 9h10M3 13h12M3 17h8"/>}
-                  {href === '#produtos' && <><path d="M4 7l2-3h8l2 3"/><path d="M3 7h14v10H3z"/><path d="M8 7v2a2 2 0 004 0V7"/></>}
-                  {href === '#compromissos' && <><circle cx="10" cy="10" r="7"/><path d="M7 10l2 2 4-4"/></>}
-                  {href === '#amargen' && <path d="M10 17S3 12.5 3 7.5A4 4 0 0110 5a4 4 0 017 2.5C17 12.5 10 17 10 17z"/>}
-                  {href === '#social' && <><circle cx="5" cy="10" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="15" cy="15" r="2"/><path d="M7 9l6-3M7 11l6 3"/></>}
-                </svg>
-              </span>
-              {label}
-            </a>
-          ))}
-          <a href="/blog" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
-            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M4 4h12v2H4zM4 8h8v2H4zM4 12h10v2H4zM4 16h6v2H4z"/></svg></span>
-            Blog
-          </a>
-          <a href="/parcerias" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
-            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 15a4 4 0 00-8 0v1h8v-1zM18 17v-1a3 3 0 00-2-2.83M4 14.17A3 3 0 002 17v1"/></svg></span>
-            Parcerias
-          </a>
-          <a href="/projeto-social" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
-            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 17S3 12.5 3 7.5A4 4 0 0110 5a4 4 0 017 2.5C17 12.5 10 17 10 17z"/><path d="M10 9v4M8 11h4"/></svg></span>
-            Projeto Social
-          </a>
-          <a href="/respira" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
-            <span className="sl-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M7 10c0-1.7 1.3-3 3-3s3 1.3 3 3-1.3 3-3 3"/></svg></span>
-            Respira
-          </a>
-          <a href="/quiz" className="sidebar-link" onClick={() => setMobileMenuOpen(false)}>
-            <span className="sl-icon"><svg viewBox="0 0 20 20"><path d="M10 3a7 7 0 100 14 7 7 0 000-14z"/><path d="M8 8a2 2 0 114 0c0 1.5-2 1.5-2 3"/><circle cx="10" cy="14.5" r=".3" fill="currentColor"/></svg></span>
-            Quiz
-          </a>
+      <header className="topbar">
+        <a href="#hero" className="topbar-logo" aria-label="Ô bicha! — início">
+          <img src="/Logo_-_O_Bicha.png" alt="Ô bicha!" />
+        </a>
+        <nav className="topnav" aria-label="Principal">
+          <a href="#produtos" className={`topnav-link ${active === 'produtos' ? 'active' : ''}`} aria-current={active === 'produtos' ? 'true' : undefined}>Produtos</a>
+          {collectionList.length > 0 && (
+            <NavDropdown label="Coleções" active={false}>
+              {collectionList.map(c => <a key={c.id} href={`/colecao/${c.slug}`}>{c.name}</a>)}
+            </NavDropdown>
+          )}
+          {slides.length > 0 && (
+            <a href="#destaques" className={`topnav-link ${active === 'destaques' ? 'active' : ''}`} aria-current={active === 'destaques' ? 'true' : undefined}>Novidades</a>
+          )}
+          <NavDropdown label="Sobre Nós" active={['manifesto', 'compromissos', 'amargen'].includes(active)}>
+            {ABOUT_LINKS.slice(0, 6).map(([href, label]) => <a key={href} href={href}>{label}</a>)}
+            <hr />
+            {ABOUT_LINKS.slice(6).map(([href, label]) => <a key={href} href={href}>{label}</a>)}
+          </NavDropdown>
+          <button type="button" className="topnav-link" onClick={openSearch} aria-label="Buscar produtos">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13.5 13.5L17 17"/></svg>Busca
+          </button>
         </nav>
-      </aside>
+        <div className="topbar-actions">
+          <button type="button" className="icon-btn" onClick={openSearch} aria-label="Buscar produtos">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13.5 13.5L17 17"/></svg>
+          </button>
+          <button type="button" className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="Abrir menu completo" aria-haspopup="dialog" aria-expanded={menuOpen}>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
+          </button>
+        </div>
+      </header>
+
+      {menuOpen && <MoreSheet onClose={() => setMenuOpen(false)} />}
+
+      <nav className="bottombar" aria-label="Navegação rápida">
+        <a href="#hero" className={active === 'hero' || active === 'destaques' ? 'active' : ''}>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9l7-6 7 6v8H3z"/><path d="M8 17v-5h4v5"/></svg>Início
+        </a>
+        <a href="#produtos" className={active === 'produtos' ? 'active' : ''}>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7l2-3h8l2 3"/><path d="M3 7h14v10H3z"/><path d="M8 7v2a2 2 0 004 0V7"/></svg>Produtos
+        </a>
+        {collectionList.length > 0 && (
+          <a href="#colecoes">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="6" height="6"/><rect x="11" y="3" width="6" height="6"/><rect x="3" y="11" width="6" height="6"/><rect x="11" y="11" width="6" height="6"/></svg>Coleções
+          </a>
+        )}
+        <button type="button" onClick={() => setMenuOpen(true)} aria-haspopup="dialog" aria-expanded={menuOpen}>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1.2"/><circle cx="10" cy="10" r="1.2"/><circle cx="15.5" cy="10" r="1.2"/></svg>Mais
+        </button>
+      </nav>
 
       <div className="main-content">
-        <section id="hero" style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden', background:'var(--navy)' }}>
+        <section id="hero" style={{ minHeight:'clamp(380px,62vh,640px)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden', background:'var(--navy)' }}>
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
             {[300,500,700,900,1100].map((size,i) => (
               <div key={size} className="ring" style={{ width:size, height:size, animationDelay:`${i*0.5}s`, borderColor:i%2===1?'rgba(192,40,28,.1)':undefined }} />
             ))}
           </div>
-          <div className="hero-content" style={{ position:'relative', zIndex:2, textAlign:'center', padding:'2rem' }}>
+          <div className="hero-content" style={{ position:'relative', zIndex:2, textAlign:'center', padding:'1.5rem 1.2rem' }}>
             <div style={{ fontFamily:'var(--font-bebas)', letterSpacing:'6px', fontSize:'.9rem', color:'var(--gold)', marginBottom:'1rem', display:'flex', alignItems:'center', justifyContent:'center', gap:'1rem' }}>
               <span style={{ color:'var(--red)', fontSize:'.7rem' }}>★</span>Camisetas com Orgulho<span style={{ color:'var(--red)', fontSize:'.7rem' }}>★</span>
             </div>
-            <img src="/banner.png" alt="Ô bicha!" style={{ maxWidth:'min(680px,88vw)', width:'100%', borderRadius:4, animation:'banner-glow 3s ease-in-out infinite alternate', marginBottom:'2rem' }} />
-            <p style={{ fontFamily:'var(--font-playfair)', fontStyle:'italic', fontSize:'clamp(1.2rem,3vw,1.8rem)', color:'var(--creme)', marginBottom:'2.5rem', opacity:.9 }}>
+            <img src="/banner.png" alt="Ô bicha!" style={{ maxWidth:'min(680px,88vw)', width:'100%', borderRadius:4, animation:'banner-glow 3s ease-in-out infinite alternate', marginBottom:'1.2rem' }} />
+            <p style={{ fontFamily:'var(--font-playfair)', fontStyle:'italic', fontSize:'clamp(1.2rem,3vw,1.8rem)', color:'var(--creme)', marginBottom:'1.5rem', opacity:.9 }}>
               Desde sempre, <strong style={{ color:'var(--gold)', fontStyle:'normal' }}>um grito de liberdade.</strong>
             </p>
             <a href="#produtos" className="btn-primary">Ver Estampas</a>
-            <a href="#manifesto" className="btn-secondary">Nossa História</a>
+            <a href="#manifesto" className="hero-link">Nossa História</a>
           </div>
         </section>
 
@@ -289,8 +375,15 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
           </div>
 
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'1.2rem', marginBottom:'2rem' }}>
+            {collectionList.length > 0 && (
+              <nav id="colecoes" className="col-strip" aria-label="Coleções" style={{ width:'100%' }}>
+                {collectionList.map(c => <a key={c.id} href={`/colecao/${c.slug}`} className="col-chip">{c.name}</a>)}
+              </nav>
+            )}
             <input
-              type="text"
+              id="busca-produtos"
+              type="search"
+              aria-label="Buscar produto"
               placeholder="Buscar produto..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -323,35 +416,54 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                     let variants: any[] = p.manual_variants
                     if (typeof variants === 'string') { try { variants = JSON.parse(variants) } catch { variants = [] } }
                     if (!Array.isArray(variants)) variants = []
+                    const detailLink = p.slug ? (
+                      <Link href={`/produtos/${p.slug}`} style={{ fontSize:'.75rem', color:'var(--gold)', textDecoration:'underline', textUnderlineOffset:3, whiteSpace:'nowrap' }} aria-label={`Ver detalhes de ${p.name}`}>Ver detalhes</Link>
+                    ) : null
                     if (variants.length > 0) {
+                      // Preço inicial = menor preço entre as variantes que têm preço
+                      const priced = variants.filter(v => !Number.isNaN(priceNum(v.price)))
+                      const from = priced.length ? priced.reduce((m, v) => (priceNum(v.price) < priceNum(m.price) ? v : m)).price : null
+                      const partners = Array.from(new Set(variants.map(v => supplierLabel((v.type && VARIANT_SUPPLIER_MAP[v.type]) || p.supplier || v.link || p.link)).filter(Boolean)))
                       return (
-                        <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
-                          {variants.map((v, i) => (
-                            <div key={i} className="variant-badge-wrap" style={{ position:'relative', display:'inline-block' }}>
-                              <a href={v.link || p.link} target="_blank" data-analytics-tracked
+                        <>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'.6rem', marginBottom:'.7rem' }}>
+                            <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.75)' }}>{from ? <>A partir de <strong style={{ color:'var(--gold)' }}>{from}</strong></> : 'Escolha o modelo'}</span>
+                            {detailLink}
+                          </div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem' }}>
+                            {variants.map((v, i) => (
+                              <a key={i} href={v.link || p.link} target="_blank" rel="noopener" data-analytics-tracked className="variant-chip"
+                                aria-label={`${v.type}${v.price ? ', ' + v.price : ''} — abre a loja parceira`}
                                 onClick={() => trackProductClick(`${p.name} — ${v.type}`, { supplier: VARIANT_SUPPLIER_MAP[v.type] || p.supplier || undefined, collection: p.collections?.[0]?.slug, position: 'landing_grid' })}
-                                style={{ display:'block', padding:'.3rem .7rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', textDecoration:'none', borderRadius:2, transition:'background .3s', whiteSpace:'nowrap' }}
-                                onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
-                                onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
-                              >{v.type}</a>
-                              {v.price && (
-                                <span className="variant-price-tooltip" style={{ position:'absolute', bottom:'calc(100% + 6px)', left:'50%', transform:'translateX(-50%)', background:'var(--navy)', border:'1px solid var(--gold)', color:'var(--gold)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.75rem', padding:'.3rem .6rem', borderRadius:2, whiteSpace:'nowrap', pointerEvents:'none', zIndex:5 }}>
-                                  {v.price}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                              >
+                                <span className="vc-type">{v.type}</span>
+                                {v.price && <span className="vc-price">{v.price}</span>}
+                              </a>
+                            ))}
+                          </div>
+                          <p style={{ margin:'.6rem 0 0', fontSize:'.68rem', lineHeight:1.4, color:'rgba(242,235,217,.5)' }}>
+                            Você será direcionado à loja parceira{partners.length ? ` (${partners.join(' e ')})` : ''} para finalizar o pedido.
+                          </p>
+                        </>
                       )
                     }
+                    const single = supplierLabel(p.supplier || p.link)
                     return (
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                        <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                        <a href={p.link} target="_blank" data-analytics-tracked onClick={() => trackProductClick(p.name, { supplier: p.supplier || (/umapenca/i.test(p.link || '') ? 'uma-penca' : /reservaink/i.test(p.link || '') ? 'reserva-ink' : undefined), collection: p.collections?.[0]?.slug, position: 'landing_grid' })} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
-                          onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
-                          onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
-                        >Ver na loja</a>
-                      </div>
+                      <>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'.6rem' }}>
+                          <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.75)' }}>{p.price}</span>
+                          <div style={{ display:'flex', alignItems:'center', gap:'.8rem' }}>
+                            {detailLink}
+                            <a href={p.link} target="_blank" rel="noopener" data-analytics-tracked onClick={() => trackProductClick(p.name, { supplier: p.supplier || (/umapenca/i.test(p.link || '') ? 'uma-penca' : /reservaink/i.test(p.link || '') ? 'reserva-ink' : undefined), collection: p.collections?.[0]?.slug, position: 'landing_grid' })} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                              onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
+                              onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
+                            >Ver na loja</a>
+                          </div>
+                        </div>
+                        <p style={{ margin:'.6rem 0 0', fontSize:'.68rem', lineHeight:1.4, color:'rgba(242,235,217,.5)' }}>
+                          Você será direcionado à loja parceira{single ? ` (${single})` : ''} para finalizar o pedido.
+                        </p>
+                      </>
                     )
                   })()}
                   {p.collections && p.collections.length > 0 && (
@@ -513,6 +625,75 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
             <a href="/politica-de-privacidade" style={{ fontSize:'.72rem', color:'rgba(242,235,217,.3)', textDecoration:'none' }} onMouseEnter={e => (e.target as HTMLElement).style.color='var(--gold)'} onMouseLeave={e => (e.target as HTMLElement).style.color='rgba(242,235,217,.3)'}>Política de Privacidade</a>
           </div>
         </footer>
+      </div>
+    </>
+  )
+}
+
+// Item de menu com lista suspensa (padrão "disclosure": acessível por teclado e leitor de tela)
+function NavDropdown({ label, active, children }: { label: string; active: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const id = 'dd-' + label.toLowerCase().replace(/[^a-z]/g, '')
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  return (
+    <div
+      className="topnav-menu" ref={ref}
+      onMouseEnter={e => { if ((e.nativeEvent as PointerEvent).pointerType !== 'touch') setOpen(true) }}
+      onMouseLeave={() => setOpen(false)}
+      onKeyDown={e => { if (e.key === 'Escape' && open) { setOpen(false); btnRef.current?.focus() } }}
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false) }}
+    >
+      <button ref={btnRef} type="button" className={`topnav-link ${active ? 'active' : ''}`} aria-expanded={open} aria-controls={id} onClick={() => setOpen(o => !o)}>
+        {label}
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg>
+      </button>
+      {open && <div id={id} className="topnav-panel" onClick={e => { if ((e.target as HTMLElement).closest('a')) setOpen(false) }}>{children}</div>}
+    </div>
+  )
+}
+
+// Menu "Mais" (celular): folha inferior com foco preso, Esc fecha e devolve o foco
+function MoreSheet({ onClose }: { onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    ref.current?.querySelector<HTMLElement>('button, a')?.focus()
+    return () => { document.body.style.overflow = prevOverflow; opener?.focus?.() }
+  }, [])
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+    if (e.key !== 'Tab' || !ref.current) return
+    const f = Array.from(ref.current.querySelectorAll<HTMLElement>('a[href], button'))
+    if (!f.length) return
+    const first = f[0], last = f[f.length - 1]
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+
+  return (
+    <>
+      <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
+      <div className="sheet" ref={ref} role="dialog" aria-modal="true" aria-label="Menu" onKeyDown={onKeyDown} onClick={e => { if ((e.target as HTMLElement).closest('a')) onClose() }}>
+        <div className="sheet-head">
+          <span>MENU</span>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar menu">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>
+          </button>
+        </div>
+        {ABOUT_LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}
       </div>
     </>
   )
