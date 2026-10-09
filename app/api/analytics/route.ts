@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const { event_type, path, label, referrer, meta } = await request.json()
     if (!event_type) return NextResponse.json({ error: 'event_type obrigatório' }, { status: 400 })
+    if (event_type === 'pageview' && typeof path === 'string' && (path === '/admin' || path.startsWith('/admin/'))) return NextResponse.json({ ok: true })
     await sql`INSERT INTO analytics_events (event_type, path, label, referrer, meta) VALUES (${event_type}, ${path || null}, ${label || null}, ${referrer || null}, ${meta ? sql.json(meta) : null})`
     return NextResponse.json({ ok: true })
   } catch (err: any) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   const [topPages, topProducts, topReferrers, totals, dailyViews, topSuppliers, topCollections] = await Promise.all([
     sql`SELECT path, COUNT(*) as views FROM analytics_events
-        WHERE event_type = 'pageview' AND created_at >= NOW() - (${days} || ' days')::interval AND path IS NOT NULL
+        WHERE event_type = 'pageview' AND (path IS NULL OR (path <> '/admin' AND path NOT LIKE '/admin/%')) AND created_at >= NOW() - (${days} || ' days')::interval AND path IS NOT NULL AND path NOT LIKE '/admin%'
         GROUP BY path ORDER BY views DESC LIMIT 15`,
     sql`SELECT label, COUNT(*) as clicks FROM analytics_events
         WHERE event_type = 'product_click' AND created_at >= NOW() - (${days} || ' days')::interval AND label IS NOT NULL
@@ -32,16 +33,16 @@ export async function GET(request: NextRequest) {
           END as source,
           COUNT(*) as visits
         FROM analytics_events
-        WHERE event_type = 'pageview' AND created_at >= NOW() - (${days} || ' days')::interval
+        WHERE event_type = 'pageview' AND (path IS NULL OR (path <> '/admin' AND path NOT LIKE '/admin/%')) AND created_at >= NOW() - (${days} || ' days')::interval
         GROUP BY source ORDER BY visits DESC LIMIT 15`,
     sql`SELECT
-          COUNT(*) FILTER (WHERE event_type = 'pageview') as total_pageviews,
+          COUNT(*) FILTER (WHERE event_type = 'pageview' AND (path IS NULL OR (path <> '/admin' AND path NOT LIKE '/admin/%'))) as total_pageviews,
           COUNT(*) FILTER (WHERE event_type = 'product_click') as total_clicks,
-          COUNT(*) FILTER (WHERE event_type = 'pageview' AND created_at >= NOW() - INTERVAL '24 hours') as pageviews_hoje,
+          COUNT(*) FILTER (WHERE event_type = 'pageview' AND (path IS NULL OR (path <> '/admin' AND path NOT LIKE '/admin/%')) AND created_at >= NOW() - INTERVAL '24 hours') as pageviews_hoje,
           COUNT(*) FILTER (WHERE event_type = 'product_click' AND created_at >= NOW() - INTERVAL '24 hours') as clicks_hoje
         FROM analytics_events
         WHERE created_at >= NOW() - (${days} || ' days')::interval`,
-    sql`SELECT DATE(created_at) as day, COUNT(*) FILTER (WHERE event_type='pageview') as views
+    sql`SELECT DATE(created_at) as day, COUNT(*) FILTER (WHERE event_type='pageview' AND (path IS NULL OR (path <> '/admin' AND path NOT LIKE '/admin/%'))) as views
         FROM analytics_events
         WHERE created_at >= NOW() - (${days} || ' days')::interval
         GROUP BY DATE(created_at) ORDER BY day ASC`,
