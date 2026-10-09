@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { hasAnalyticsConsent } from '@/lib/cookie-consent'
+import { sendEvent } from '@/lib/analytics-client'
 
 type Product = { id: number; name: string; category: string; price: string; link: string; image_url: string | null; description: string | null; featured: boolean; collection_name: string | null; supplier: string | null; slug?: string | null; collections?: { id: number; name: string; slug: string }[]; manual_variants?: any }
 type Category = { id: number; value: string; label: string; active: boolean }
@@ -35,13 +35,7 @@ function getEmbedHTML(post: SocialPost) {
 }
 
 function trackProductClick(label: string, meta?: { collection?: string; supplier?: string; position?: string }) {
-  if (!hasAnalyticsConsent()) return
-  fetch('/api/analytics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event_type: 'product_click', label, path: typeof window !== 'undefined' ? window.location.pathname : null, meta }),
-    keepalive: true,
-  }).catch(() => {})
+  sendEvent('product_click', { path: typeof window !== 'undefined' ? window.location.pathname : '/', label: label.slice(0, 200), meta })
 }
 
 const VARIANT_SUPPLIER_MAP: Record<string, string> = {

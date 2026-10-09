@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 
-type TopItem = { path?: string; label?: string; source?: string; supplier?: string; collection?: string; views?: string; clicks?: string; visits?: string }
-type Totals = { total_pageviews: string; total_clicks: string; pageviews_hoje: string; clicks_hoje: string }
+type TopItem = { path?: string; label?: string; source?: string; supplier?: string; collection?: string; campaign?: string; views?: string; clicks?: string; visits?: string }
+type Totals = { total_pageviews: string; visitors: string; sessions: string; total_clicks: string; exits_reserva: string; exits_umapenca: string; pageviews_hoje: string; clicks_hoje: string }
 type DailyView = { day: string; views: string }
 
 const cardStyle = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,67,0.2)', borderRadius: 4 }
@@ -17,7 +17,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-function RankTable({ title, items, valueKey, labelKey }: { title: string; items: TopItem[]; valueKey: 'views' | 'clicks' | 'visits'; labelKey: 'path' | 'label' | 'source' | 'supplier' | 'collection' }) {
+function RankTable({ title, items, valueKey, labelKey }: { title: string; items: TopItem[]; valueKey: 'views' | 'clicks' | 'visits'; labelKey: 'path' | 'label' | 'source' | 'supplier' | 'collection' | 'campaign' }) {
   const max = Math.max(...items.map(i => parseInt(i[valueKey] || '0')), 1)
   return (
     <div style={cardStyle} className="p-5">
@@ -49,12 +49,17 @@ function RankTable({ title, items, valueKey, labelKey }: { title: string; items:
 
 export default function AnalyticsPage() {
   const [days, setDays] = useState(30)
-  const [data, setData] = useState<{ topPages: TopItem[]; topProducts: TopItem[]; topReferrers: TopItem[]; totals: Totals; dailyViews: DailyView[]; topSuppliers: TopItem[]; topCollections: TopItem[] } | null>(null)
+  const [data, setData] = useState<{ topPages: TopItem[]; topProducts: TopItem[]; topReferrers: TopItem[]; totals: Totals; dailyViews: DailyView[]; topSuppliers: TopItem[]; topCollections: TopItem[]; topCampaigns: TopItem[]; trackingSince: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/analytics?days=${days}`).then(r => r.json()).then(d => { setData(d); setLoading(false) })
+    setError('')
+    fetch(`/api/analytics?days=${days}`)
+      .then(r => { if (!r.ok) throw new Error(r.status === 401 ? 'Sessão expirada — entre novamente no admin.' : 'Erro ao carregar relatório.'); return r.json() })
+      .then(d => { setData(d); setLoading(false) })
+      .catch(e => { setError(e.message); setLoading(false) })
   }, [days])
 
   const maxDaily = data ? Math.max(...data.dailyViews.map(d => parseInt(d.views || '0')), 1) : 1
@@ -77,16 +82,25 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {loading || !data ? (
+      {loading ? (
         <p className="opacity-50">Carregando...</p>
+      ) : error || !data ? (
+        <p style={{ color: 'var(--red)' }}>{error || 'Sem dados.'}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <StatCard label="Visualizações" value={data.totals.total_pageviews || 0} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <StatCard label="Visitantes únicos (estimado)" value={data.totals.visitors || 0} />
+            <StatCard label="Sessões" value={data.totals.sessions || 0} />
+            <StatCard label="Visualizações de página" value={data.totals.total_pageviews || 0} />
             <StatCard label="Cliques em produtos" value={data.totals.total_clicks || 0} />
+            <StatCard label="Saídas p/ Reserva Ink" value={data.totals.exits_reserva || 0} />
+            <StatCard label="Saídas p/ Uma Penca" value={data.totals.exits_umapenca || 0} />
             <StatCard label="Visualizações hoje" value={data.totals.pageviews_hoje || 0} />
             <StatCard label="Cliques hoje" value={data.totals.clicks_hoje || 0} />
           </div>
+          <p className="text-xs opacity-40 mb-8">
+            Visitantes e sessões contam apenas quem aceitou os cookies{data.trackingSince ? `, a partir de ${new Date(data.trackingSince).toLocaleDateString('pt-BR')}` : ' (ainda sem dados)'}. Visitante único é uma estimativa por navegador/aparelho. Seus acessos de administrador não são contados.
+          </p>
 
           {data.dailyViews.length > 1 && (
             <div style={cardStyle} className="p-5 mb-8">
@@ -102,13 +116,18 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <RankTable title="Páginas mais visitadas" items={data.topPages} valueKey="views" labelKey="path" />
             <RankTable title="Produtos mais clicados" items={data.topProducts} valueKey="clicks" labelKey="label" />
-            <RankTable title="De onde vem o tráfego" items={data.topReferrers} valueKey="visits" labelKey="source" />
+            <RankTable title="De onde vem o tráfego (sessões)" items={data.topReferrers} valueKey="visits" labelKey="source" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <RankTable title="Cliques por fabricante" items={data.topSuppliers} valueKey="clicks" labelKey="supplier" />
             <RankTable title="Cliques por coleção" items={data.topCollections} valueKey="clicks" labelKey="collection" />
           </div>
+          {data.topCampaigns.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 mt-4">
+              <RankTable title="Campanhas (UTM)" items={data.topCampaigns} valueKey="visits" labelKey="campaign" />
+            </div>
+          )}
         </>
       )}
     </div>

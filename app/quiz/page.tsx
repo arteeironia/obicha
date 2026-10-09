@@ -274,7 +274,7 @@ export default function QuizPage() {
                 <p style={{ ...bebas, letterSpacing: 2, color: C.gold, fontSize: '.85rem', marginBottom: '1.5rem' }}>ESTAMPAS PRA VOCÊ</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '1rem', marginBottom: '2rem' }}>
                   {products.map((p) => (
-                    <a key={p.id} href={p.link} target="_blank" style={{ display: 'block', textDecoration: 'none', color: C.cream, background: 'rgba(255,255,255,.03)', border: `1px solid ${C.line}`, borderRadius: 4, overflow: 'hidden' }}>
+                    <a key={p.id} href={p.link} target="_blank" data-product-name={p.name} style={{ display: 'block', textDecoration: 'none', color: C.cream, background: 'rgba(255,255,255,.03)', border: `1px solid ${C.line}`, borderRadius: 4, overflow: 'hidden' }}>
                       {p.image_url && <img src={p.image_url} alt={p.name} style={{ width: '100%', aspectRatio: 1, objectFit: 'cover', display: 'block' }} />}
                       <div style={{ padding: '.7rem' }}>
                         <p style={{ fontSize: '.8rem', lineHeight: 1.3, marginBottom: '.3rem' }}>{p.name}</p>
