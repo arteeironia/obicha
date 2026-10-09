@@ -1,0 +1,18 @@
+{
+  "hero": {
+    "productId": 139,
+    "title": "Sua estampa.\nSeu jeito\nde vestir.",
+    "description": "O orgulho é seu. O estilo também.\nEncontre a estampa, escolha o modelo e compre na nossa loja parceira.",
+    "caption": "Uma faixa. Muitas histórias.",
+    "image": ""
+  },
+  "featured": [
+    139,
+    157,
+    148,
+    102,
+    152,
+    137
+  ],
+  "banners": []
+}

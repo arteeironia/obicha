@@ -45,13 +45,6 @@ const nextConfig: NextConfig = {
       ],
     },
     {
-      // Páginas principais — cache de 60 segundos no browser
-      source: '/((?!admin|api).*)',
-      headers: [
-        { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=300' },
-      ],
-    },
-    {
       // Admin e API — sem cache, com header extra de proteção
       source: '/(admin|api)/:path*',
       headers: [

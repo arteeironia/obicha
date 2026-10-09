@@ -14,13 +14,13 @@ export async function proxy(request: NextRequest) {
   }
 
   // Proteção das rotas de admin (login obrigatório)
-  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+  if ((pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) || (pathname==='/' && request.nextUrl.searchParams.get('preview')==='1')) {
     const token = request.cookies.get('admin_token')?.value
     if (!token) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
     const payload = await verifyToken(token)
-    if (!payload) {
+    if (!payload || payload.role!=='admin') {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
   }

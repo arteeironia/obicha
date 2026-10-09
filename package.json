@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "node lib/migrate.js"
+    "db:migrate": "node lib/migrate.js",
+    "test:storefront": "node scripts/validate-storefront.cjs",
+    "test:storefront:access": "node scripts/validate-storefront-access.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
