@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const { event_type, path, label, referrer, meta } = await request.json()
     if (!event_type) return NextResponse.json({ error: 'event_type obrigatório' }, { status: 400 })
     if (event_type === 'pageview' && typeof path === 'string' && (path === '/admin' || path.startsWith('/admin/'))) return NextResponse.json({ ok: true })
-    await sql`INSERT INTO analytics_events (event_type, path, label, referrer, meta) VALUES (${event_type}, ${path || null}, ${label || null}, ${referrer || null}, ${meta ? sql.json(meta) : null})`
+    await sql`INSERT INTO analytics_events (event_type, path, label, referrer, meta) VALUES (${event_type}, ${path || null}, ${label || null}, ${referrer || null}, ${meta ? JSON.stringify(meta) : null}::jsonb)`
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

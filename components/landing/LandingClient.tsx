@@ -353,7 +353,7 @@ export default function LandingClient({ products, socialPosts, pinterestPins, si
                     return (
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                         <span style={{ fontSize:'.85rem', color:'rgba(242,235,217,.6)' }}>{p.price}</span>
-                        <a href={p.link} target="_blank" data-analytics-tracked onClick={() => trackProductClick(p.name, { supplier: p.supplier || undefined, collection: p.collections?.[0]?.slug, position: 'landing_grid' })} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
+                        <a href={p.link} target="_blank" data-analytics-tracked onClick={() => trackProductClick(p.name, { supplier: p.supplier || (/umapenca/i.test(p.link || '') ? 'uma-penca' : /reservaink/i.test(p.link || '') ? 'reserva-ink' : undefined), collection: p.collections?.[0]?.slug, position: 'landing_grid' })} style={{ padding:'.4rem 1rem', background:'var(--red)', color:'var(--creme)', fontFamily:'var(--font-bebas)', letterSpacing:'1px', fontSize:'.8rem', textDecoration:'none', transition:'background .3s', borderRadius:2 }}
                           onMouseEnter={e => (e.target as HTMLElement).style.background='var(--gold)'}
                           onMouseLeave={e => (e.target as HTMLElement).style.background='var(--red)'}
                         >Ver na loja</a>
