@@ -51,7 +51,7 @@ function trackStoreExit(event: MouseEvent) {
   let destination: URL
   try { destination = new URL(anchor.href) } catch { return }
   const hostname = destination.hostname.toLowerCase()
-  const supplier = hostname === 'umapenca.com' || hostname.endsWith('.umapenca.com')
+  const supplier = hostname === 'umapenca.com' || hostname.endsWith('.umapenca.com') || hostname === 'lojaumapenca.obicha.com.br'
     ? 'uma-penca'
     : hostname === 'lojareservaink.obicha.com.br' || hostname.endsWith('.reservaink.com.br')
       ? 'reserva-ink'
