@@ -11,6 +11,7 @@ const playfairDisplay = Playfair_Display({ subsets: ['latin'], variable: '--font
 const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm', display: 'swap' })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.obicha.com.br'),
   title: 'Ô bicha! — Camisetas LGBT, Gay e Queer com Orgulho',
   description: 'Camisetas LGBT, gay, queer e alternativas feitas no Brasil. Estampas únicas com orgulho, deboche e resistência. 100% algodão sustentável, impressão DTG premium.',
   keywords: [

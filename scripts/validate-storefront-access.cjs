@@ -1,0 +1,19 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
+process.env.DATABASE_URL='postgres://test:test@127.0.0.1:5432/obicha_test';
+process.env.JWT_SECRET='local-test-only-do-not-use-in-production';
+const resolve=Module._resolveFilename;
+Module._resolveFilename=function(file,...args){return resolve.call(this,file.startsWith('@/')?path.resolve(file.replace('@/','')):file,...args)};
+require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText,file);
+const js=require.extensions['.js'];require.extensions['.js']=(module,file)=>{if(file.endsWith('/lib/storefront/cms.js'))return module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText,file);return js(module,file)};
+const {NextRequest}=require('next/server');
+const admin=require('../app/api/admin/homepage/route.ts'),homepage=require('../app/api/homepage/route.ts'),upload=require('../app/api/homepage/upload/route.ts'),settings=require('../app/api/site-config/route.ts'),{proxy}=require('../proxy.ts'),{signToken}=require('../lib/auth.ts');
+function req(url,method='GET',token='',origin='',body){const headers={};if(token)headers.cookie='admin_token='+token;if(origin)headers.origin=origin;if(body)headers['content-type']='application/json';return new NextRequest('https://www.obicha.com.br'+url,{method,headers,...(body?{body}: {})})}
+(async()=>{let checks=0;async function check(name,fn){await fn();console.log('PASS',name);checks++;}
+const adminToken=await signToken({role:'admin'}),otherToken=await signToken({role:'visitor'});
+for(const [label,handler,url,method] of [['drafts',admin.GET,'/api/admin/homepage','GET'],['editing',admin.PUT,'/api/admin/homepage','PUT'],['upload',upload.POST,'/api/homepage/upload','POST'],['old settings editing',settings.PATCH,'/api/site-config','PATCH'],['draft preview data',homepage.GET,'/api/homepage?preview=1','GET']])await check('Anonymous and non-admin requests cannot access '+label,async()=>{for(const token of ['',otherToken,'invalid-token']){const response=await handler(req(url,method,token));assert.equal(response.status,401);assert(!JSON.stringify(await response.json()).includes('draft'));}});
+for(const [label,handler,url,method] of [['draft editing',admin.PUT,'/api/admin/homepage','PUT'],['upload',upload.POST,'/api/homepage/upload','POST'],['existing settings',settings.PATCH,'/api/site-config','PATCH']])await check('Other origins cannot write '+label,async()=>{const response=await handler(req(url,method,adminToken,'https://evil.example'));assert.equal(response.status,403)});
+await check('Malformed, oversized and invalid draft commands fail before any database access',async()=>{for(const [body,status] of [['{',400],[JSON.stringify({action:'erase',revision:0}),400],['x'.repeat(50001),413]]){const response=await admin.PUT(req('/api/admin/homepage','PUT',adminToken,'https://www.obicha.com.br',body));assert.equal(response.status,status)}});
+await check('The old settings API cannot overwrite homepage drafts or revisions',async()=>{const response=await settings.PATCH(req('/api/site-config','PATCH',adminToken,'https://www.obicha.com.br',JSON.stringify({homepage_content:'{}'})));assert.equal(response.status,422)});
+await check('Private preview is blocked before the public layout and database run',async()=>{for(const token of ['',otherToken,'invalid-token']){const response=await proxy(req('/?preview=1','GET',token));assert.equal(response.status,307);assert.equal(new URL(response.headers.get('location')).pathname,'/admin/login');}});
+console.log(`${checks} access checks passed without using or connecting to production data.`);
+})().catch(e=>{console.error(e);process.exitCode=1});
