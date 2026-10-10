@@ -49,3 +49,6 @@ body.dialog-open{overflow:hidden}.obicha-theme dialog{padding:0;width:min(970px,
 .obicha-theme .product-review-panel blockquote{font-size:13px;line-height:1.7;margin:10px 0;white-space:pre-line}
 .obicha-theme .product-review-panel a{font-size:12px;text-decoration:underline}
 
+
+/* celulares estreitos (360px): o selo do hero não pode gerar rolagem horizontal */
+@media(max-width:400px){.obicha-theme .hero-stamp{right:-4px}}
