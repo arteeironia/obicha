@@ -1,0 +1,14 @@
+.page { padding: 40px 20px 48px; background: #F2EBD9; color: #1A2744; }
+.content { width: 100%; max-width: 440px; margin: 0 auto; }
+.banner { display: block; width: 100%; height: auto; margin: 0 0 24px; }
+.title { font-family: var(--font-playfair), serif; font-size: 22px; line-height: 1.3; text-align: center; margin: 0 0 24px; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+.card { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 58px; padding: 16px; border: 1px solid #bcb39f; border-radius: 4px; background: #fbf8f0; color: #1A2744; text-decoration: none; transition: border-color .2s, background .2s; }
+.card:hover { border-color: #C0281C; background: #fffdf7; }
+.card:focus-visible { outline: 3px solid #C0281C; outline-offset: 3px; }
+.icon { display: flex; align-items: center; justify-content: center; width: 24px; flex: 0 0 24px; color: #C0281C; }
+.label { min-width: 0; flex: 1; font-size: 15px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.arrow { color: #C0281C; flex-shrink: 0; }
+.signature { text-align: center; margin: 24px 0 0; font-size: 12px; color: #655e52; }
+@media (max-width: 480px) { .page { padding: 28px 20px 36px; } .title { font-size: 20px; } }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
