@@ -87,6 +87,11 @@ window.mountObichaVitrine = function(data) {
     $('size-guide').open=false;
     $('size-guide-title').textContent=`Medidas deste modelo · ${storeName(activeStore)}`;
     $('size-guide-content').innerHTML=charts?`<p>Compare com uma peça que já veste bem em você, medida deitada. Confira a tolerância e os avisos de modelagem em cada tabela.</p><p class="size-model-name">${escape(activeType)} · Tabelas da Reserva Ink</p>${activeType==='Camiseta Algodão Peruano'?'<p class="size-warning">A tabela traz um aviso específico para as cores verde musgo e oliva. Leia antes de escolher seu tamanho.</p>':''}${charts.tables.map(t=>`<figure><figcaption>${escape(t.label)}</figcaption><a href="${escape(t.image)}" target="_blank" rel="noopener" aria-label="Ampliar tabela de medidas ${escape(t.label)}"><img src="${escape(t.image)}" alt="Tabela de medidas ${escape(t.label)} para ${escape(activeType)} da Reserva Ink" loading="lazy"></a><a class="size-zoom" href="${escape(t.image)}" target="_blank" rel="noopener">Ampliar tabela ↗</a></figure>`).join('')}<p class="size-source">Referência consultada em 09/10/2026. <a href="${escape(variant.link)}" target="_blank" rel="noopener noreferrer">Confirmar as medidas deste produto na Reserva Ink ↗</a>. Confira a tabela vigente na página da peça antes de comprar.</p>`:`<p>As medidas desta peça são as da ${storeName(activeStore)}. Consulte os cortes e a tabela na página do produto escolhido.</p><a class="text-link" href="${escape(variant.link)}" target="_blank" rel="noopener noreferrer">Ver este modelo na ${storeName(activeStore)} ↗</a>`;
+    const reviewPanel=$('product-reviews');
+    const productSlugs=activeProduct.variants.filter(v=>L.supplier(v.link)==='reserva').map(v=>new URL(v.link).pathname.split('/product/')[1]);
+    const relatedReviews=activeStore==='reserva'?(data.reviews||[]).filter(r=>r.products.some(p=>productSlugs.includes(new URL(p.url).pathname.split('/product/')[1]))):[];
+    reviewPanel.hidden=!relatedReviews.length;
+    reviewPanel.innerHTML=relatedReviews.length?`<h3>Quem comprou esta estampa</h3><p>Avaliações de pedidos da Reserva Ink que incluem esta estampa.</p>${relatedReviews.map(r=>`<article><p><strong>${escape(r.author)}</strong> · ${r.rating}/5 · ${escape(r.date)}</p>${r.text?`<blockquote>${escape(r.text)}</blockquote>`:'<p>Sem comentário escrito.</p>'}<p>Produtos citados: ${r.products.map(p=>escape(p.name)).join(' · ')}</p></article>`).join('')}<a href="/avaliacoes">Ver todas as avaliações e a origem →</a>`:'';
     const price=L.price(variant.price);
     $('selected-price').textContent = price===null?'Consulte o preço na loja':L.formatPrice(price);
     $('destination-message').textContent = `Você vai abrir ${$('selected-title').textContent.toLowerCase()} desta estampa na ${storeName(activeStore)}.`;
@@ -128,3 +133,4 @@ window.mountObichaVitrine = function(data) {
   if(query.get('product')){openAnyProduct(query.get('product'));const requested=query.get('model');if(activeProduct?.variants.some(v=>v.type===requested)){activeType=requested;renderSelection();}}
   return () => {controller.abort();mountedDialog?.close();document.body.classList.remove('dialog-open');};
 };
+

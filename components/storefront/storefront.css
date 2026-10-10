@@ -40,3 +40,12 @@ body.dialog-open{overflow:hidden}.obicha-theme dialog{padding:0;width:min(970px,
 .obicha-theme .legacy-highlight-price strong{color:var(--red)}
 .obicha-theme .legacy-highlights .featured-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 @media(max-width:650px){.obicha-theme .legacy-highlights{padding-top:36px;padding-bottom:48px}.obicha-theme .legacy-highlights .featured-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.obicha-theme .legacy-highlight-copy{padding:12px}.obicha-theme .legacy-highlight-copy h3{font-size:16px}}
+
+/* Imported order reviews are shown only for the Reserva Ink selection. */
+.obicha-theme .product-review-panel{border-top:1px solid var(--line);padding:18px 0;margin:18px 0;color:var(--ink)}
+.obicha-theme .product-review-panel h3{font:600 20px var(--serif);margin:0 0 10px}
+.obicha-theme .product-review-panel p{font-size:11px;line-height:1.6;margin:0 0 9px}
+.obicha-theme .product-review-panel article{border-top:1px solid var(--line);padding:13px 0}
+.obicha-theme .product-review-panel blockquote{font-size:13px;line-height:1.7;margin:10px 0;white-space:pre-line}
+.obicha-theme .product-review-panel a{font-size:12px;text-decoration:underline}
+

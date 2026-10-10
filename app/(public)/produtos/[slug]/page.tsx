@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import postgres from 'postgres'
+import Reviews from '@/components/reviews/Reviews'
 import ZoomableProductImage from '@/components/ZoomableProductImage'
 
 export const dynamic = 'force-dynamic'
@@ -219,6 +220,8 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
+        <Reviews productLinks={variants.map(v=>v.link)}/>
+
         {(relatedProducts as any[]).length > 0 && (
           <div style={{ maxWidth: 1100 }}>
             <p style={{ fontFamily: 'var(--font-bebas)', fontSize: '.85rem', letterSpacing: '3px', color: 'var(--gold)', marginBottom: '1.5rem' }}>VOCÊ TAMBÉM PODE GOSTAR</p>
@@ -242,3 +245,4 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
     </>
   )
 }
+
