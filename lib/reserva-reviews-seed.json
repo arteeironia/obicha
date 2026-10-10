@@ -1,0 +1,83 @@
+{
+  "importedAt": "2026-10-10T18:49:39.639Z",
+  "average": 4.8,
+  "total": 4,
+  "reviews": [
+    {
+      "id": "97024",
+      "author": "Priscila M.",
+      "date": "29 de Julho de 2026",
+      "text": "",
+      "rating": 4,
+      "products": [
+        {
+          "name": "Cereal Killers",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/cereal-killers-a054207b-035a-4314-9bac-bcf0a41b1c3a"
+        }
+      ],
+      "verified": true
+    },
+    {
+      "id": "97292",
+      "author": "Fernando C.",
+      "date": "03 de Agosto de 2026",
+      "text": "",
+      "rating": 5,
+      "products": [
+        {
+          "name": "Jorge Guerreiro: Defensor do Amor & Vencedor do Dragão | Coleção Ô Bicha",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/jorge-guerreiro-defensor-do-amor-vencedor-do-dragao-colecao-o-bicha-327c376c-d518-4fea-9286-faaaa97b13c7"
+        },
+        {
+          "name": "Mentes Brilhantes Mugshots: Os Anti-Heróis do Cinema | Coleção Ô Bicha",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/mentes-brilhantes-mugshots-os-anti-herois-do-cinema-colecao-o-bicha-c0f07ab5-389b-495d-8278-85348f6cc944"
+        },
+        {
+          "name": "Serial Cleaner: The Cleanest Killer in Town | Coleção Ô Bicha",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/serial-cleaner-the-cleanest-killer-in-town-colecao-o-bicha-385bf099-1073-4efe-aab7-9fda0425d413"
+        }
+      ],
+      "verified": true
+    },
+    {
+      "id": "98126",
+      "author": "Fernando C.",
+      "date": "13 de Agosto de 2026",
+      "text": "",
+      "rating": 5,
+      "products": [
+        {
+          "name": "Cereal Killers",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/cereal-killers-16829405-6209-49b1-8cc1-35c79fbec111"
+        },
+        {
+          "name": "Jorge Guerreiro: Defensor do Amor & Vencedor do Dragão | Coleção Ô Bicha",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/jorge-guerreiro-defensor-do-amor-vencedor-do-dragao-colecao-o-bicha-327c376c-d518-4fea-9286-faaaa97b13c7"
+        }
+      ],
+      "verified": true
+    },
+    {
+      "id": "99275",
+      "author": "Sidnei C.",
+      "date": "29 de Agosto de 2026",
+      "text": "Perfeitas. Muito lindas, acabamento e caimento muito bons. As estampas são lindas, não são aquelas tipo um filme que incomodam. Tive um probleminha com uma delas, mas a loja foi super rápida em me atender e fazer a troca. Em menos de uma semana eu recebi o produto trocado.",
+      "rating": 5,
+      "products": [
+        {
+          "name": "American Leather Gothic | Coleção Ô Bicha",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/american-leather-gothic-colecao-o-bicha-4d447621-5786-4bf9-8d85-bd1a68b91304"
+        },
+        {
+          "name": "O Grito Leather Bear | Coleção Ô Bicha",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/o-grito-leather-bear-colecao-o-bicha-e9d13063-2515-43de-83c1-0d0b998047bf"
+        },
+        {
+          "name": "São Sebastião Leather Bear | Coleção Ô Bicha",
+          "url": "https://lojareservaink.obicha.com.br/obichacamisetas/product/sao-sebastiao-leather-bear-colecao-o-bicha-05507048-17e3-4902-8151-f03bb9e56ccd"
+        }
+      ],
+      "verified": true
+    }
+  ]
+}

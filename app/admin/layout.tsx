@@ -10,6 +10,7 @@ const navItems = [
   { href: '/admin/vitrine', label: 'Vitrine & campanhas', icon: '▧' },
   { href: '/admin/destaques', label: 'Destaques', icon: '✦' },
   { href: '/admin/blog', label: 'Blog', icon: '✍️' },
+  { href: '/admin/avaliacoes', label: 'Avaliações', icon: '★' },
   { href: '/admin/comentarios', label: 'Comentários', icon: '💬' },
   { href: '/admin/links', label: 'Links', icon: '🔗' },
   { href: '/admin/analytics', label: 'Analytics', icon: '📈' },
@@ -92,3 +93,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   )
 }
+

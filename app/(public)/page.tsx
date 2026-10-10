@@ -6,6 +6,8 @@ import {resolveContent} from '@/lib/storefront/content'
 import {isAdmin} from '@/lib/admin-access'
 import {redirect} from 'next/navigation'
 import Vitrine from '@/components/storefront/Vitrine'
+import Reviews from '@/components/reviews/Reviews'
+import {readReviews} from '@/lib/reviews-store'
 export const dynamic='force-dynamic'
 export async function generateMetadata({searchParams}:{searchParams:Promise<{preview?:string}>}) {
  return (await searchParams).preview==='1'?{robots:{index:false,follow:false}}:{};
@@ -17,5 +19,8 @@ export default async function Home({searchParams}:{searchParams:Promise<{preview
  const products=buildCatalog(source as SourceProduct[]);
  if(!products.length)return <main className="wrap content-page"><h1>Nossa vitrine está sendo preparada.</h1><p>Confira as novidades nas redes da Ô bicha!.</p></main>;
  const {state}=await readHome(products);
- return <Vitrine products={products} content={resolveContent(preview?state.draft:state.published,products,preview)} posts={posts} highlights={highlights} social={social} pins={pins} config={config}/>;
+ const {state:reviewState}=await readReviews();
+ const reviews=reviewState.enabled?reviewState.reviews.filter(r=>!reviewState.hiddenIds.includes(r.id)):[];
+ return <><Vitrine products={products} content={resolveContent(preview?state.draft:state.published,products,preview)} posts={posts} highlights={highlights} social={social} pins={pins} config={config} reviews={reviews}/><Reviews/></>;
 }
+

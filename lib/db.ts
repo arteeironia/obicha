@@ -291,7 +291,7 @@ export async function reorderHighlights(updates: { id: number; position: number 
 export async function getSiteConfig() {
   const cached = getCache('site_config')
   if (cached) return cached
-  const rows = await sql`SELECT key, value FROM site_config WHERE key <> 'homepage_content'`
+  const rows = await sql`SELECT key, value FROM site_config WHERE key NOT IN ('homepage_content', 'reserva_reviews')`
   const data = Object.fromEntries(rows.map((r: any) => [r.key, r.value]))
   setCache('site_config', data)
   return data
@@ -313,3 +313,4 @@ export async function getAdminConfig() {
 export async function updateAdminPassword(hashedPassword: string) {
   await sql`UPDATE admin_config SET password_hash = ${hashedPassword}, updated_at = NOW()`
 }
+
