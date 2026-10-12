@@ -21,6 +21,7 @@ class Element {
   setAttribute(k,v){this.attributes[k]=v;}
   querySelector(){return new Element();}
   focus(){document.activeElement=this;}
+  before(){}
   scrollIntoView(){}
   showModal(){this.open=true;}
   close(){this.open=false;this.dispatch('close');}
@@ -40,6 +41,7 @@ const sizeWindow={};vm.runInNewContext(fs.readFileSync('public/obicha-ui/sizes.j
 const homeContent=JSON.parse(fs.readFileSync('lib/storefront/default-content.json','utf8'));homeContent.hero.productId=157;
 const window={ObichaLogic:L,OBICHA_CATALOG:products,OBICHA_SIZES:sizeGuides,OBICHA_CONTENT:homeContent,location:{search:''},matchMedia:()=>({matches:false})};
 get('mobile-menu').hidden=true;
+vm.runInNewContext(fs.readFileSync('public/obicha-ui/campaigns.js','utf8'),{window,document,URL,AbortController,location:{href:'https://www.obicha.com.br/',origin:'https://www.obicha.com.br'},setTimeout,clearTimeout});
 vm.runInNewContext(fs.readFileSync('public/obicha-ui/vitrine.js','utf8'),{window,document,CSS:{escape:String},URL,URLSearchParams,Intl,AbortController});
 const dispose=window.mountObichaVitrine({products,content:homeContent});
 check('Initial UI renders all products and active guide',()=>{assert(get('product-grid').innerHTML.includes('data-product="157"'));assert.equal(get('model-title').textContent,'O clássico do dia a dia.');});

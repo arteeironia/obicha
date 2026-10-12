@@ -1,7 +1,7 @@
 import defaults from './default-content.json'
 import type { Design } from './catalog'
 import { visibleBanners } from './cms'
-export type Banner = {id:string;title:string;cta:string;href:string;desktop:string;mobile:string;state:'draft'|'active'|'paused';start:string;end:string}
+export type Banner = {id:string;title:string;cta:string;href:string;desktop:string;mobile:string;state:'draft'|'active'|'paused';start:string;end:string;display?:'banner'|'popup'|'both'}
 export type HomeContent = {hero:{productId:number;title:string;description:string;caption:string;image:string};featured:number[];banners:Banner[]}
 export function defaultContent(products: Design[]):HomeContent {
  if(!products.length)throw new Error('O catálogo não tem destinos válidos.');

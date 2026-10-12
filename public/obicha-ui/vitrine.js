@@ -6,7 +6,7 @@ window.mountObichaVitrine = function(data) {
   const $ = id => document.getElementById(id);
   const escape = str => String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const storeName = key => key === 'reserva' ? 'Reserva Ink' : 'Uma Penca';
-  let homeContent = data.content;
+  let homeContent = data.content, disposeCampaigns;
   function openAnyProduct(id) { const before={...filters};filters={search:'',model:'all',store:'all',collection:'all'};openProduct(id);filters=before; }
   function renderHomeContent(content) {
     if(!content)return;
@@ -21,9 +21,8 @@ window.mountObichaVitrine = function(data) {
     document.querySelector('.hero-product-caption').innerHTML=`<span>${escape(p.name)} <small>${escape(content.hero.caption)}</small></span><span aria-hidden="true">↗</span>`;
     $('featured-section').hidden=!content.featured.length;
     $('featured-grid').innerHTML=content.featured.map(id=>products.find(p=>p.id===id)).filter(Boolean).map(p=>`<article class="featured-card"><button data-featured="${p.id}"><img src="${escape(p.image)}" alt="Estampa ${escape(p.name)}" width="600" height="600" loading="lazy"><span>${escape(p.name)} <span aria-hidden="true">↗</span></span></button></article>`).join('');
-    const banners=content.banners||[];
-    $('promotion-banners').hidden=!banners.length;
-    $('promotion-banners').innerHTML=banners.map(b=>`<a class="promotion-banner" href="${escape(b.href)}"${b.href.startsWith('https:')?' target="_blank" rel="noopener noreferrer"':''}><picture>${b.mobile?`<source media="(max-width: 650px)" srcset="${escape(b.mobile)}">`:''}<img src="${escape(b.desktop)}" alt="${escape(b.title)}" loading="lazy"></picture><span class="banner-caption"><strong>${escape(b.title)}</strong><span>${escape(b.cta)} ${b.href.startsWith('https:')?'↗':'→'}</span></span></a>`).join('');
+    disposeCampaigns?.();
+    disposeCampaigns=window.mountObichaCampaigns(content,$('promotion-banners'));
     if(content.preview){document.querySelector('.review-bar').textContent='PRÉVIA DO RASCUNHO · NADA FOI PUBLICADO';}
   }
   let filters = {search:'', model:'all', store:'all', collection:'all'}, guideModel = 'cotton', visibleCount = 12;
@@ -131,6 +130,6 @@ window.mountObichaVitrine = function(data) {
   const query=new URLSearchParams(window.location.search);
   const collection=query.get('collection'); if(collection && products.some(p=>p.collections.includes(collection))){filters.collection=collection;render();$('vitrine').scrollIntoView();}
   if(query.get('product')){openAnyProduct(query.get('product'));const requested=query.get('model');if(activeProduct?.variants.some(v=>v.type===requested)){activeType=requested;renderSelection();}}
-  return () => {controller.abort();mountedDialog?.close();document.body.classList.remove('dialog-open');};
+  return () => {disposeCampaigns?.();controller.abort();mountedDialog?.close();document.body.classList.remove('dialog-open');};
 };
 

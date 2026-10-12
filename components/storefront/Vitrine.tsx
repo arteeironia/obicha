@@ -11,7 +11,7 @@ function cleanPrice(value:unknown){const text=String(value??'').trim();return te
 export default function Vitrine({products,content,posts,highlights,social,pins,config,reviews}:{products:Design[];content:HomeContent&{preview?:boolean};posts:any[];highlights:any[];social:any[];pins:any[];config:Record<string,string>;reviews:ReservaReview[]}){
  const root=useRef<HTMLDivElement>(null);const [error,setError]=useState('');
  useEffect(()=>{let cancelled=false,dispose:(()=>void)|undefined;
- (async()=>{await loadScript('/obicha-ui/logic.js');await loadScript('/obicha-ui/sizes.js');await loadScript('/obicha-ui/vitrine.js');if(cancelled)return;
+ (async()=>{await loadScript('/obicha-ui/logic.js');await loadScript('/obicha-ui/sizes.js');await loadScript('/obicha-ui/campaigns.js');await loadScript('/obicha-ui/vitrine.js');if(cancelled)return;
  for(const a of root.current?.querySelectorAll<HTMLAnchorElement>('a[href]')||[]){for(const [key,url] of Object.entries(socialDefaults))if(a.href===url)a.href=socialUrl(config,key)}
  const latest=posts[0];if(latest&&root.current){const block=root.current.querySelector('.blog-feature');if(block){block.querySelector('h3')!.textContent=latest.title;block.querySelector('.article-date')!.textContent=new Date(latest.created_at).toLocaleDateString('pt-BR');const a=block.querySelector<HTMLAnchorElement>('a.button')!;a.href='/blog/'+encodeURIComponent(latest.slug);a.removeAttribute('target');}}
  dispose=window.mountObichaVitrine({products,content,reviews});})().catch(()=>{if(!cancelled)setError('A vitrine não carregou. Recarregue a página para escolher seu modelo.');});

@@ -32,6 +32,7 @@ function validateContent(input, productIds, publishing = false) {
     if (!b || !short(b.id, 80) || !b.id || bannerIds.has(b.id)) { errors.push(`${label}: identificação inválida.`); continue; }
     bannerIds.add(b.id);
     if (!short(b.title, 140) || !short(b.cta, 60) || !short(b.href, 2000) || !['draft','active','paused'].includes(b.state) || !safeImage(b.desktop) || !safeImage(b.mobile)) errors.push(`${label}: revise textos, estado e imagens.`);
+    if (b.display !== undefined && !['banner','popup','both'].includes(b.display)) errors.push(`${label}: escolha onde exibir a campanha.`);
     if (b.href && !safeDestination(b.href)) errors.push(`${label}: destino inválido. Use uma página interna ou uma loja parceira.`);
     for (const key of ['start','end']) if (typeof b[key] !== 'string' || (b[key] && (!/Z$/.test(b[key]) || !Number.isFinite(Date.parse(b[key]))))) errors.push(`${label}: data inválida.`);
     if (b.start && b.end && Date.parse(b.end) <= Date.parse(b.start)) errors.push(`${label}: o fim deve ser depois do início.`);

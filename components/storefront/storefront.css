@@ -49,3 +49,27 @@ body.dialog-open{overflow:hidden}.obicha-theme dialog{padding:0;width:min(970px,
 .obicha-theme .product-review-panel blockquote{font-size:13px;line-height:1.7;margin:10px 0;white-space:pre-line}
 .obicha-theme .product-review-panel a{font-size:12px;text-decoration:underline}
 
+
+/* Campaigns: a distinct promotion area and an optional accessible dialog. */
+.obicha-theme .promotion-section{padding:32px;margin-top:26px;margin-bottom:32px;background:#e9ddc3;border:2px solid var(--navy);box-shadow:7px 7px 0 var(--red);display:block}
+.obicha-theme .campaign-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px}
+.obicha-theme .campaign-heading h2{font-family:var(--serif);font-size:clamp(28px,3vw,40px);margin:0}
+.obicha-theme .campaign-heading .eyebrow{color:var(--red);margin:0 0 8px}
+.obicha-theme .campaign-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.obicha-theme .campaign-grid:has(> :only-child){grid-template-columns:1fr}
+.obicha-theme .promotion-banner{border:2px solid var(--navy);background:var(--cream);min-width:0}
+.obicha-theme .campaign-image-link{display:block}
+.obicha-theme .promotion-banner picture img{display:block;width:100%;height:auto;aspect-ratio:auto;object-fit:contain}
+.obicha-theme .banner-caption{align-items:flex-start;flex-direction:column;padding:20px;gap:18px}
+.obicha-theme .banner-caption strong{font-size:clamp(19px,2vw,25px);line-height:1.3}
+.obicha-theme .campaign-cta{background:var(--cream);color:var(--navy);border:1px solid var(--cream);white-space:normal}
+.obicha-theme .campaign-cta:hover{background:var(--red);color:white}
+.obicha-theme .campaign-dialog{padding:0;border:2px solid var(--navy);width:min(760px,calc(100vw - 32px));max-width:760px;max-height:85dvh;overflow:auto;background:var(--cream);color:var(--navy)}
+.obicha-theme .campaign-dialog::backdrop{background:rgba(15,31,41,.78)}
+.obicha-theme .campaign-dialog picture img{width:100%;height:auto;display:block;aspect-ratio:auto;object-fit:contain}
+.obicha-theme .campaign-close{position:sticky;float:right;top:10px;margin:10px 10px -54px 0;z-index:2;width:44px;height:44px;background:var(--cream);color:var(--navy);border:2px solid var(--navy);border-radius:50%;font-size:30px;line-height:1;cursor:pointer}
+.obicha-theme .campaign-dialog-copy{padding:24px;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.obicha-theme .campaign-dialog-copy h2{font-family:var(--serif);font-size:clamp(23px,4vw,34px);line-height:1.2;margin:0}
+.obicha-theme .campaign-dialog-copy .eyebrow{margin:0;color:var(--red)}
+.obicha-theme .campaign-dialog a:focus-visible,.obicha-theme .campaign-dialog button:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+@media(max-width:650px){.obicha-theme .promotion-section{padding:18px;margin-top:20px;margin-bottom:28px;box-shadow:4px 4px 0 var(--red)}.obicha-theme .campaign-grid{grid-template-columns:1fr;gap:20px}.obicha-theme .campaign-heading{align-items:flex-start;flex-direction:column}.obicha-theme .promotion-banner picture img{height:auto;aspect-ratio:auto}.obicha-theme .campaign-dialog{width:calc(100vw - 24px);max-height:88dvh}.obicha-theme .campaign-dialog picture img{max-height:53dvh;object-fit:contain;background:var(--navy)}.obicha-theme .campaign-dialog-copy{padding:20px}}
