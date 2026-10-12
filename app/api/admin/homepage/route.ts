@@ -26,7 +26,7 @@ export async function PUT(request:NextRequest) {
   if(previous.state.revision!==input.revision)return reply({error:'Outra edição foi salva. Recarregue o rascunho antes de tentar novamente.'},409);
   // Store only the editable fields; don't retain arbitrary extra keys from the request.
   const c=input.content;
-  const content:HomeContent={hero:{productId:c.hero.productId,title:c.hero.title,description:c.hero.description,caption:c.hero.caption,image:c.hero.image},featured:c.featured,banners:c.banners.map((b:Record<string,string>)=>({id:b.id,title:b.title,cta:b.cta,href:b.href,desktop:b.desktop,mobile:b.mobile,state:b.state,start:b.start,end:b.end}))};
+  const content:HomeContent={hero:{productId:c.hero.productId,title:c.hero.title,description:c.hero.description,caption:c.hero.caption,image:c.hero.image},featured:c.featured,banners:c.banners.map((b:Record<string,string>)=>({id:b.id,title:b.title,cta:b.cta,href:b.href,desktop:b.desktop,mobile:b.mobile,state:b.state,start:b.start,end:b.end,display:b.display||'banner'}))};
   const state=await writeHome(previous,content,input.action==='publish');
   return state?reply(state):reply({error:'Outra edição foi salva. Recarregue o rascunho.'},409);
  }catch(error){return reply({error:error instanceof SyntaxError?'JSON inválido.':'Não foi possível salvar. Tente novamente.'},error instanceof SyntaxError?400:500)}
