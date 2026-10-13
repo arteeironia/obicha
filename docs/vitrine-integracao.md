@@ -17,9 +17,9 @@ Edições simultâneas usam revisão e comparação atômica no banco. Se outra 
 ## Compatibilidade e dados
 
 - Mesmos Postgres, JWT e Cloudinary já configurados na Vercel; sem nova conta ou variável obrigatória.
-- O novo conteúdo usa a chave reservada `homepage_content` na tabela existente `site_config`. O primeiro acesso é somente leitura; a chave é criada no primeiro salvamento. Não há migração, exclusão ou importação de dados.
+- O novo conteúdo usa a chave reservada `homepage_content` na tabela existente `site_config`. O primeiro acesso é somente leitura; a chave é criada no primeiro salvamento. Essa chave não migra produtos; a migração do catálogo está descrita em `catalogo.md`.
 - A API pública de configurações exclui essa chave para não expor rascunhos. Escritas na API antiga exigem o login do admin e não podem sobrescrever a chave reservada.
-- O catálogo da home continua partindo dos registros atuais. O complemento verificado de 09/10/2026 preserva as 77 estampas e 485 opções da versão aprovada somente enquanto links, tipos e preços do registro continuam iguais aos da pesquisa. Ao editar esses campos no admin, o cadastro atual de variantes passa a prevalecer. Produtos novos entram a partir do link principal e das variantes cadastradas. Fotos não definem quais modelos existem.
+- O catálogo usa exclusivamente o banco após a migração única das opções verificadas. Consulte [Controle do catálogo](catalogo.md) para operação, sincronização, recuperação e validação.
 - As tabelas de medidas são imagens originais da Reserva Ink, por modelo. Não são aplicadas aos produtos da Uma Penca. Valores finais, cores, estoque, medidas e condições são confirmados na loja parceira.
 - Formulários reais, comentários, compartilhamento do quiz, URLs/metadata das páginas e o app Respira são preservados. Cabeçalho e rodapé públicos ficam no layout compartilhado `(public)`, que não muda os caminhos das URLs.
 - Os rastreadores existentes e o consentimento continuam no layout raiz. Os links dos produtos identificam a estampa para a auditoria existente.

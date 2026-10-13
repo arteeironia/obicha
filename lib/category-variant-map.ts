@@ -32,9 +32,10 @@ function priceToNumber(price: string): number {
  */
 export function pickRepresentativeVariant(
   category: string,
-  variants: { type: string; price: string; link: string }[]
+  variants: { type: string; price: string; link: string; active?:boolean; available?:boolean }[]
 ): { type: string; price: string; link: string } | null {
-  if (!variants || variants.length === 0) return null
+  variants=variants?.filter(v=>v.active!==false&&v.available!==false)||[]
+  if (!variants.length) return null
 
   const expectedType = CATEGORY_TO_VARIANT_TYPE[category]
   if (expectedType) {
