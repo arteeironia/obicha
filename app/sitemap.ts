@@ -1,10 +1,11 @@
 import { MetadataRoute } from 'next'
+import {buildCatalog} from '@/lib/storefront/catalog'
 import { getProducts, getBlogPosts } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const products = await getProducts() as any[]
+  const products = (await getProducts() as any[]).filter(p=>buildCatalog([p]).length)
   const posts = await getBlogPosts() as any[]
 
   const staticPages = [

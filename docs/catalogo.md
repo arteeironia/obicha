@@ -26,3 +26,13 @@ HomeLayout e CatalogCards geram componentes React com a grade completa e links d
 - Comparação somente leitura do feed atual da Reserva com o cadastro atual antes da publicação.
 
 Não executar campanhas de teste ou edições fictícias contra o banco de produção. A cópia da migração pode ser usada para recuperação seletiva; não restaurar cegamente toda a tabela após novas edições.
+
+## Visibilidade e ações em massa
+
+O novo campo `products.hidden` inicia como falso, sem ocultar registros existentes. Ocultar a estampa altera apenas esse campo. Ocultar modelos altera apenas `manual_variants[].active` nos tipos e na parceira selecionados. `available` continua sob controle da Reserva. O botão Reexibir estampas não reativa modelos individualmente ocultos; Reexibir modelos não desfaz uma estampa inteira oculta nem uma indisponibilidade da loja.
+
+No painel Produtos, filtre por nome, coleção, modelo, parceira e situação. Selecione os resultados e escolha a ação em massa. Para uma coleção de inverno: Modelo → Moletons → Selecionar resultados → Ocultar modelos → Confirmar. Hoodie, suéter e cropped de moletom são tratados juntos; camisetas e acessórios permanecem como estão. A confirmação mostra a quantidade de modelos e a parceira afetada. As ações são transacionais e exigem login e origem do próprio site. A exclusão definitiva permanece individual e separada dentro da edição.
+
+O painel usa as situações Visível, Oculta por você, Modelos ocultos por você e Indisponível na loja. A data e os erros da última conferência da Reserva aparecem em uma seção própria. O catálogo completo continua editável, inclusive registros ocultos ou sem opções disponíveis. Coleções, categorias, quiz e sitemap respeitam a ocultação; produtos ocultos não têm página pública disponível.
+
+Verificação adicional: `node scripts/validate-catalog-visibility.cjs` testa ocultação/restauração dos três moletons, continuidade da camiseta/ecobag, pausa após sincronização, escopo por parceira e registros de modelo único. O teste de acesso verifica autorização, origem e comandos inválidos antes de conectar ao banco. Os testes não ocultam produtos reais.

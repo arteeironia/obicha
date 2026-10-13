@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import './catalog-admin.css'
+import {filterCatalogProducts,productOptions,visibilityStatus,statusLabels,modelFamilies,modelFamily,type VisibilityAction} from '@/lib/storefront/visibility'
 import {supplier} from '@/lib/storefront/catalog'
 import { pickRepresentativeVariant } from '@/lib/category-variant-map'
 
@@ -8,6 +10,8 @@ type Product = {
   id: number; name: string; category: string; price: string; link: string
   image_url: string | null; description: string | null; featured: boolean
   collection_name: string | null; supplier: string | null
+  hidden?:boolean
+  collections?:{name:string}[]
   updated_at?: string
   manual_variants?: any
 }
@@ -37,52 +41,81 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean}[] })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: '', image_url: '', description: '', featured: false, hidden:false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean}[] })
   const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [syncing,setSyncing]=useState(false)
   const [notice,setNotice]=useState('')
+  const [syncState,setSyncState]=useState<{succeeded_at?:string;attempted_at?:string;error?:string}|null>(null)
+  const [filters,setFilters]=useState({search:'',family:'all',store:'all',collection:'all',status:'all'})
+  const [selected,setSelected]=useState<number[]>([])
+  const [actionFamily,setActionFamily]=useState('sweatshirt')
+  const [pending,setPending]=useState<(VisibilityAction&{ids:number[]})|null>(null)
+  const [acting,setActing]=useState(false)
+  const filtered=filterCatalogProducts(products,filters)
+  function changeFilter(key:keyof typeof filters,value:string){setFilters(f=>({...f,[key]:value}));setSelected([]);if(key==='family'&&value!=='all')setActionFamily(value)}
+  function choose(id:number){setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id])}
+  async function applyPending(){
+   if(!pending)return;setActing(true);setNotice('');
+   try{const response=await fetch('/api/products/visibility',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(pending)});const data=await response.json();if(!response.ok)throw new Error(data.error);await load();setSelected([]);setPending(null);setNotice(`${data.count} ${data.count===1?'estampa atualizada':'estampas atualizadas'}. Alteração aplicada à vitrine.`)}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível alterar a seleção.')}finally{setActing(false)}
+  }
+
   async function syncReserva(){
    setSyncing(true);setNotice('');
    try{const response=await fetch('/api/sync-feed',{method:'POST'});const data=await response.json();if(!response.ok)throw new Error(data.error);setNotice(`${data.updated} estampas conferidas. ${data.unavailable} opções indisponíveis. Uma Penca preservada.`);await load()}catch(error){setNotice(error instanceof Error?error.message:'Falha na sincronização.')}finally{setSyncing(false)}
   }
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  useEffect(()=>{
+   if(!pending&&!showForm)return;
+   const before=document.activeElement as HTMLElement|null;
+   const modal=document.querySelector<HTMLElement>('[data-catalog-modal]');
+   const controls=()=>Array.from(modal?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')||[]).filter(el=>el.offsetParent!==null);
+   controls()[0]?.focus();
+   function onKey(e:KeyboardEvent){
+    if(e.key==='Escape'&&!acting&&!saving){setPending(null);setShowForm(false)}
+    if(e.key==='Tab'){const items=controls(),first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}
+   }
+   document.addEventListener('keydown',onKey);return()=>{document.removeEventListener('keydown',onKey);before?.focus()};
+  },[!!pending,showForm,acting,saving])
+
 
   async function load() {
     const [prodRes, catRes, colRes] = await Promise.all([
-      fetch('/api/products'),
+      fetch('/api/products?withCollections=1'),
       fetch('/api/categories?all=true'),
       fetch('/api/collections'),
     ])
+    if(!prodRes.ok||!catRes.ok||!colRes.ok)throw new Error('Não foi possível carregar o catálogo. Recarregue o painel.')
     setProducts(await prodRes.json())
+    setSelected([])
     const syncState=await fetch('/api/sync-feed').then(r=>r.ok?r.json():null).catch(()=>null)
-    if(syncState?.error)setNotice('Última conferência da Reserva: '+syncState.error)
-    else if(syncState?.succeeded_at)setNotice('Reserva conferida em '+new Date(syncState.succeeded_at).toLocaleString('pt-BR'))
+    setSyncState(syncState)
     setCategories(await catRes.json())
     setCollections(await colRes.json())
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load().catch(error=>{setNotice(error.message);setLoading(false)}) }, [])
 
   async function openAdd() {
     setEditProduct(null)
-    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] })
+    setForm({ name: '', category: categories[0]?.value || 'camisetas', price: 'R$ ', link: '', image_url: '', description: '', featured: false, hidden:false, collection_name: '', manual_variants: [] })
     setSelectedCollections([])
     setImagePreview(null)
     setShowForm(true)
   }
 
   async function openEdit(p: Product) {
+    setNotice('')
     // busca a lista atualizada antes de editar, pra nunca sobrescrever com dado desatualizado da tela
-    const freshRes = await fetch('/api/products')
+    const freshRes = await fetch('/api/products?withCollections=1')
     const freshProducts: Product[] = await freshRes.json()
     setProducts(freshProducts)
     const fresh = freshProducts.find(x => x.id === p.id) || p
 
     setEditProduct(fresh)
-    setForm({ name: fresh.name, category: fresh.category, price: fresh.price, link: fresh.link, image_url: fresh.image_url || '', description: fresh.description || '', featured: fresh.featured, collection_name: fresh.collection_name || '', manual_variants: parseVariants(fresh.manual_variants) })
+    setForm({ name: fresh.name, category: fresh.category, price: fresh.price, link: fresh.link, image_url: fresh.image_url || '', description: fresh.description || '', featured: fresh.featured, hidden:fresh.hidden===true, collection_name: fresh.collection_name || '', manual_variants: parseVariants(fresh.manual_variants) })
     setImagePreview(fresh.image_url)
     const res = await fetch(`/api/collections?product_id=${fresh.id}`)
     const data = await res.json()
@@ -104,6 +137,8 @@ export default function AdminProdutos() {
   }
 
   async function handleSave() {
+    if(!form.name.trim()){setNotice('Dê um nome à estampa antes de salvar.');return}
+    if(!form.hidden&&!supplier(form.link)&&!form.manual_variants.some(v=>supplier(v.link))){setNotice('Informe um link válido da Reserva Ink ou Uma Penca, ou marque a estampa como oculta para terminar depois.');return}
     setSaving(true)
     const method = editProduct ? 'PATCH' : 'POST'
     // quando há variantes, preço/link do produto viram apenas fallback — usa a primeira variante como referência
@@ -124,65 +159,31 @@ export default function AdminProdutos() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('Remover este produto?')) return
-    await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-    await load()
+    if (!confirm('Excluir permanentemente esta estampa e todos os modelos? Para retirar da vitrine sem perder o cadastro, use Ocultar.')) return false
+    const response=await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    if(!response.ok){setNotice('Não foi possível excluir a estampa.');return false}
+    await load();return true
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-        <div>
-          <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Produtos</h1>
-          <p className="opacity-50 text-sm mt-1">{products.length} estampas cadastradas · Reserva: preços e disponibilidade conferidos ao acessar a vitrine, no máximo uma vez por hora. Você também pode atualizar agora.</p>
-        </div>
-        <button disabled={syncing} onClick={syncReserva} className="px-4 py-3 border">{syncing?'Conferindo Reserva…':'Atualizar preços e disponibilidade da Reserva'}</button>
-        <button onClick={openAdd} className="px-6 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>
-          + Adicionar Produto
-        </button>
-      </div>
-
-      {notice&&<p role="status" className="mb-4">{notice}</p>}
-      {loading ? <p className="opacity-50">Carregando...</p> : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {products.map(p => (
-            <div key={p.id} className="border rounded overflow-hidden" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
-              <div className="aspect-square bg-white/5 relative">
-                {p.image_url
-                  ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center opacity-20 text-4xl">👕</div>
-                }
-                <span className="absolute top-2 left-2 text-xs px-2 py-1 font-bebas tracking-widest" style={{ background: 'var(--navy)', color: 'var(--gold)', border: '1px solid rgba(212,168,67,0.3)' }}>
-                  {categories.find(c => c.value === p.category)?.label || p.category}
-                </span>
-              </div>
-              <div className="p-3">
-                <p className="font-bold text-sm truncate">{p.name}</p>
-                <p className="text-xs opacity-50 mt-1">{p.price}</p>
-                {p.supplier && <p className="text-xs mt-1" style={{ color: 'rgba(212,168,67,.5)' }}>{SUPPLIER_LABELS[p.supplier] || p.supplier}</p>}
-                {parseVariants(p.manual_variants).length > 0 && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--gold)' }}>
-                    {parseVariants(p.manual_variants).length} variante{parseVariants(p.manual_variants).length !== 1 ? 's' : ''}
-                  </p>
-                )}
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => openEdit(p)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,0.15)', color: 'var(--gold)' }}>Editar</button>
-                  <button onClick={() => handleDelete(p.id)} className="flex-1 py-1.5 text-xs font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,0.15)', color: 'var(--red)' }}>Remover</button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
+    <div className="catalog-admin">
+      <header className="catalog-admin-heading"><div><p className="catalog-eyebrow">Ô BICHA! / SUA VITRINE</p><h1>Seu catálogo.<br/><em>Do seu jeito.</em></h1><p>Estampas, modelos e visibilidade em um só lugar.</p></div><div className="catalog-heading-actions"><a href="/" target="_blank" rel="noopener noreferrer">Ver vitrine ↗</a><button className="catalog-button primary" onClick={openAdd}>+ Nova estampa</button></div></header>
+      <div className="catalog-stat-grid">{['visible','hidden','paused','unavailable'].map(status=><button key={status} aria-pressed={filters.status===status} onClick={()=>changeFilter('status',filters.status===status?'all':status)}><strong>{products.filter(p=>visibilityStatus(p)===status).length}</strong><span>{statusLabels[status]}</span></button>)}</div>
+      <section className="catalog-sync"><div><strong>Conferência da Reserva Ink</strong><p>{syncState?.succeeded_at?'Última conferência concluída: '+new Date(syncState.succeeded_at).toLocaleString('pt-BR'):'Nenhuma conferência concluída registrada.'}</p>{syncState?.error&&<p className="catalog-error">{syncState.error} O último catálogo foi preservado.</p>}<small>Automática ao acessar a vitrine, no máximo uma vez por hora. Respeita o que você ocultou.</small></div><button className="catalog-button" disabled={syncing||acting} onClick={syncReserva}>{syncing?'Conferindo…':'Conferir agora'}</button></section>
+      {notice&&<p role="status" className="catalog-notice">{notice}</p>}
+      <section className="catalog-filters" aria-label="Filtrar catálogo"><label className="catalog-search">Buscar estampa<input type="search" placeholder="Nome ou coleção…" value={filters.search} onChange={e=>changeFilter('search',e.target.value)}/></label><label>Coleção<select value={filters.collection} onChange={e=>changeFilter('collection',e.target.value)}><option value="all">Todas</option>{[...new Set([...collections.map(c=>c.name),...products.flatMap(p=>p.collections?.map(c=>c.name)||[p.collection_name||''])])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR')).map(c=><option key={c}>{c}</option>)}</select></label><label>Modelo<select value={filters.family} onChange={e=>changeFilter('family',e.target.value)}><option value="all">Todos</option>{Object.entries(modelFamilies).map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label><label>Parceira<select value={filters.store} onChange={e=>changeFilter('store',e.target.value)}><option value="all">Todas</option><option value="reserva">Reserva Ink</option><option value="penca">Uma Penca</option></select></label><label>Situação<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Todas</option>{Object.entries(statusLabels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label></section>
+      <div className="catalog-results"><label><input type="checkbox" disabled={!filtered.length||acting} checked={filtered.length>0&&selected.length===filtered.length} onChange={e=>setSelected(e.target.checked?filtered.map(p=>p.id):[])}/> Selecionar {filtered.length} resultados</label><span>{selected.length?`${selected.length} selecionadas`: `${filtered.length} de ${products.length} estampas`}</span><button onClick={()=>{setFilters({search:'',family:'all',store:'all',collection:'all',status:'all'});setSelected([])}}>Limpar filtros</button></div>
+      {selected.length>0&&<section className="catalog-bulk" aria-label="Ações na seleção"><div><strong>{selected.length} estampas selecionadas</strong><p>Ocultar mantém o cadastro. Reexibir respeita a disponibilidade da loja.</p></div><div className="catalog-bulk-actions"><button className="catalog-button" onClick={()=>setPending({ids:selected,scope:'designs',visible:false})}>Ocultar estampas</button><button className="catalog-button" onClick={()=>setPending({ids:selected,scope:'designs',visible:true})}>Reexibir estampas</button><label>Modelo para a ação<select value={actionFamily} onChange={e=>setActionFamily(e.target.value)}>{Object.entries(modelFamilies).map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label><button className="catalog-button primary" onClick={()=>setPending({ids:selected,scope:'models',family:actionFamily,store:filters.store,visible:false})}>Ocultar modelos</button><button className="catalog-button" onClick={()=>setPending({ids:selected,scope:'models',family:actionFamily,store:filters.store,visible:true})}>Reexibir modelos</button></div></section>}
+      {loading?<p role="status">Carregando catálogo…</p>:!filtered.length?<div className="catalog-empty"><h2>Nenhuma estampa nesse filtro.</h2><p>Experimente outro nome ou limpe os filtros.</p></div>:<div className="catalog-list">{filtered.map(p=>{const options=productOptions(p);const live=options.filter(v=>v.active!==false&&v.available!==false&&supplier(v.link));const status=visibilityStatus(p);return <article key={p.id} className={'catalog-row '+(selected.includes(p.id)?'selected':'')}><label className="catalog-row-select"><input type="checkbox" aria-label={'Selecionar '+p.name} checked={selected.includes(p.id)} onChange={()=>choose(p.id)}/></label><img className="catalog-thumb" src={p.image_url||'/Logo_-_O_Bicha.png'} alt="" width={80} height={80} loading="lazy"/><div className="catalog-row-copy"><h2>{p.name}</h2><p>{[...new Set([...(p.collections?.map(c=>c.name)||[]),p.collection_name||''])].filter(Boolean).join(' · ')||'Sem coleção'}</p><div className="catalog-row-meta"><span className={'catalog-status '+status}>{statusLabels[status]}</span><span>{live.length} de {options.length} modelos disponíveis e ativos</span></div><details><summary>Conferir modelos e lojas</summary><ul>{options.map((v,i)=><li key={v.link+i}><span>{v.type} · {supplier(v.link)==='reserva'?'Reserva Ink':supplier(v.link)==='penca'?'Uma Penca':'Link inválido'}</span><small>{v.active===false?'Oculto por você':v.available===false?'Indisponível na loja':'Ativo'} · {v.price||'Preço não informado'}</small></li>)}</ul></details></div><div className="catalog-row-actions"><button className="catalog-button" onClick={()=>openEdit(p)}>Editar</button><button className="catalog-button" onClick={()=>setPending({ids:[p.id],scope:'designs',visible:!!p.hidden})}>{p.hidden?'Reexibir':'Ocultar estampa'}</button><>{status==='visible'?<a href={'/?product='+p.id+'#vitrine'} target="_blank" rel="noopener noreferrer">Ver na vitrine ↗</a>:<small>Fora da vitrine</small>}</></div></article>})}</div>}
+      {pending&&<div className="catalog-confirm-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="visibility-title" className="catalog-confirm" data-catalog-modal><h2 id="visibility-title">{pending.visible?'Reexibir':'Ocultar'} {pending.scope==='designs'?'estampas':'modelos'}?</h2><p>{pending.scope==='designs'?`${pending.ids.length} estampas inteiras serão ${pending.visible?'reexibidas, se tiverem modelos ativos e disponíveis':'ocultadas da vitrine'}.`:`${modelFamilies[pending.family!]}: ${pending.ids.reduce((n,id)=>n+productOptions(products.find(p=>p.id===id)!).filter(v=>modelFamily(v.type)===pending.family&&(pending.store==='all'||supplier(v.link)===pending.store)).length,0)} modelos em ${pending.ids.length} estampas. Parceira: ${pending.store==='reserva'?'Reserva Ink':pending.store==='penca'?'Uma Penca':'todas'}. Os outros modelos permanecem como estão.`}</p><p>O cadastro será preservado. A sincronização não desfaz sua escolha.</p><div><button className="catalog-button" disabled={acting} onClick={()=>setPending(null)}>Cancelar</button><button className="catalog-button primary" autoFocus disabled={acting} onClick={applyPending}>{acting?'Aplicando…':'Confirmar'}</button></div>{notice&&<p role="alert">{notice}</p>}</section></div>}
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
-          <div style={{ background: 'var(--navy)', border: '1px solid var(--gold)', width: '90vw', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }}>
+        <div className="catalog-editor-backdrop fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
+          <div role="dialog" aria-modal="true" aria-label={editProduct?'Editar estampa':'Nova estampa'} data-catalog-modal style={{ background: 'var(--navy)', border: '1px solid var(--gold)', width: '90vw', maxWidth: 760, maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }}>
             <h2 className="font-playfair text-2xl font-bold mb-6" style={{ color: 'var(--gold)' }}>
               {editProduct ? 'Editar Produto' : 'Novo Produto'}
             </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-4"><label className="catalog-edit-visibility"><input type="checkbox" checked={form.hidden} onChange={e=>setForm(f=>({...f,hidden:e.target.checked}))}/> Ocultar estampa inteira da vitrine</label>
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Nome</label>
                 <input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -284,6 +285,7 @@ export default function AdminProdutos() {
               </label>
             </div>
 
+            {notice&&<p role="alert" className="catalog-notice">{notice}</p>}{editProduct&&<div className="catalog-danger"><p>Para tirar da vitrine, use ocultar. A exclusão é definitiva.</p><button onClick={async()=>{if(await handleDelete(editProduct.id))setShowForm(false)}}>Excluir permanentemente esta estampa</button></div>}
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,0.2)', color: 'rgba(242,235,217,0.5)' }}>Cancelar</button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>
