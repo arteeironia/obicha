@@ -1,7 +1,7 @@
 import {ensureCatalog} from '@/lib/storefront/migrate-catalog'
 import {buildCatalog,supplier,type SourceProduct} from '@/lib/storefront/catalog'
 import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound,permanentRedirect } from 'next/navigation'
 import Link from 'next/link'
 import postgres from 'postgres'
 import Reviews from '@/components/reviews/Reviews'
@@ -16,9 +16,9 @@ function parseVariants(mv: any): { type: string; price: string; link: string; im
   return Array.isArray(mv) ? mv : []
 }
 
-function parsePriceToNumber(price: string): string {
+function parsePriceToNumber(price: string): string | null {
   const match = (price || '').replace(/\./g, '').match(/(\d+),?(\d{0,2})/)
-  if (!match) return '0'
+  if (!match) return null
   const cents = match[2] ? match[2].padEnd(2, '0') : '00'
   return `${match[1]}.${cents}`
 }
@@ -63,11 +63,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const product = await getProduct(slug)
   if (!product) return {}
-  const desc = product.description || `${product.name} — camiseta LGBT com orgulho, deboche e resistência. Compre na Ô bicha!`
+  const cleanName=product.name.replace(/\s*[|—–]\s*Ô\s*bicha!.*$/i,'').trim();
+  const desc = product.description?.replace(/<[^>]+>/g,'') || `${product.name} — camiseta LGBT com orgulho, deboche e resistência. Compre na Ô bicha!`
   return {
-    title: `${product.name} — Ô bicha!`,
+    title: `${/camiseta/i.test(cleanName)||!buildCatalog([product as SourceProduct])[0]?.variants.some(v=>/camiseta/i.test(v.type))?cleanName:'Camiseta '+cleanName} — Ô bicha!`,
     description: desc.slice(0, 160),
-    alternates: { canonical: `https://www.obicha.com.br/produtos/${slug}` },
+    alternates: { canonical: `https://www.obicha.com.br/produtos/${product.slug||slug}` },
     openGraph: {
       title: product.name,
       description: desc.slice(0, 160),
@@ -81,29 +82,16 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params
   const product = await getProduct(slug)
   if (!product) notFound()
+  if(product.slug&&product.slug!==slug)permanentRedirect('/produtos/'+encodeURIComponent(product.slug))
 
   const variants = (buildCatalog([product as SourceProduct])[0]?.variants || []).map(v=>({...v,image_url:v.image}))
   const hasVariants = variants.length > 0
 
-  // Monta as ofertas do Schema.org — uma por variante, cada uma com o fabricante certo
-  const offers = hasVariants
-    ? variants.map((v) => ({
-        '@type': 'Offer',
-        name: v.type,
-        price: parsePriceToNumber(v.price),
-        priceCurrency: 'BRL',
-        availability: 'https://schema.org/InStock',
-        url: v.link,
-        seller: { '@type': 'Organization', name: supplier(v.link)==='reserva'?'Reserva Ink':'Uma Penca' },
-      }))
-    : [{
-        '@type': 'Offer',
-        price: parsePriceToNumber(product.price),
-        priceCurrency: 'BRL',
-        availability: 'https://schema.org/InStock',
-        url: product.link,
-        seller: { '@type': 'Organization', name: supplierName(product.supplier) },
-      }]
+  // Do not publish missing prices as zero or infer inventory at the external checkout.
+  const offers=variants.flatMap(v=>{
+    const price=parsePriceToNumber(v.price);if(!price||Number(price)<=0)return [];
+    return [{'@type':'Offer',name:v.type,price,priceCurrency:'BRL',url:v.link,seller:{'@type':'Organization',name:supplier(v.link)==='reserva'?'Reserva Ink':'Uma Penca'}}];
+  });
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -112,9 +100,7 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
     image: product.image_url ? [product.image_url] : undefined,
     description: product.description || `${product.name} — moda LGBT com orgulho, deboche e resistência.`,
     brand: { '@type': 'Brand', name: 'Ô bicha!' },
-    offers: hasVariants
-      ? { '@type': 'AggregateOffer', priceCurrency: 'BRL', offerCount: offers.length, offers }
-      : offers[0],
+    offers: offers.length ? { '@type': 'AggregateOffer', priceCurrency: 'BRL', offerCount: offers.length, lowPrice:Math.min(...offers.map(o=>Number(o.price))), highPrice:Math.max(...offers.map(o=>Number(o.price))), offers } : undefined,
   }
 
   const breadcrumbLd = {
@@ -123,19 +109,20 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Início', item: 'https://www.obicha.com.br' },
       { '@type': 'ListItem', position: 2, name: 'Produtos', item: 'https://www.obicha.com.br/produtos' },
-      { '@type': 'ListItem', position: 3, name: product.name, item: `https://www.obicha.com.br/produtos/${slug}` },
+      { '@type': 'ListItem', position: 3, name: product.name, item: `https://www.obicha.com.br/produtos/${product.slug||slug}` },
     ],
   }
 
-  const relatedProducts = await sql`
-    SELECT id, name, slug, image_url, price FROM products
-    WHERE category = ${product.category} AND id != ${product.id}
-    ORDER BY RANDOM() LIMIT 4`
+  const relatedRows = await sql`
+    SELECT * FROM products
+    WHERE category = ${product.category} AND id != ${product.id} AND hidden=false AND (catalog_group_id IS NULL OR catalog_group_id=id)
+    ORDER BY created_at DESC LIMIT 16`
+  const relatedProducts=relatedRows.filter(p=>p.slug&&buildCatalog([p as SourceProduct]).length).slice(0,4)
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g,'\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd).replace(/</g,'\\u003c') }} />
 
       <style>{`
         .obicha-legacy { --creme:#F2EBD9; --navy:#1A2744; --red:#C0281C; --gold:#D4A843; --sidebar:220px; }

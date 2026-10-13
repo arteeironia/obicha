@@ -13,13 +13,13 @@ const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm', display: 'sw
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.obicha.com.br'),
   title: 'Ô bicha! — Camisetas LGBT, Gay e Queer com Orgulho',
-  description: 'Camisetas LGBT, gay, queer e alternativas feitas no Brasil. Estampas únicas com orgulho, deboche e resistência. 100% algodão sustentável, impressão DTG premium.',
+  description: 'Camisetas LGBT, gay, queer e alternativas feitas no Brasil. Estampas únicas com orgulho, deboche e resistência. Escolha sua estampa, compare modelos e compre nas lojas parceiras.',
   keywords: [
     'camiseta LGBT', 'camiseta gay', 'camiseta queer', 'camiseta orgulho gay',
     'camiseta urso gay', 'camiseta estampada diferente', 'camiseta pop culture',
     'camiseta geek gay', 'camiseta fetiche', 'moda LGBT Brasil', 'camiseta orgulho LGBTQ',
     'camiseta deboche', 'camiseta alternativa', 'camiseta resistência', 'moda queer Brasil',
-    'camiseta estampada Brasil', 'camiseta algodão sustentável', 'Ô bicha'
+    'camiseta estampada Brasil', 'Ô bicha'
   ],
   verification: {
     google: 'T2BZ-F27C4XoTO5HsJv-CdLrr659zXpiHKHezaJGTxA',

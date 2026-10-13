@@ -1,0 +1,2 @@
+import Link from 'next/link'
+export default function DiscoveryLinks(){return <nav className="discovery-links" aria-label="Explore as coleções e peças"><h2>Encontre a sua referência.</h2><div><Link href="/colecao/bear">Coleção Bear</Link><Link href="/colecao/pride">Coleção Pride</Link><Link href="/colecao/fetiche">Coleção Fetiche</Link><Link href="/camisetas-lgbt">Camisetas LGBT</Link><Link href="/moda-queer">Moda queer</Link><Link href="/camiseta-orgulho-gay">Orgulho gay</Link><Link href="/#modelos">Guia de tecidos e modelos</Link></div></nav>}

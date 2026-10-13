@@ -1,71 +1,15 @@
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Camiseta Orgulho Gay — Para a Parada e o Dia a Dia | Ô bicha!',
-  description: 'Camisetas orgulho gay com estampas exclusivas. Perfeitas para a Parada LGBT de São Paulo e para quem vive o orgulho todos os dias. Compre na Ô bicha! — feito no Brasil.',
-  keywords: ['camiseta orgulho gay', 'camiseta parada gay', 'camiseta pride', 'camiseta parada LGBT São Paulo', 'roupa orgulho gay', 'camiseta gay São Paulo'],
-  alternates: { canonical: 'https://www.obicha.com.br/camiseta-orgulho-gay' },
-}
-
-export default function CamisetaOrgulhoGay() {
-  return (
-    <main style={{ maxWidth: 960, margin: '0 auto', padding: '4rem 2rem', fontFamily: 'var(--font-dm, sans-serif)', color: '#1A2744' }}>
-      <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem' }}>
-        Camiseta Orgulho Gay — Para a Parada e Para a Vida
-      </h1>
-      <p style={{ fontSize: '1.1rem', lineHeight: 1.8, marginBottom: '2rem', maxWidth: 700 }}>
-        O orgulho não é só um dia por ano. Na <strong>Ô bicha!</strong>, criamos <strong>camisetas orgulho gay</strong>
-        para quem vive a diversidade 365 dias — na Parada, no trabalho, na balada e em casa.
-        Estampas com atitude, tecido de qualidade e consciência social em cada ponto.
-      </p>
-
-      <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '1.5rem', fontWeight: 700, margin: '2rem 0 1rem' }}>
-        Camisetas para a Parada do Orgulho LGBT de São Paulo
-      </h2>
-      <p style={{ lineHeight: 1.8, marginBottom: '1rem' }}>
-        A <strong>Parada LGBT de São Paulo</strong> é uma das maiores do mundo e acontece anualmente na Avenida Paulista.
-        Para esse momento histórico, você merece uma peça que diga tudo sem precisar falar —
-        uma camiseta que é manifesto, declaração e estilo ao mesmo tempo.
-      </p>
-      <p style={{ lineHeight: 1.8, marginBottom: '2rem' }}>
-        Nossas camisetas orgulho gay são feitas com <strong>100% algodão sustentável</strong> e <strong>impressão DTG premium</strong>,
-        garantindo durabilidade, cores vibrantes e conforto mesmo nos dias mais longos de festa e luta.
-      </p>
-
-      <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '1.5rem', fontWeight: 700, margin: '2rem 0 1rem' }}>
-        Tipos de camisetas disponíveis
-      </h2>
-      <ul style={{ lineHeight: 2, paddingLeft: '1.5rem', marginBottom: '2rem' }}>
-        <li><strong>Camiseta Algodão Orgulho Gay</strong> — clássica, confortável, para o dia a dia</li>
-        <li><strong>Camiseta Estonada Gay</strong> — visual vintage, toque macio e caimento exclusivo</li>
-        <li><strong>Dry Fit LGBT</strong> — para quem leva o orgulho até no treino</li>
-        <li><strong>Modal Tech Gay</strong> — ultraconfortável para uso prolongado</li>
-      </ul>
-
-      <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '1.5rem', fontWeight: 700, margin: '2rem 0 1rem' }}>
-        Orgulho com impacto real
-      </h2>
-      <p style={{ lineHeight: 1.8, marginBottom: '2rem' }}>
-        Cada camiseta orgulho gay vendida na Ô bicha! destina parte do valor para grupos de apoio LGBTQ+.
-        Você usa, você apoia, você transforma. Isso é orgulho de verdade.
-      </p>
-
-      <a href="https://umapenca.com/obicha/" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '1rem 2.5rem', background: '#C0281C', color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: '1rem', borderRadius: 2, marginBottom: '2rem' }}>
-        Ver todas as camisetas →
-      </a>
-
-      <p style={{ fontSize: '.9rem', color: '#666', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-        <a href="https://www.obicha.com.br" style={{ color: '#C0281C' }}>← Voltar para a Ô bicha!</a>
-      </p>
-
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "CollectionPage",
-        "name": "Camiseta Orgulho Gay — Ô bicha!",
-        "description": "Camisetas orgulho gay com estampas exclusivas. Perfeitas para a Parada LGBT de São Paulo.",
-        "url": "https://www.obicha.com.br/camiseta-orgulho-gay",
-        "provider": { "@type": "Organization", "name": "Ô bicha!", "url": "https://www.obicha.com.br" }
-      })}} />
-    </main>
-  )
+import type {Metadata} from 'next'
+import Link from 'next/link'
+import {getProductsWithCollections} from '@/lib/db-collections'
+import {buildCatalog} from '@/lib/storefront/catalog'
+import {modelFamily} from '@/lib/storefront/visibility'
+import {CatalogCards} from '@/components/storefront/CatalogCards'
+import DiscoverySchema from '@/components/storefront/DiscoverySchema'
+import DiscoveryLinks from '@/components/storefront/DiscoveryLinks'
+export const dynamic='force-dynamic'
+export const metadata:Metadata={title:'Camiseta Orgulho Gay — Para a Parada e o Dia a Dia | Ô bicha!',description:'Camisetas com orgulho gay e LGBTQ+: encontre sua estampa para a Parada e o dia a dia. Veja modelos, medidas e lojas parceiras da Ô bicha!.',alternates:{canonical:'https://www.obicha.com.br/camiseta-orgulho-gay'}}
+export default async function CamisetaOrgulhoGay(){
+ const all=buildCatalog(await getProductsWithCollections());
+ const products=all.filter(p=>p.collections.some(c=>/pride|orgulho/i.test(c))).map(p=>({...p,variants:p.variants.filter(v=>['cotton','peruvian','oversized','tank','dryfit'].includes(modelFamily(v.type)))})).filter(p=>p.variants.length);
+ return <main className="wrap content-page discovery-page"><DiscoverySchema name="Camiseta orgulho gay" path="/camiseta-orgulho-gay" products={products}/><p className="eyebrow">ORGULHO SEM DATA MARCADA</p><h1>Camiseta orgulho gay.<br/><em>Para a Parada e para a vida.</em></h1><p className="discovery-intro">Escolha uma estampa com orgulho LGBTQ+ para ocupar a rua, encontrar os amigos ou vestir no dia a dia. Na Ô bicha!, você encontra referências da comunidade e compara as peças disponíveis antes de comprar.</p><section><h2>Estampas com orgulho</h2>{products.length?<div className="product-grid"><CatalogCards products={products}/></div>:<p>Explore a coleção Pride para conferir as opções disponíveis.</p>}<Link className="text-link" href="/colecao/pride">Explorar a coleção Pride</Link></section><section className="discovery-copy"><h2>Escolher uma peça para a Parada</h2><p>Pense no caimento que você prefere e confira as medidas do modelo. Camiseta de algodão, oversized e regata têm cortes diferentes; não presuma que o mesmo tamanho veste igual em todas as peças.</p><p>A disponibilidade depende da estampa e da loja parceira. Na página do produto, confira tamanho, cor, frete e prazo para a ocasião em que pretende usar.</p><Link className="button navy" href="/#modelos">Comparar os modelos</Link></section><DiscoveryLinks/><section className="discovery-copy"><h2>Conheça o propósito da Ô bicha!</h2><p>Orgulho, deboche e resistência fazem parte da marca. Os detalhes da ação social vinculada às compras pela Uma Penca estão na página do projeto.</p><Link className="text-link" href="/projeto-social">Como funciona o projeto social</Link></section></main>
 }

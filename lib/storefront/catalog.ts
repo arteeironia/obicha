@@ -1,6 +1,6 @@
 export type Variant = { type: string; link: string; price: string; image?: string | null; active?: boolean; available?: boolean }
-export type Design = { id: number; aliases: number[]; name: string; originalName: string; image: string; referenceType: string; collections: string[]; variants: Variant[] }
-export type SourceProduct = { id: number; name: string; category?: string; price?: string; link?: string; image_url?: string | null; manual_variants?: unknown; collection_name?: string | null; collections?: { name: string }[]; catalog_group_id?: number | null; hidden?:boolean }
+export type Design = { id: number; aliases: number[]; name: string; originalName: string; image: string; referenceType: string; slug?:string|null; collections: string[]; variants: Variant[] }
+export type SourceProduct = { id: number; name: string; category?: string; price?: string; link?: string; image_url?: string | null; manual_variants?: unknown; collection_name?: string | null; collections?: { name: string }[]; catalog_group_id?: number | null; slug?:string|null; hidden?:boolean }
 export function supplier(link: string) {
   try { const u = new URL(link); if(u.protocol !== 'https:' || u.username || u.password) return null;
     if(['lojareservaink.obicha.com.br','www.reserva.ink','reserva.ink'].includes(u.hostname))return 'reserva';
@@ -30,6 +30,6 @@ export function buildCatalog(source: SourceProduct[]): Design[] {
   });
   const valid=dedupe(options.filter(v=>v.active!==false && v.available!==false)).sort((a,b)=>Number(supplier(a.link)==='penca')-Number(supplier(b.link)==='penca'));
   if(!valid.length)return [];
-  return [{id:p.id,aliases:group.map(p=>p.id),name:p.name,originalName:p.name,image:safeImage(p.image_url),referenceType:model(p.category),collections:[...new Set(group.flatMap(p=>[...(p.collections?.map(c=>c.name)||[]),...(p.collection_name?[p.collection_name]:[])]))],variants:valid.map(v=>({...v,image:v.image?safeImage(v.image):null}))}];
+  return [{id:p.id,aliases:group.map(p=>p.id),name:p.name,originalName:p.name,slug:p.slug||null,image:safeImage(p.image_url),referenceType:model(p.category),collections:[...new Set(group.flatMap(p=>[...(p.collections?.map(c=>c.name)||[]),...(p.collection_name?[p.collection_name]:[])]))],variants:valid.map(v=>({...v,image:v.image?safeImage(v.image):null}))}];
  });
 }
