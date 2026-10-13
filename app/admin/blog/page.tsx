@@ -111,8 +111,8 @@ export default function AdminBlog() {
   }
 
   const inputStyle = {
-    background: 'rgba(255,255,255,.05)',
-    border: '1px solid rgba(212,168,67,.3)',
+    background: 'var(--admin-paper)',
+    border: '1px solid rgba(163,43,34,.3)',
     color: 'var(--creme)',
     width: '100%',
     padding: '.7rem 1rem',
@@ -126,9 +126,9 @@ export default function AdminBlog() {
       key={label}
       type="button"
       onMouseDown={e => { e.preventDefault(); action() }}
-      style={{ padding:'.3rem .7rem', background:'rgba(255,255,255,.08)', border:'1px solid rgba(212,168,67,.2)', color:'var(--creme)', cursor:'pointer', fontSize:'.8rem', fontFamily:'inherit', borderRadius:2, transition:'background .2s' }}
-      onMouseEnter={e => (e.target as HTMLElement).style.background='rgba(212,168,67,.15)'}
-      onMouseLeave={e => (e.target as HTMLElement).style.background='rgba(255,255,255,.08)'}
+      style={{ padding:'.3rem .7rem', background:'var(--admin-paper)', border:'1px solid rgba(163,43,34,.2)', color:'var(--creme)', cursor:'pointer', fontSize:'.8rem', fontFamily:'inherit', borderRadius:2, transition:'background .2s' }}
+      onMouseEnter={e => (e.target as HTMLElement).style.background='rgba(163,43,34,.15)'}
+      onMouseLeave={e => (e.target as HTMLElement).style.background='var(--admin-paper)'}
     >
       {label}
     </button>
@@ -149,14 +149,14 @@ export default function AdminBlog() {
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : posts.length === 0 ? (
-        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(212,168,67,.3)' }}>
+        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(163,43,34,.3)' }}>
           <p className="text-4xl mb-3">✍️</p>
           <p>Nenhum post ainda. Que tal começar?</p>
         </div>
       ) : (
         <div className="space-y-3">
           {posts.map(post => (
-            <div key={post.id} className="flex items-center gap-4 p-4 border rounded" style={{ borderColor: 'rgba(212,168,67,.2)', background: 'rgba(255,255,255,.02)' }}>
+            <div key={post.id} className="flex items-center gap-4 p-4 border rounded" style={{ borderColor: 'rgba(163,43,34,.2)', background: 'var(--admin-paper)' }}>
               {post.cover_image && (
                 <img src={post.cover_image} alt="" style={{ width:64, height:64, objectFit:'cover', borderRadius:2, flexShrink:0 }} />
               )}
@@ -167,17 +167,17 @@ export default function AdminBlog() {
                 </p>
               </div>
               <span className="text-xs px-3 py-1 font-bebas tracking-widest flex-shrink-0" style={{
-                background: post.published ? 'rgba(0,200,100,.1)' : 'rgba(255,255,255,.05)',
-                color: post.published ? '#4ade80' : 'rgba(242,235,217,.4)',
-                border: `1px solid ${post.published ? 'rgba(0,200,100,.3)' : 'rgba(255,255,255,.1)'}`,
+                background: post.published ? 'rgba(0,200,100,.1)' : 'var(--admin-paper)',
+                color: post.published ? 'var(--admin-success)' : 'rgba(26,39,68,.4)',
+                border: `1px solid ${post.published ? 'rgba(0,200,100,.3)' : 'var(--admin-paper)'}`,
               }}>
                 {post.published ? 'Publicado' : 'Rascunho'}
               </span>
               <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => togglePublish(post)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,.15)', color: 'var(--gold)' }}>
+                <button onClick={() => togglePublish(post)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(163,43,34,.15)', color: 'var(--gold)' }}>
                   {post.published ? 'Despublicar' : 'Publicar'}
                 </button>
-                <button onClick={() => openEdit(post)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(255,255,255,.08)', color: 'var(--creme)' }}>
+                <button onClick={() => openEdit(post)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'var(--admin-paper)', color: 'var(--creme)' }}>
                   Editar
                 </button>
                 <button onClick={() => handleDelete(post.id)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,.15)', color: 'var(--red)' }}>
@@ -214,7 +214,7 @@ export default function AdminBlog() {
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Imagem de Capa</label>
                 <div
-                  style={{ width:'100%', height:180, border:'2px dashed rgba(212,168,67,.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', borderRadius:2 }}
+                  style={{ width:'100%', height:180, border:'2px dashed rgba(163,43,34,.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', borderRadius:2 }}
                   onClick={() => fileRef.current?.click()}
                 >
                   {coverPreview
@@ -229,7 +229,7 @@ export default function AdminBlog() {
               <div>
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Conteúdo</label>
                 {/* Toolbar */}
-                <div style={{ display:'flex', flexWrap:'wrap', gap:'.3rem', padding:'.5rem', background:'rgba(0,0,0,.3)', borderBottom:'1px solid rgba(212,168,67,.2)', marginBottom:0 }}>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:'.3rem', padding:'.5rem', background:'rgba(0,0,0,.3)', borderBottom:'1px solid rgba(163,43,34,.2)', marginBottom:0 }}>
                   {toolbarBtn('N', () => execFormat('bold'))}
                   {toolbarBtn('I', () => execFormat('italic'))}
                   {toolbarBtn('U', () => execFormat('underline'))}
@@ -249,8 +249,8 @@ export default function AdminBlog() {
                   style={{
                     minHeight: 280,
                     padding: '1rem',
-                    background: 'rgba(255,255,255,.04)',
-                    border: '1px solid rgba(212,168,67,.3)',
+                    background: 'var(--admin-paper)',
+                    border: '1px solid rgba(163,43,34,.3)',
                     borderTop: 'none',
                     color: 'var(--creme)',
                     outline: 'none',
@@ -268,7 +268,7 @@ export default function AdminBlog() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,.2)', color: 'rgba(242,235,217,.5)' }}>
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(26,39,68,.2)', color: 'rgba(26,39,68,0.65)' }}>
                 Cancelar
               </button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>

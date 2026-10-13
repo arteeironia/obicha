@@ -53,21 +53,21 @@ export default function AdminComentarios() {
           placeholder="Buscar por post, usuário ou conteúdo..."
           value={filter}
           onChange={e => setFilter(e.target.value)}
-          style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(212,168,67,.3)', color: 'var(--creme)', padding: '.6rem 1rem', outline: 'none', width: 280, fontSize: '.85rem' }}
+          style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,.3)', color: 'var(--creme)', padding: '.6rem 1rem', outline: 'none', width: 280, fontSize: '.85rem' }}
         />
       </div>
 
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : filtered.length === 0 ? (
-        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(212,168,67,.3)' }}>
+        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(163,43,34,.3)' }}>
           <p className="text-4xl mb-3">💬</p>
           <p>Nenhum comentário encontrado.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map(c => (
-            <div key={c.id} className="border rounded p-4" style={{ borderColor: 'rgba(212,168,67,.15)', background: 'rgba(255,255,255,.02)' }}>
+            <div key={c.id} className="border rounded p-4" style={{ borderColor: 'rgba(163,43,34,.15)', background: 'var(--admin-paper)' }}>
               <div className="flex items-start gap-3">
                 {c.user_avatar
                   ? <img src={c.user_avatar} alt={c.user_name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
@@ -79,10 +79,10 @@ export default function AdminComentarios() {
                     {c.user_email && <span className="text-xs opacity-40">{c.user_email}</span>}
                     <span className="text-xs opacity-30">·</span>
                     <span className="text-xs opacity-40">Post: <span style={{ color: 'var(--gold)' }}>{c.post_slug}</span></span>
-                    {c.parent_id && <span className="text-xs px-1.5 py-0.5" style={{ background: 'rgba(212,168,67,.1)', color: 'var(--gold)', fontSize: '.7rem' }}>Resposta</span>}
+                    {c.parent_id && <span className="text-xs px-1.5 py-0.5" style={{ background: 'rgba(163,43,34,.1)', color: 'var(--gold)', fontSize: '.7rem' }}>Resposta</span>}
                     <span className="text-xs opacity-30 ml-auto">{new Date(c.created_at).toLocaleString('pt-BR')}</span>
                   </div>
-                  <p className="text-sm" style={{ color: 'rgba(242,235,217,.8)', lineHeight: 1.6 }}>{c.content}</p>
+                  <p className="text-sm" style={{ color: 'rgba(26,39,68,0.8)', lineHeight: 1.6 }}>{c.content}</p>
                 </div>
                 <button onClick={() => handleDelete(c.id)} className="text-xs px-3 py-1.5 font-bebas tracking-widest flex-shrink-0" style={{ background: 'rgba(192,40,28,.15)', color: 'var(--red)' }}>
                   ✕ Remover

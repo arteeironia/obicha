@@ -11,8 +11,8 @@ type Highlight = {
 }
 
 const inputStyle = {
-  background: 'rgba(255,255,255,.05)',
-  border: '1px solid rgba(212,168,67,.3)',
+  background: 'var(--admin-paper)',
+  border: '1px solid rgba(163,43,34,.3)',
   color: 'var(--creme)',
   width: '100%',
   padding: '.7rem 1rem',
@@ -174,7 +174,7 @@ export default function AdminDestaques() {
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : highlights.length === 0 ? (
-        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(212,168,67,.3)' }}>
+        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(163,43,34,.3)' }}>
           <p className="text-4xl mb-3">✦</p>
           <p>Nenhum destaque ainda. Cria uma coleção ou promoção!</p>
         </div>
@@ -189,15 +189,15 @@ export default function AdminDestaques() {
               onDragEnd={handleDragEnd}
               onDragOver={e => e.preventDefault()}
               className="border rounded overflow-hidden"
-              style={{ borderColor: 'rgba(212,168,67,.2)', background: 'rgba(255,255,255,.02)', cursor: 'grab' }}
+              style={{ borderColor: 'rgba(163,43,34,.2)', background: 'var(--admin-paper)', cursor: 'grab' }}
             >
               {/* Header */}
               <div className="flex items-center gap-3 p-4">
                 <span style={{ opacity:.4, fontSize:'1.2rem' }}>⠿</span>
                 <span className="text-xs px-2 py-0.5 font-bebas tracking-widest" style={{
-                  background: h.type === 'promotion' ? 'rgba(192,40,28,.2)' : 'rgba(212,168,67,.15)',
+                  background: h.type === 'promotion' ? 'rgba(192,40,28,.2)' : 'rgba(163,43,34,.15)',
                   color: h.type === 'promotion' ? 'var(--red)' : 'var(--gold)',
-                  border: `1px solid ${h.type === 'promotion' ? 'rgba(192,40,28,.4)' : 'rgba(212,168,67,.3)'}`,
+                  border: `1px solid ${h.type === 'promotion' ? 'rgba(192,40,28,.4)' : 'rgba(163,43,34,.3)'}`,
                 }}>
                   {h.type === 'promotion' ? 'Promoção' : 'Coleção'}
                 </span>
@@ -206,7 +206,7 @@ export default function AdminDestaques() {
                   <p className="text-xs opacity-40 mt-0.5">
                     {(h.images || []).length} imagens
                     {h.type === 'promotion' && h.expires_at && (
-                      <span style={{ color: isExpired(h) ? 'var(--red)' : '#4ade80' }}>
+                      <span style={{ color: isExpired(h) ? 'var(--red)' : 'var(--admin-success)' }}>
                         {' · '}{isExpired(h) ? 'Expirado' : `Expira em ${new Date(h.expires_at).toLocaleDateString('pt-BR')}`}
                       </span>
                     )}
@@ -218,24 +218,24 @@ export default function AdminDestaques() {
                     <img key={img.id} src={img.image_url} alt="" style={{ width:40, height:40, objectFit:'cover', borderRadius:2 }} />
                   ))}
                   {(h.images || []).length > 3 && (
-                    <div style={{ width:40, height:40, background:'rgba(212,168,67,.1)', borderRadius:2, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'.75rem', color:'var(--gold)' }}>
+                    <div style={{ width:40, height:40, background:'rgba(163,43,34,.1)', borderRadius:2, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'.75rem', color:'var(--gold)' }}>
                       +{(h.images || []).length - 3}
                     </div>
                   )}
                 </div>
                 <span className="text-xs px-2 py-1 font-bebas" style={{
-                  color: h.active && !isExpired(h) ? '#4ade80' : 'rgba(242,235,217,.3)',
+                  color: h.active && !isExpired(h) ? 'var(--admin-success)' : 'rgba(26,39,68,.3)',
                 }}>
                   {h.active && !isExpired(h) ? '● Ativo' : '○ Inativo'}
                 </span>
                 <div className="flex gap-1.5">
-                  <button onClick={() => setExpandedId(expandedId === h.id ? null : h.id)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,.1)', color: 'var(--gold)' }}>
+                  <button onClick={() => setExpandedId(expandedId === h.id ? null : h.id)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(163,43,34,.1)', color: 'var(--gold)' }}>
                     {expandedId === h.id ? 'Fechar' : 'Imagens'}
                   </button>
-                  <button onClick={() => toggleActive(h)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(242,235,217,.6)' }}>
+                  <button onClick={() => toggleActive(h)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'var(--admin-paper)', color: 'rgba(26,39,68,0.65)' }}>
                     {h.active ? 'Ocultar' : 'Ativar'}
                   </button>
-                  <button onClick={() => openEdit(h)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(255,255,255,.08)', color: 'var(--creme)' }}>
+                  <button onClick={() => openEdit(h)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'var(--admin-paper)', color: 'var(--creme)' }}>
                     Editar
                   </button>
                   <button onClick={() => handleDelete(h.id)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,.15)', color: 'var(--red)' }}>
@@ -246,7 +246,7 @@ export default function AdminDestaques() {
 
               {/* Imagens expandidas */}
               {expandedId === h.id && (
-                <div style={{ padding:'1rem 1.5rem 1.5rem', borderTop:'1px solid rgba(212,168,67,.1)' }}>
+                <div style={{ padding:'1rem 1.5rem 1.5rem', borderTop:'1px solid rgba(163,43,34,.1)' }}>
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(100px, 1fr))', gap:'.75rem', marginBottom:'1rem' }}>
                     {(h.images || []).map(img => (
                       <div key={img.id} style={{ position:'relative', aspectRatio:1 }}>
@@ -258,9 +258,9 @@ export default function AdminDestaques() {
                       </div>
                     ))}
                     {/* Botão de upload */}
-                    <label style={{ aspectRatio:1, border:'2px dashed rgba(212,168,67,.3)', borderRadius:4, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'.3rem', transition:'border-color .3s' }}
+                    <label style={{ aspectRatio:1, border:'2px dashed rgba(163,43,34,.3)', borderRadius:4, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', gap:'.3rem', transition:'border-color .3s' }}
                       onMouseEnter={e => (e.currentTarget.style.borderColor='var(--gold)')}
-                      onMouseLeave={e => (e.currentTarget.style.borderColor='rgba(212,168,67,.3)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor='rgba(163,43,34,.3)')}
                     >
                       <span style={{ fontSize:'1.5rem', opacity:.4 }}>+</span>
                       <span style={{ fontSize:'.65rem', opacity:.4, textAlign:'center', letterSpacing:'1px' }}>
@@ -336,7 +336,7 @@ export default function AdminDestaques() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,.2)', color: 'rgba(242,235,217,.5)' }}>
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(26,39,68,.2)', color: 'rgba(26,39,68,0.65)' }}>
                 Cancelar
               </button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: formType === 'promotion' ? 'var(--red)' : 'var(--gold)', color: 'var(--navy)' }}>

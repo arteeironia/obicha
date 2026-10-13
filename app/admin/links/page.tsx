@@ -5,8 +5,8 @@ import { useState, useEffect, useRef } from 'react'
 type Link = { id: number; label: string; url: string; active: boolean; position: number }
 
 const inputStyle = {
-  background: 'rgba(255,255,255,.05)',
-  border: '1px solid rgba(212,168,67,.3)',
+  background: 'var(--admin-paper)',
+  border: '1px solid rgba(163,43,34,.3)',
   color: 'var(--creme)',
   width: '100%',
   padding: '.7rem 1rem',
@@ -124,21 +124,21 @@ export default function AdminLinks() {
               onDragEnd={handleDragEnd}
               onDragOver={e => e.preventDefault()}
               className="flex items-center gap-3 p-4 border rounded"
-              style={{ borderColor: 'rgba(212,168,67,.2)', background: 'rgba(255,255,255,.02)', cursor: 'grab', opacity: l.active ? 1 : .5 }}
+              style={{ borderColor: 'rgba(163,43,34,.2)', background: 'var(--admin-paper)', cursor: 'grab', opacity: l.active ? 1 : .5 }}
             >
               <span style={{ opacity: .4, fontSize: '1.2rem' }}>⠿</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p className="font-bold text-sm">{l.label}</p>
                 <p className="text-xs opacity-40 truncate">{l.url}</p>
               </div>
-              <span className="text-xs font-bebas" style={{ color: l.active ? '#4ade80' : 'rgba(242,235,217,.3)' }}>
+              <span className="text-xs font-bebas" style={{ color: l.active ? 'var(--admin-success)' : 'rgba(26,39,68,.3)' }}>
                 {l.active ? '● Ativo' : '○ Oculto'}
               </span>
               <div className="flex gap-1.5">
-                <button onClick={() => toggleActive(l)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(242,235,217,.6)' }}>
+                <button onClick={() => toggleActive(l)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'var(--admin-paper)', color: 'rgba(26,39,68,0.65)' }}>
                   {l.active ? 'Ocultar' : 'Ativar'}
                 </button>
-                <button onClick={() => openEdit(l)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(255,255,255,.08)', color: 'var(--creme)' }}>
+                <button onClick={() => openEdit(l)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'var(--admin-paper)', color: 'var(--creme)' }}>
                   Editar
                 </button>
                 <button onClick={() => handleDelete(l.id)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(192,40,28,.15)', color: 'var(--red)' }}>
@@ -171,7 +171,7 @@ export default function AdminLinks() {
               </label>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,.2)', color: 'rgba(242,235,217,.5)' }}>
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(26,39,68,.2)', color: 'rgba(26,39,68,0.65)' }}>
                 Cancelar
               </button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>

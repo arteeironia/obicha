@@ -6,7 +6,7 @@ type TopItem = { path?: string; label?: string; source?: string; supplier?: stri
 type Totals = { total_pageviews: string; visitors: string; sessions: string; total_clicks: string; exits_reserva: string; exits_umapenca: string; pageviews_hoje: string; clicks_hoje: string }
 type DailyView = { day: string; views: string }
 
-const cardStyle = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,67,0.2)', borderRadius: 4 }
+const cardStyle = { background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,0.2)', borderRadius: 4 }
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -35,7 +35,7 @@ function RankTable({ title, items, valueKey, labelKey }: { title: string; items:
                   <span className="truncate" style={{ maxWidth: '75%' }}>{item[labelKey] || '—'}</span>
                   <span style={{ color: 'var(--gold)' }} className="font-bebas">{val}</span>
                 </div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,.06)', borderRadius: 2 }}>
+                <div style={{ height: 3, background: 'var(--admin-paper)', borderRadius: 2 }}>
                   <div style={{ height: '100%', width: `${pct}%`, background: 'var(--gold)', borderRadius: 2 }} />
                 </div>
               </div>
@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
           {[7, 30, 90].map(d => (
             <button key={d} onClick={() => setDays(d)}
               className="px-4 py-2 text-sm font-bebas tracking-widest"
-              style={{ background: days === d ? 'var(--gold)' : 'rgba(212,168,67,.1)', color: days === d ? 'var(--navy)' : 'var(--gold)' }}>
+              style={{ background: days === d ? 'var(--gold)' : 'rgba(163,43,34,.1)', color: days === d ? 'var(--navy)' : 'var(--gold)' }}>
               {d}D
             </button>
           ))}
