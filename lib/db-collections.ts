@@ -1,4 +1,5 @@
 import {refreshReservaCatalog} from './storefront/sync-reserva'
+import {buildCatalog} from './storefront/catalog'
 import {ensureCatalog} from './storefront/migrate-catalog'
 import postgres from 'postgres'
 
@@ -24,16 +25,17 @@ export async function setProductCollections(productId: number, collectionIds: nu
 
 export async function getProductsByCollection(slug: string) {
   await ensureCatalog()
-  return sql`
+  const rows=await sql`
     SELECT p.* FROM products p
     INNER JOIN product_collections pc ON pc.product_id = p.id
     INNER JOIN collections c ON c.id = pc.collection_id
-    WHERE c.slug = ${slug}
+    WHERE c.slug = ${slug} AND (p.catalog_group_id IS NULL OR p.catalog_group_id=p.id)
     ORDER BY p.created_at DESC`
+  return rows.flatMap(p=>{const design=buildCatalog([p as any])[0];if(!design)return [];const chosen=design.variants.find(v=>v.link===p.link)||design.variants[0];return [{...p,link:chosen.link,price:chosen.price,manual_variants:design.variants.map(v=>({...v,image_url:v.image}))}]})
 }
 
-export async function getProductsWithCollections() {
-  await refreshReservaCatalog()
+export async function getProductsWithCollections(refresh=true) {
+  if(refresh)await refreshReservaCatalog();else await ensureCatalog()
   const products = await sql`SELECT * FROM products ORDER BY created_at DESC`
   const relations = await sql`
     SELECT pc.product_id, c.id, c.name, c.slug

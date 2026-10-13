@@ -11,6 +11,7 @@ async function migrate(){
   await tx`SELECT pg_advisory_xact_lock(68412793)`
   await tx`CREATE TABLE IF NOT EXISTS catalog_migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW(), backup JSONB NOT NULL)`
   await tx`CREATE TABLE IF NOT EXISTS catalog_sync_state (source TEXT PRIMARY KEY, attempted_at TIMESTAMPTZ NOT NULL, succeeded_at TIMESTAMPTZ, error TEXT)`
+  await tx`ALTER TABLE products ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT FALSE`
   if((await tx`SELECT id FROM catalog_migrations WHERE id='database-catalog-v1'`).length)return
   await tx`ALTER TABLE products ADD COLUMN IF NOT EXISTS catalog_group_id INTEGER`
   const rows=await tx`SELECT * FROM products FOR UPDATE`

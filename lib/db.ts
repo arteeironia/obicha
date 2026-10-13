@@ -28,6 +28,8 @@ function invalidateCache(...keys: string[]) {
   keys.forEach(k => cache.delete(k))
 }
 
+export function invalidateProductCache(){for(const key of cache.keys())if(key.startsWith('products_')||key==='featured_products')cache.delete(key)}
+
 // ===== PRODUTOS =====
 export async function getRespiraStats() {
   const [{ count }] = await sql`SELECT COUNT(*) FROM quit_profiles`
@@ -75,14 +77,14 @@ export async function getProducts(category?: string) {
 export async function createProduct(data: {
   name: string; category: string; price: string; link: string
   image_url?: string; description?: string; featured?: boolean; collection_name?: string; supplier?: string
-  show_on_site?: boolean; manual_variants?: any[]
+  show_on_site?: boolean; manual_variants?: any[]; hidden?:boolean
 }) {
   await ensureCatalog()
   const baseSlug = slugify(data.name)
   const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-6)}`
   const [product] = await sql`
-    INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier, show_on_site, manual_variants, slug)
-    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${sql.json(data.manual_variants || [])}, ${uniqueSlug})
+    INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier, show_on_site, manual_variants, slug, hidden)
+    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${sql.json(data.manual_variants || [])}, ${uniqueSlug}, ${data.hidden ?? false})
     RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)
   return product
@@ -91,7 +93,7 @@ export async function createProduct(data: {
 export async function updateProduct(id: number, data: Partial<{
   name: string; category: string; price: string; link: string
   image_url: string; description: string; featured: boolean; collection_name: string; supplier: string
-  show_on_site: boolean; manual_variants: any[]; expected_updated_at:string
+  show_on_site: boolean; manual_variants: any[]; expected_updated_at:string; hidden:boolean
 }>) {
   await ensureCatalog()
   const [product] = await sql`
@@ -107,6 +109,7 @@ export async function updateProduct(id: number, data: Partial<{
       supplier = COALESCE(${data.supplier ?? null}, supplier),
       show_on_site = COALESCE(${data.show_on_site ?? null}, show_on_site),
       manual_variants = COALESCE(${data.manual_variants ? sql.json(data.manual_variants) : null}, manual_variants),
+      hidden = COALESCE(${data.hidden ?? null}, hidden),
       updated_at = NOW()
     WHERE id = ${id} AND (${data.expected_updated_at ?? null}::timestamptz IS NULL OR date_trunc('milliseconds',updated_at)=${data.expected_updated_at ?? null}::timestamptz) RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)

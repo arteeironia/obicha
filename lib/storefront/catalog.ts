@@ -1,6 +1,6 @@
 export type Variant = { type: string; link: string; price: string; image?: string | null; active?: boolean; available?: boolean }
 export type Design = { id: number; aliases: number[]; name: string; originalName: string; image: string; referenceType: string; collections: string[]; variants: Variant[] }
-export type SourceProduct = { id: number; name: string; category?: string; price?: string; link?: string; image_url?: string | null; manual_variants?: unknown; collection_name?: string | null; collections?: { name: string }[]; catalog_group_id?: number | null }
+export type SourceProduct = { id: number; name: string; category?: string; price?: string; link?: string; image_url?: string | null; manual_variants?: unknown; collection_name?: string | null; collections?: { name: string }[]; catalog_group_id?: number | null; hidden?:boolean }
 export function supplier(link: string) {
   try { const u = new URL(link); if(u.protocol !== 'https:' || u.username || u.password) return null;
     if(['lojareservaink.obicha.com.br','www.reserva.ink','reserva.ink'].includes(u.hostname))return 'reserva';
@@ -23,6 +23,7 @@ export function buildCatalog(source: SourceProduct[]): Design[] {
  for(const p of source){const id=p.catalog_group_id || p.id;groups.set(id,[...(groups.get(id)||[]),p]);}
  return [...groups.entries()].flatMap(([id,group])=>{
   const p=group.find(p=>p.id===id)||group[0];
+  if(p.hidden)return [];
   const options=group.filter(row=>row.id===p.id).flatMap(p=>{
    const stored=variants(p.manual_variants);
    return stored.length ? stored.map(v=>v.link===p.link&&p.price?.trim()?{...v,price:p.price}:v) : p.link ? [{type:model(p.category),link:p.link,price:p.price||'',image:null}] : [];
