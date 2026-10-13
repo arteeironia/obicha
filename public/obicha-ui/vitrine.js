@@ -112,8 +112,8 @@ window.mountObichaVitrine = function(data) {
   $('dialog-close').addEventListener('click',closeDialog,{signal:controller.signal});
   $('product-dialog').addEventListener('click',e=>{if(e.target===$('product-dialog')){const r=$('product-dialog').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();}},{signal:controller.signal});
   document.addEventListener('click', e => {
-    const featured=e.target.closest('[data-featured]');if(featured){openAnyProduct(featured.dataset.featured);return;}
-    const product=e.target.closest('[data-product]');if(product){openProduct(product.dataset.product);return;}
+    const featured=e.target.closest('[data-featured]');if(featured){e.preventDefault();openAnyProduct(featured.dataset.featured);return;}
+    const product=e.target.closest('[data-product]');if(product){e.preventDefault();openProduct(product.dataset.product);return;}
     const type=e.target.closest('[data-type]');if(type){activeType=type.dataset.type;renderSelection();$('variant-options').querySelector(`[data-type="${CSS.escape(activeType)}"]`)?.focus();return;}
     const store=e.target.closest('[data-store]');if(store){activeStore=store.dataset.store;renderSelection();return;}
     const collection=e.target.closest('[data-collection]');if(collection){filters.collection=collection.dataset.collection;render();$('collection-chips').querySelector(`[data-collection="${CSS.escape(filters.collection)}"]`)?.focus();return;}

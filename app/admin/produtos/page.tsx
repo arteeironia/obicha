@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import {supplier} from '@/lib/storefront/catalog'
 import { pickRepresentativeVariant } from '@/lib/category-variant-map'
 
 type Product = {
   id: number; name: string; category: string; price: string; link: string
   image_url: string | null; description: string | null; featured: boolean
   collection_name: string | null; supplier: string | null
+  updated_at?: string
   manual_variants?: any
 }
 type Category = { id: number; value: string; label: string; active: boolean }
@@ -23,29 +25,9 @@ const inputStyle = {
   outline: 'none', fontFamily: 'inherit', fontSize: '0.9rem',
 }
 
-function parseVariants(mv: any): {type: string; price: string; link: string; image_url?: string}[] {
+function parseVariants(mv: any): {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean}[] {
   if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
   return Array.isArray(mv) ? mv : []
-}
-
-// Preços padrão por tipo (fornecidos pelo Fernando) — preenchem automático ao adicionar, mas sempre editáveis
-const DEFAULT_PRICES: Record<string, string> = {
-  'Camiseta': 'R$ 114,90',
-  'Regata': 'R$ 99,99',
-  'Camiseta Algodão Peruano': 'R$ 149,99',
-  'Hoodie Moletom': 'R$ 239,99',
-  'Suéter Moletom': 'R$ 208,99',
-  'Camiseta Oversized': 'R$ 159,99',
-  'Cropped': 'R$ 99,99',
-  'Cropped Moletom': 'R$ 159,99',
-  'Camiseta Infantil': 'R$ 92,00',
-  'Algodão': 'R$ 90,20',
-  'Dry Fit': 'R$ 99,99',
-  'Modal Tech': 'R$ 149,99',
-  'Estonada': 'R$ 122,20',
-  'Ecobag': 'R$ 55,60',
-  'Kit de Bottons': 'R$ 28,70',
-  'Caneca': 'R$ 54,75',
 }
 
 export default function AdminProdutos() {
@@ -55,9 +37,15 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string; image_url?: string}[] })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: 'https://umapenca.com/obicha/', image_url: '', description: '', featured: false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean}[] })
   const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
+  const [syncing,setSyncing]=useState(false)
+  const [notice,setNotice]=useState('')
+  async function syncReserva(){
+   setSyncing(true);setNotice('');
+   try{const response=await fetch('/api/sync-feed',{method:'POST'});const data=await response.json();if(!response.ok)throw new Error(data.error);setNotice(`${data.updated} estampas conferidas. ${data.unavailable} opções indisponíveis. Uma Penca preservada.`);await load()}catch(error){setNotice(error instanceof Error?error.message:'Falha na sincronização.')}finally{setSyncing(false)}
+  }
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -68,6 +56,9 @@ export default function AdminProdutos() {
       fetch('/api/collections'),
     ])
     setProducts(await prodRes.json())
+    const syncState=await fetch('/api/sync-feed').then(r=>r.ok?r.json():null).catch(()=>null)
+    if(syncState?.error)setNotice('Última conferência da Reserva: '+syncState.error)
+    else if(syncState?.succeeded_at)setNotice('Reserva conferida em '+new Date(syncState.succeeded_at).toLocaleString('pt-BR'))
     setCategories(await catRes.json())
     setCollections(await colRes.json())
     setLoading(false)
@@ -121,9 +112,10 @@ export default function AdminProdutos() {
       ? { price: repVariant.price || form.price, link: repVariant.link || form.link }
       : { price: form.price, link: form.link }
     const payload = { ...form, ...derived }
-    const body = editProduct ? { id: editProduct.id, ...payload } : payload
+    const body = editProduct ? { id: editProduct.id, expected_updated_at:editProduct.updated_at, ...payload } : payload
     const res = await fetch('/api/products', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const product = await res.json()
+    if(!res.ok){setNotice(product.error||'Não foi possível salvar.');setSaving(false);return}
     const productId = editProduct ? editProduct.id : product.id
     await fetch('/api/collections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: productId, collection_ids: selectedCollections }) })
     await load()
@@ -142,13 +134,15 @@ export default function AdminProdutos() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>Produtos</h1>
-          <p className="opacity-50 text-sm mt-1">{products.length} produtos cadastrados</p>
+          <p className="opacity-50 text-sm mt-1">{products.length} estampas cadastradas · Reserva: preços e disponibilidade conferidos ao acessar a vitrine, no máximo uma vez por hora. Você também pode atualizar agora.</p>
         </div>
+        <button disabled={syncing} onClick={syncReserva} className="px-4 py-3 border">{syncing?'Conferindo Reserva…':'Atualizar preços e disponibilidade da Reserva'}</button>
         <button onClick={openAdd} className="px-6 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>
           + Adicionar Produto
         </button>
       </div>
 
+      {notice&&<p role="status" className="mb-4">{notice}</p>}
       {loading ? <p className="opacity-50">Carregando...</p> : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {products.map(p => (
@@ -241,10 +235,10 @@ export default function AdminProdutos() {
                 <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">Variantes / Tipos disponíveis</label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:'.4rem', marginBottom:'.8rem' }}>
                   {['Camiseta','Regata','Cropped','Cropped Moletom','Camiseta Oversized','Camiseta Algodão Peruano','Camiseta Infantil','Hoodie Moletom','Suéter Moletom','Algodão','Dry Fit','Modal Tech','Estonada','Caneca','Ecobag','Kit de Bottons','Boné'].map(type => {
-                    const already = form.manual_variants.some(v => v.type === type)
+                    const already = false
                     return (
                       <button key={type} type="button" disabled={already}
-                        onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type, price: DEFAULT_PRICES[type] || '', link:''}]}))}
+                        onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type, price: '', link:''}]}))}
                         style={{ fontSize:'.75rem', padding:'.35rem .7rem', borderRadius:2, border:'1px solid', borderColor: already ? 'rgba(212,168,67,.15)' : 'rgba(212,168,67,.4)', background: already ? 'rgba(212,168,67,.05)' : 'transparent', color: already ? 'rgba(242,235,217,.25)' : 'var(--creme)', cursor: already ? 'default' : 'pointer' }}>
                         {already ? '✓ ' : '+ '}{type}
                       </button>
@@ -270,13 +264,14 @@ export default function AdminProdutos() {
                         setForm(f => ({ ...f, manual_variants: mv }))
                       }} />
                     </label>
-                    <span style={{ fontSize:'.8rem', color:'var(--gold)', minWidth:140, flexShrink:0 }}>{v.type}</span>
+                    <span style={{ fontSize:'.8rem', color:'var(--gold)', minWidth:140, flexShrink:0 }}>{v.type}<small style={{display:'block'}}>{supplier(v.link)==='reserva'?'Reserva Ink':supplier(v.link)==='penca'?'Uma Penca':'Defina um link válido'}</small><small style={{display:'block'}}>{v.available===false?'Indisponível na última sincronização':'Disponibilidade a confirmar na loja'}</small></span>
+                    <label><input type="checkbox" checked={v.active!==false} onChange={e=>{const mv=[...form.manual_variants];mv[i]={...mv[i],active:e.target.checked};setForm(f=>({...f,manual_variants:mv}))}}/> Ativo</label>
                     <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:1, minWidth:0 }} placeholder="Preço" value={v.price} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], price: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
                     <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:2, minWidth:0 }} placeholder="Link do produto" value={v.link} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], link: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
                     {v.image_url && (
                       <button type="button" onClick={() => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], image_url: ''}; setForm(f => ({...f, manual_variants: mv})) }} style={{ color:'var(--creme)', opacity:.4, flexShrink:0, fontSize:'.75rem' }} title="Remover foto específica">↺</button>
                     )}
-                    <button type="button" onClick={() => setForm(f => ({...f, manual_variants: f.manual_variants.filter((_,j) => j !== i)}))} style={{ color:'var(--red)', flexShrink:0 }}>✕</button>
+                    <button type="button" onClick={() => setForm(f => ({...f, manual_variants: f.manual_variants.filter((_,j) => j !== i),...(f.manual_variants.length===1?{link:'',price:''}:{})}))} style={{ color:'var(--red)', flexShrink:0 }}>✕</button>
                   </div>
                 ))}
                 {form.manual_variants.length === 0 && <p style={{ fontSize:'.78rem', opacity:.4 }}>Opcional — clique nos tipos acima se essa estampa existir em mais de um modelo.</p>}

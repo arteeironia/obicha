@@ -22,13 +22,14 @@ export default function CookieConsent() {
       style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
         background: 'rgba(15,26,46,.98)', borderTop: '1px solid rgba(212,168,67,.3)',
-        backdropFilter: 'blur(8px)', padding: '1.2rem 1.5rem',
+        backdropFilter: 'blur(8px)', padding: '.65rem 1rem',
       }}
     >
-      <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', justifyContent: 'space-between' }}>
-        <p style={{ color: '#F2EBD9', fontSize: '.85rem', lineHeight: 1.5, flex: '1 1 320px', margin: 0 }}>
-          A gente usa cookies e ferramentas de análise pra entender como você usa o site e melhorar sua experiência. Você pode aceitar ou recusar — os cookies essenciais (login, carrinho) continuam funcionando de qualquer jeito. Saiba mais na{' '}
-          <a href="/politica-de-privacidade" style={{ color: '#D4A843', textDecoration: 'underline' }}>Política de Privacidade</a>.
+      <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '.5rem', justifyContent: 'space-between' }}>
+        <p style={{ color: '#F2EBD9', fontSize: '.85rem', lineHeight: 1.5, flex: '1 1 240px', margin: 0 }}>
+          Usamos cookies de análise para melhorar o site. Você escolhe se permite.{' '}
+          <a href="/politica-de-privacidade" style={{ color: '#D4A843', textDecoration: 'underline' }}>Privacidade</a>.
+
         </p>
         <div style={{ display: 'flex', gap: '.6rem', flexShrink: 0 }}>
           <button

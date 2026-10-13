@@ -73,3 +73,14 @@ body.dialog-open{overflow:hidden}.obicha-theme dialog{padding:0;width:min(970px,
 .obicha-theme .campaign-dialog-copy .eyebrow{margin:0;color:var(--red)}
 .obicha-theme .campaign-dialog a:focus-visible,.obicha-theme .campaign-dialog button:focus-visible{outline:3px solid var(--red);outline-offset:3px}
 @media(max-width:650px){.obicha-theme .promotion-section{padding:18px;margin-top:20px;margin-bottom:28px;box-shadow:4px 4px 0 var(--red)}.obicha-theme .campaign-grid{grid-template-columns:1fr;gap:20px}.obicha-theme .campaign-heading{align-items:flex-start;flex-direction:column}.obicha-theme .promotion-banner picture img{height:auto;aspect-ratio:auto}.obicha-theme .campaign-dialog{width:calc(100vw - 24px);max-height:88dvh}.obicha-theme .campaign-dialog picture img{max-height:53dvh;object-fit:contain;background:var(--navy)}.obicha-theme .campaign-dialog-copy{padding:20px}}
+
+/* Catalog links remain usable before JavaScript and on collection pages. */
+.obicha-theme .catalog-direct-options{margin-top:14px;font-size:12px}
+.obicha-theme .catalog-direct-options summary{cursor:pointer;font-weight:600}
+.obicha-theme .catalog-direct-options p{margin:9px 0}
+.obicha-theme .catalog-direct-options a{text-decoration:underline;overflow-wrap:anywhere}
+.obicha-theme .featured-card>a{display:block}
+.obicha-theme .nav-dropdown{max-height:65vh;overflow-y:auto}
+.obicha-theme .mobile-menu{max-height:calc(100dvh - 74px);overflow-y:auto}
+.obicha-theme .collection-chips a{padding:8px 13px;border:1px solid var(--line);font-size:12px}
+.obicha-theme .collection-chips a[aria-current="page"]{background:var(--navy);color:var(--cream)}

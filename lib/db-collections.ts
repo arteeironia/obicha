@@ -1,3 +1,5 @@
+import {refreshReservaCatalog} from './storefront/sync-reserva'
+import {ensureCatalog} from './storefront/migrate-catalog'
 import postgres from 'postgres'
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada')
@@ -21,6 +23,7 @@ export async function setProductCollections(productId: number, collectionIds: nu
 }
 
 export async function getProductsByCollection(slug: string) {
+  await ensureCatalog()
   return sql`
     SELECT p.* FROM products p
     INNER JOIN product_collections pc ON pc.product_id = p.id
@@ -30,6 +33,7 @@ export async function getProductsByCollection(slug: string) {
 }
 
 export async function getProductsWithCollections() {
+  await refreshReservaCatalog()
   const products = await sql`SELECT * FROM products ORDER BY created_at DESC`
   const relations = await sql`
     SELECT pc.product_id, c.id, c.name, c.slug

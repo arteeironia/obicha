@@ -2,16 +2,18 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText,file);
 const {buildCatalog,supplier}=require('../lib/storefront/catalog.ts');
 const source=JSON.parse(fs.readFileSync('tests/catalog-before-integration.json','utf8'));
+const {planCatalogMigration}=require('../lib/storefront/catalog-migration-plan.ts');
+for(const update of planCatalogMigration(source)){for(const id of update.aliases){const p=source.find(p=>p.id===id);p.catalog_group_id=update.id;if(id===update.id){p.name=update.name;p.manual_variants=update.variants;p.price=update.price;}}}
 const products=buildCatalog(source);let checks=0;
 function check(name,fn){fn();checks++;console.log('PASS',name)}
 const sandboxLogic={module:{exports:{}},URL,Intl};vm.runInNewContext(fs.readFileSync('public/obicha-ui/logic.js','utf8'),sandboxLogic);const L=sandboxLogic.module.exports;
 const base={search:'',model:'all',store:'all',collection:'all'};
-check('All 77 verified designs and 485 purchase options survive the integration',()=>{assert.equal(products.length,77);assert.equal(products.reduce((sum,p)=>sum+p.variants.length,0),485);for(const p of products){assert(p.image.startsWith('https:'));for(const v of p.variants){assert(supplier(v.link));if(v.image)assert(v.image.startsWith('https:'));}}});
+check('All 77 designs and at least 485 purchase options survive database migration',()=>{assert.equal(products.length,77);assert(products.reduce((sum,p)=>sum+p.variants.length,0)>=485);for(const p of products){assert(p.image.startsWith('https:'));for(const v of p.variants){assert(supplier(v.link));if(v.image)assert(v.image.startsWith('https:'));}}});
 check('Admin product names, images and prices take priority',()=>{const edited=structuredClone(source);const p=edited.find(p=>p.id===139);p.name='Meu novo nome';p.image_url='https://res.cloudinary.com/example/new.jpg';p.price='120,00';const actual=buildCatalog(edited).find(p=>p.id===139);assert.equal(actual.name,p.name);assert.equal(actual.image,p.image_url);assert(actual.variants.some(v=>v.price==='120,00'));});
 check('Removing a registered model does not restore it from the verified snapshot',()=>{const edited=structuredClone(source);const p=edited.find(p=>p.id===139);p.manual_variants=p.manual_variants.filter(v=>v.type!=='Regata');assert(!buildCatalog(edited).find(p=>p.id===139).variants.some(v=>v.type==='Regata'));});
 check('New admin designs appear with the correct partner without editing the partner shop',()=>{const p={id:9999,name:'Nova estampa',category:'dryfit',link:'https://umapenca.com/obicha/dry-fit/novo',price:'69,90',image_url:'https://res.cloudinary.com/example/new.jpg',manual_variants:[]};const actual=buildCatalog([...source,p]).find(p=>p.id===9999);assert.equal(actual.variants[0].type,'Camiseta Dry Fit');assert.equal(supplier(actual.variants[0].link),'penca');});
 check('Invalid or deceptive shops are never purchase destinations',()=>{for(const link of ['javascript:alert(1)','http://umapenca.com/x','https://umapenca.com.evil.example/x','https://evil.example/x','https://user:pass@umapenca.com/x'])assert.equal(supplier(link),null);});
-check('Changing one duplicated design does not silently merge different records',()=>{const edited=structuredClone(source);edited.find(p=>p.id===99).link='https://umapenca.com/obicha/new-product';assert(buildCatalog(edited).some(p=>p.id===99));assert(buildCatalog(edited).some(p=>p.id===57));});
+check('Persisted design groups remain stable after edits',()=>{const edited=structuredClone(source);const p=edited.find(p=>p.id===57);const before=buildCatalog(edited).find(p=>p.aliases.includes(99));p.name='Novo nome';const after=buildCatalog(edited).find(p=>p.aliases.includes(99));assert.equal(after.id,before.id);assert.equal(after.variants.length,before.variants.length);});
 const elements = new Map();
 class Element {
   constructor(id='',dataset={}) {this.id=id;this.dataset=dataset;this.handlers={};this.hidden=false;this.value='';this.attributes={};this.style={};this.classList={add(){},remove(){}};this.textContent='';}
@@ -35,7 +37,7 @@ class Element {
 }
 function get(id){if(!elements.has(id))elements.set(id,new Element(id));return elements.get(id);}
 const document={querySelector:get,querySelectorAll:()=>[],getElementById:get,activeElement:new Element(),body:new Element(),handlers:{},addEventListener(type,fn,options){(this.handlers[type] ||= []).push(fn);options?.signal?.addEventListener('abort',()=>{this.handlers[type]=this.handlers[type].filter(x=>x!==fn)},{once:true});}};
-function clickData(key,value){const target=new Element('',{[key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]:String(value)});for(const fn of document.handlers.click||[])fn({target});}
+function clickData(key,value){const target=new Element('',{[key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]:String(value)});for(const fn of document.handlers.click||[])fn({target,preventDefault(){}});}
 function selectGuide(key){get('guide-model').value=key;get('guide-model').dispatch('change');}
 const sizeWindow={};vm.runInNewContext(fs.readFileSync('public/obicha-ui/sizes.js','utf8'),{window:sizeWindow});const sizeGuides=sizeWindow.OBICHA_SIZES;
 const homeContent=JSON.parse(fs.readFileSync('lib/storefront/default-content.json','utf8'));homeContent.hero.productId=157;
@@ -54,8 +56,8 @@ check('The unified guide applies a piece filter and describes moletom',()=>{
   selectGuide('sweatshirt');assert.equal(get('model-title').textContent,'O deboche também sente frio.');
   get('clear-filters').dispatch('click');
 });
-check('Freddie cotton routes to Penca and peruano routes to Reserva Ink',()=>{
-  clickData('product',137);assert.equal(get('product-dialog').open,true);assert.equal(L.supplier(get('buy-link').href),'penca');
+check('Reserva is preferred and Freddie still offers Penca cotton and Reserva peruano',()=>{
+  clickData('product',137);assert.equal(get('product-dialog').open,true);assert.equal(L.supplier(get('buy-link').href),'reserva');clickData('type','Camiseta');clickData('store','penca');assert.equal(L.supplier(get('buy-link').href),'penca');
   clickData('type','Camiseta Algodão Peruano');assert.equal(L.supplier(get('buy-link').href),'reserva');
   assert.equal(get('buy-link').href,products.find(p=>p.id===137).variants.find(v=>v.type==='Camiseta Algodão Peruano').link);
   get('dialog-close').dispatch('click');assert.equal(get('product-dialog').open,false);

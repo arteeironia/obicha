@@ -1,3 +1,4 @@
+import {ensureCatalog} from './storefront/migrate-catalog'
 // v3 - postgres client + memory cache
 import postgres from 'postgres'
 
@@ -35,9 +36,10 @@ export async function getRespiraStats() {
 }
 
 export async function getFeaturedProducts() {
+  await ensureCatalog()
   const cached = getCache('featured_products')
   if (cached) return cached
-  const data = await sql`SELECT * FROM products WHERE featured = true ORDER BY collection_name ASC, created_at DESC`
+  const data = await sql`SELECT * FROM products WHERE featured = true AND (catalog_group_id IS NULL OR catalog_group_id=id) ORDER BY collection_name ASC, created_at DESC`
   setCache('featured_products', data, true)
   return data
 }
@@ -53,17 +55,19 @@ function slugify(text: string): string {
 }
 
 export async function getProductBySlug(slug: string) {
+  await ensureCatalog()
   const [product] = await sql`SELECT * FROM products WHERE slug = ${slug} LIMIT 1`
   return product || null
 }
 
 export async function getProducts(category?: string) {
+  await ensureCatalog()
   const key = `products_${category || 'all'}`
   const cached = getCache(key)
   if (cached) return cached
   const data = category && category !== 'todos'
-    ? await sql`SELECT * FROM products WHERE category = ${category} ORDER BY created_at DESC`
-    : await sql`SELECT * FROM products ORDER BY created_at DESC`
+    ? await sql`SELECT * FROM products WHERE category = ${category} AND (catalog_group_id IS NULL OR catalog_group_id=id) ORDER BY created_at DESC`
+    : await sql`SELECT * FROM products WHERE catalog_group_id IS NULL OR catalog_group_id=id ORDER BY created_at DESC`
   setCache(key, data, true)
   return data
 }
@@ -73,6 +77,7 @@ export async function createProduct(data: {
   image_url?: string; description?: string; featured?: boolean; collection_name?: string; supplier?: string
   show_on_site?: boolean; manual_variants?: any[]
 }) {
+  await ensureCatalog()
   const baseSlug = slugify(data.name)
   const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-6)}`
   const [product] = await sql`
@@ -86,8 +91,9 @@ export async function createProduct(data: {
 export async function updateProduct(id: number, data: Partial<{
   name: string; category: string; price: string; link: string
   image_url: string; description: string; featured: boolean; collection_name: string; supplier: string
-  show_on_site: boolean; manual_variants: any[]
+  show_on_site: boolean; manual_variants: any[]; expected_updated_at:string
 }>) {
+  await ensureCatalog()
   const [product] = await sql`
     UPDATE products SET
       name = COALESCE(${data.name ?? null}, name),
@@ -102,13 +108,14 @@ export async function updateProduct(id: number, data: Partial<{
       show_on_site = COALESCE(${data.show_on_site ?? null}, show_on_site),
       manual_variants = COALESCE(${data.manual_variants ? sql.json(data.manual_variants) : null}, manual_variants),
       updated_at = NOW()
-    WHERE id = ${id} RETURNING *`
+    WHERE id = ${id} AND (${data.expected_updated_at ?? null}::timestamptz IS NULL OR date_trunc('milliseconds',updated_at)=${data.expected_updated_at ?? null}::timestamptz) RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)
   return product
 }
 
 export async function deleteProduct(id: number) {
-  await sql`DELETE FROM products WHERE id = ${id}`
+  await ensureCatalog()
+  await sql`DELETE FROM products WHERE id = ${id} OR catalog_group_id = ${id}`
   invalidateCache('featured_products', 'products_all')
 }
 

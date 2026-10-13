@@ -1,3 +1,4 @@
+import {ensureCatalog} from '@/lib/storefront/migrate-catalog'
 import {buildCatalog,supplier,type SourceProduct} from '@/lib/storefront/catalog'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
@@ -50,8 +51,12 @@ function sellerForVariant(variantType: string, fallbackSupplier: string | null):
 }
 
 async function getProduct(slug: string) {
+  await ensureCatalog()
   const [product] = await sql`SELECT * FROM products WHERE slug = ${slug} LIMIT 1`
-  return product || null
+  if(!product)return null
+  const [canonical]=await sql`SELECT * FROM products WHERE id=${product.catalog_group_id||product.id} LIMIT 1`
+  const resolved=canonical||product
+  return buildCatalog([resolved as SourceProduct]).length?resolved:null
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
