@@ -20,7 +20,7 @@ type ForumPost = { id: number; user_id: string; display_name: string | null; con
 
 type ContentItem = { id: number; type: 'video' | 'texto' | 'materia'; title: string; body: string | null; url: string | null; source: string | null; description: string | null; position: number; active: boolean }
 
-const cardStyle = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,67,0.2)', borderRadius: 4 }
+const cardStyle = { background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,0.2)', borderRadius: 4 }
 
 export default function RespiraAdminPage() {
   const [tab, setTab] = useState<'usuarios' | 'moderacao' | 'conteudo'>('usuarios')
@@ -149,11 +149,11 @@ export default function RespiraAdminPage() {
         <p className="opacity-50 text-sm mt-1">Usuários, dados e moderação do fórum</p>
       </div>
 
-      <div className="flex gap-1 mb-6" style={{ borderBottom: '1px solid rgba(212,168,67,.2)' }}>
+      <div className="flex gap-1 mb-6" style={{ borderBottom: '1px solid rgba(163,43,34,.2)' }}>
         {[['usuarios', `Usuários (${profiles.length})`], ['moderacao', `Moderação (${hidden.length} ocultos · ${reported.length} denúncias)`], ['conteudo', `Conteúdo (${content.length})`]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key as any)}
             className="px-4 py-2.5 text-sm font-bebas tracking-widest"
-            style={{ color: tab === key ? 'var(--gold)' : 'rgba(242,235,217,.5)', borderBottom: tab === key ? '2px solid var(--gold)' : '2px solid transparent' }}>
+            style={{ color: tab === key ? 'var(--gold)' : 'rgba(26,39,68,.5)', borderBottom: tab === key ? '2px solid var(--gold)' : '2px solid transparent' }}>
             {label}
           </button>
         ))}
@@ -179,7 +179,7 @@ export default function RespiraAdminPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => toggleAdmin(p.user_id, p.is_admin)}
                   className="text-xs px-3 py-1.5 font-bebas tracking-widest"
-                  style={{ background: p.is_admin ? 'rgba(212,168,67,.15)' : 'rgba(255,255,255,.03)', color: p.is_admin ? 'var(--gold)' : 'rgba(242,235,217,.6)', border: '1px solid rgba(212,168,67,.2)' }}>
+                  style={{ background: p.is_admin ? 'rgba(163,43,34,.15)' : 'var(--admin-paper)', color: p.is_admin ? 'var(--gold)' : 'rgba(26,39,68,.6)', border: '1px solid rgba(163,43,34,.2)' }}>
                   {p.is_admin ? 'REMOVER ADMIN' : 'TORNAR ADMIN'}
                 </button>
                 {confirmDelete === p.user_id ? (
@@ -207,14 +207,14 @@ export default function RespiraAdminPage() {
               <p className="text-xs tracking-widest uppercase opacity-60 mb-3" style={{ color: 'var(--gold)' }}>🔒 Ocultos por denúncias (3+), aguardando revisão</p>
               <div className="space-y-2">
                 {hidden.map(post => (
-                  <div key={post.id} style={{ ...cardStyle, borderColor: 'rgba(212,168,67,.4)' }} className="p-4">
+                  <div key={post.id} style={{ ...cardStyle, borderColor: 'rgba(163,43,34,.4)' }} className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs opacity-70">{post.display_name || 'Alguém'}</span>
                       <span className="text-xs" style={{ color: 'var(--gold)' }}>{post.total_denuncias} denúncia{post.total_denuncias !== '1' ? 's' : ''}</span>
                     </div>
                     <p className="text-sm mb-3">{post.content}</p>
                     <div className="flex gap-2">
-                      <button onClick={() => approvePost(post.id, true)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: '#4ade80', color: 'var(--navy)' }}>
+                      <button onClick={() => approvePost(post.id, true)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'var(--admin-success)', color: 'var(--navy)' }}>
                         LIBERAR
                       </button>
                       <button onClick={() => { setHidden(cur => cur.filter(p => p.id !== post.id)); deletePost(post.id); }} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ color: 'var(--red)', border: '1px solid rgba(192,40,28,.3)' }}>
@@ -236,7 +236,7 @@ export default function RespiraAdminPage() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs opacity-70">{post.display_name || 'Alguém'}</span>
                       <div className="flex items-center gap-2">
-                        {!post.approved && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,168,67,.15)', color: 'var(--gold)' }}>oculto</span>}
+                        {!post.approved && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(163,43,34,.15)', color: 'var(--gold)' }}>oculto</span>}
                         <span className="text-xs" style={{ color: 'var(--red)' }}>{post.total_denuncias} denúncia{post.total_denuncias !== '1' ? 's' : ''}</span>
                       </div>
                     </div>
@@ -276,7 +276,7 @@ export default function RespiraAdminPage() {
               {(['texto', 'video', 'materia'] as const).map(t => (
                 <button key={t} onClick={() => setContentForm(f => ({ ...f, type: t }))}
                   className="px-4 py-2 text-xs font-bebas tracking-widest"
-                  style={{ background: contentForm.type === t ? 'var(--gold)' : 'rgba(212,168,67,.1)', color: contentForm.type === t ? 'var(--navy)' : 'var(--gold)' }}>
+                  style={{ background: contentForm.type === t ? 'var(--gold)' : 'rgba(163,43,34,.1)', color: contentForm.type === t ? 'var(--navy)' : 'var(--gold)' }}>
                   {t === 'texto' ? 'TEXTO' : t === 'video' ? 'VÍDEO' : 'MATÉRIA'}
                 </button>
               ))}
@@ -287,7 +287,7 @@ export default function RespiraAdminPage() {
               onChange={e => setContentForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Título"
               className="w-full mb-3 px-3 py-2.5 text-sm"
-              style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.2)', color: 'var(--creme)' }}
+              style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,.2)', color: 'var(--creme)' }}
             />
 
             {contentForm.type === 'texto' && (
@@ -297,7 +297,7 @@ export default function RespiraAdminPage() {
                 placeholder="Texto completo (pode ter vários parágrafos)"
                 rows={6}
                 className="w-full mb-3 px-3 py-2.5 text-sm"
-                style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.2)', color: 'var(--creme)' }}
+                style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,.2)', color: 'var(--creme)' }}
               />
             )}
 
@@ -307,7 +307,7 @@ export default function RespiraAdminPage() {
                 onChange={e => setContentForm(f => ({ ...f, url: e.target.value }))}
                 placeholder={contentForm.type === 'video' ? 'Link do vídeo (YouTube, etc)' : 'Link da matéria'}
                 className="w-full mb-3 px-3 py-2.5 text-sm"
-                style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.2)', color: 'var(--creme)' }}
+                style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,.2)', color: 'var(--creme)' }}
               />
             )}
 
@@ -317,7 +317,7 @@ export default function RespiraAdminPage() {
                 onChange={e => setContentForm(f => ({ ...f, source: e.target.value }))}
                 placeholder="Nome do site/veículo (ex: Ministério da Saúde)"
                 className="w-full mb-3 px-3 py-2.5 text-sm"
-                style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.2)', color: 'var(--creme)' }}
+                style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,.2)', color: 'var(--creme)' }}
               />
             )}
 
@@ -327,7 +327,7 @@ export default function RespiraAdminPage() {
               placeholder="Resumo curto (opcional)"
               rows={2}
               className="w-full mb-4 px-3 py-2.5 text-sm"
-              style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.2)', color: 'var(--creme)' }}
+              style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,.2)', color: 'var(--creme)' }}
             />
 
             <div className="flex gap-2">
@@ -348,7 +348,7 @@ export default function RespiraAdminPage() {
               <div key={item.id} style={{ ...cardStyle, opacity: item.active ? 1 : 0.5 }} className="p-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,168,67,.15)', color: 'var(--gold)' }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(163,43,34,.15)', color: 'var(--gold)' }}>
                       {item.type === 'texto' ? 'TEXTO' : item.type === 'video' ? 'VÍDEO' : 'MATÉRIA'}
                     </span>
                     {!item.active && <span className="text-[10px] opacity-40">oculto</span>}
@@ -358,8 +358,8 @@ export default function RespiraAdminPage() {
                   {item.url && <p className="text-xs opacity-40 truncate">{item.url}</p>}
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <button onClick={() => editContent(item)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(212,168,67,.1)', color: 'var(--gold)' }}>EDITAR</button>
-                  <button onClick={() => toggleContentActive(item)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: item.active ? 'rgba(192,40,28,.1)' : 'rgba(74,222,128,.1)', color: item.active ? 'var(--red)' : '#4ade80' }}>
+                  <button onClick={() => editContent(item)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: 'rgba(163,43,34,.1)', color: 'var(--gold)' }}>EDITAR</button>
+                  <button onClick={() => toggleContentActive(item)} className="text-xs px-3 py-1.5 font-bebas tracking-widest" style={{ background: item.active ? 'rgba(192,40,28,.1)' : 'rgba(74,222,128,.1)', color: item.active ? 'var(--red)' : 'var(--admin-success)' }}>
                     {item.active ? 'OCULTAR' : 'ATIVAR'}
                   </button>
                   <button onClick={() => deleteContent(item.id)} className="text-xs px-2 opacity-50">excluir</button>

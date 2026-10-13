@@ -49,8 +49,8 @@ export default function AdminSocial() {
   }
 
   const inputStyle = {
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(212,168,67,0.3)',
+    background: 'var(--admin-paper)',
+    border: '1px solid rgba(163,43,34,0.3)',
     color: 'var(--creme)',
     width: '100%',
     padding: '0.7rem 1rem',
@@ -74,18 +74,18 @@ export default function AdminSocial() {
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : posts.length === 0 ? (
-        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(212,168,67,0.3)' }}>
+        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(163,43,34,0.3)' }}>
           <p className="text-4xl mb-3">📱</p>
           <p>Nenhum post adicionado ainda</p>
         </div>
       ) : (
         <div className="space-y-3">
           {posts.map(post => (
-            <div key={post.id} className="flex items-center gap-4 p-4 border rounded" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
+            <div key={post.id} className="flex items-center gap-4 p-4 border rounded" style={{ borderColor: 'rgba(163,43,34,0.2)', background: 'var(--admin-paper)' }}>
               <span className="font-bebas tracking-widest text-sm px-3 py-1" style={{
                 background: post.platform === 'instagram' ? 'rgba(192,40,28,0.2)' : 'rgba(0,0,0,0.3)',
                 color: post.platform === 'instagram' ? 'var(--red)' : 'var(--creme)',
-                border: `1px solid ${post.platform === 'instagram' ? 'rgba(192,40,28,0.4)' : 'rgba(255,255,255,0.2)'}`,
+                border: `1px solid ${post.platform === 'instagram' ? 'rgba(192,40,28,0.4)' : 'var(--admin-paper)'}`,
               }}>
                 {post.platform.toUpperCase()}
               </span>
@@ -116,7 +116,7 @@ export default function AdminSocial() {
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,0.2)', color: 'rgba(242,235,217,0.5)' }}>
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(26,39,68,0.2)', color: 'rgba(26,39,68,0.65)' }}>
                 Cancelar
               </button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: 'var(--gold)', color: 'var(--navy)' }}>

@@ -11,7 +11,7 @@ function PasswordInput({ value, onChange, placeholder }: { value: string; onChan
         value={value}
         onChange={e => onChange(e.target.value)}
         className="w-full px-4 py-3 text-center tracking-widest outline-none"
-        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(212,168,67,0.3)', color: 'var(--creme)', paddingRight: '3rem' }}
+        style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,0.3)', color: 'var(--creme)', paddingRight: '3rem' }}
         autoFocus
       />
       <button type="button" onClick={() => setShow(s => !s)}
@@ -54,21 +54,21 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--navy)' }}>
+    <div className="admin-login min-h-screen flex items-center justify-center" style={{ background: 'var(--navy)' }}>
       <div className="w-full max-w-sm p-8 border" style={{ borderColor: 'var(--gold)' }}>
         <div className="text-center mb-8">
-          <span className="font-bebas text-4xl" style={{ color: 'var(--gold)' }}>Ô<span style={{ color: 'var(--red)' }}>bicha</span>!</span>
+          <img className="admin-login-logo" src="/Logo_-_O_Bicha.png" alt="Ô bicha!" width={140} height={95}/>
           <p className="text-sm mt-2 opacity-50 tracking-widest uppercase">Painel Admin</p>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
           <PasswordInput value={password} onChange={setPassword} placeholder="Senha" />
           {error && <p className="text-sm text-center" style={{ color: 'var(--red)' }}>{error}</p>}
           <button type="submit" disabled={loading} className="w-full py-3 font-bebas tracking-widest text-lg transition-all"
-            style={{ background: loading ? 'rgba(212,168,67,0.5)' : 'var(--gold)', color: 'var(--navy)' }}>
+            style={{ background: loading ? 'rgba(163,43,34,0.5)' : 'var(--gold)', color: 'var(--navy)' }}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-        <p className="text-center mt-6 text-xs opacity-30">⚠️ Troque a senha temporária nas configurações após o primeiro login</p>
+        <p className="text-center mt-6 text-xs opacity-30">Acesso restrito à gestão da marca.</p>
       </div>
     </div>
   )

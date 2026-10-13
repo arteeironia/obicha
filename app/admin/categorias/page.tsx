@@ -34,17 +34,17 @@ export default function AdminCategorias() {
 
   const CategoryRow = ({ cat }: { cat: Category }) => (
     <div className="flex items-center justify-between p-4 border rounded mb-2"
-      style={{ borderColor: 'rgba(212,168,67,.2)', background: cat.active ? 'rgba(212,168,67,.04)' : 'rgba(255,255,255,.01)', opacity: cat.active ? 1 : .5 }}>
+      style={{ borderColor: 'rgba(163,43,34,.2)', background: cat.active ? 'rgba(163,43,34,.04)' : 'var(--admin-paper)', opacity: cat.active ? 1 : .5 }}>
       <div>
         <p className="font-bold text-sm">{cat.label}</p>
         <p className="text-xs opacity-40 mt-0.5">{cat.value}</p>
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-xs font-bebas" style={{ color: cat.active ? '#4ade80' : 'rgba(242,235,217,.3)' }}>
+        <span className="text-xs font-bebas" style={{ color: cat.active ? 'var(--admin-success)' : 'rgba(26,39,68,.3)' }}>
           {cat.active ? '● Ativa' : '○ Inativa'}
         </span>
         <button onClick={() => toggle(cat)} className="text-xs px-3 py-1.5 font-bebas tracking-widest"
-          style={{ background: cat.active ? 'rgba(192,40,28,.15)' : 'rgba(212,168,67,.15)', color: cat.active ? 'var(--red)' : 'var(--gold)' }}>
+          style={{ background: cat.active ? 'rgba(192,40,28,.15)' : 'rgba(163,43,34,.15)', color: cat.active ? 'var(--red)' : 'var(--gold)' }}>
           {cat.active ? 'Desativar' : 'Ativar'}
         </button>
       </div>

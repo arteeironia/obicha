@@ -74,14 +74,14 @@ export default function AdminPinterest() {
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : pins.length === 0 ? (
-        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(212,168,67,0.3)' }}>
+        <div className="border border-dashed rounded p-12 text-center opacity-30" style={{ borderColor: 'rgba(163,43,34,0.3)' }}>
           <p className="text-4xl mb-3">📌</p>
           <p>Nenhum pin adicionado ainda</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {pins.map(pin => (
-            <div key={pin.id} className="border rounded overflow-hidden" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
+            <div key={pin.id} className="border rounded overflow-hidden" style={{ borderColor: 'rgba(163,43,34,0.2)', background: 'var(--admin-paper)' }}>
               <div className="aspect-square relative">
                 <img src={pin.image_url} alt="Pin Pinterest" className="w-full h-full object-cover" />
               </div>
@@ -126,12 +126,12 @@ export default function AdminPinterest() {
                   onChange={e => setPinUrl(e.target.value)}
                   placeholder="https://br.pinterest.com/pin/..."
                   className="w-full px-4 py-3 outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(212,168,67,0.3)', color: 'var(--creme)' }}
+                  style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,0.3)', color: 'var(--creme)' }}
                 />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => { setShowForm(false); setImagePreview(null); setImageData(null); setPinUrl('') }} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(242,235,217,0.2)', color: 'rgba(242,235,217,0.5)' }}>
+              <button onClick={() => { setShowForm(false); setImagePreview(null); setImageData(null); setPinUrl('') }} className="flex-1 py-3 font-bebas tracking-widest border" style={{ borderColor: 'rgba(26,39,68,0.2)', color: 'rgba(26,39,68,0.65)' }}>
                 Cancelar
               </button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-3 font-bebas tracking-widest" style={{ background: '#E60023', color: 'white' }}>

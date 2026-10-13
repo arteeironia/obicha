@@ -1,5 +1,6 @@
 'use client'
 import './admin-shell.css'
+import './admin-theme.css'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -7,6 +8,9 @@ import { usePathname, useRouter } from 'next/navigation'
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: '◈' },
   { href: '/admin/produtos', label: 'Produtos', icon: '👕' },
+  { href: '/admin/collections', label: 'Coleções', icon: '◇' },
+  { href: '/admin/social', label: 'Posts sociais', icon: '◉' },
+  { href: '/admin/pinterest', label: 'Pinterest', icon: '▧' },
   { href: '/admin/categorias', label: 'Categorias', icon: '🏷️' },
   { href: '/admin/vitrine', label: 'Vitrine & campanhas', icon: '▧' },
   { href: '/admin/destaques', label: 'Destaques', icon: '✦' },
@@ -38,6 +42,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
    {menuOpen&&<div className="admin-menu-backdrop" onClick={()=>setMenuOpen(false)}/>}
    <aside className={'admin-sidebar '+(menuOpen?'open':'')}><div className="admin-sidebar-header"><Link href="/admin"><img src="/Logo_-_O_Bicha.png" alt="Ô bicha!" width={110} height={74}/><p>PAINEL DA MARCA</p></Link><button className="admin-menu-close" aria-label="Fechar menu" onClick={()=>setMenuOpen(false)}>×</button></div>
    <nav id="admin-navigation" aria-label="Painel administrativo">{navItems.map(item=><Link key={item.href} href={item.href} aria-current={pathname===item.href?'page':undefined} onClick={()=>setMenuOpen(false)}><span aria-hidden="true">{item.icon}</span>{item.label}</Link>)}</nav><footer><Link href="/" target="_blank" rel="noopener noreferrer">Ver site ↗</Link><button onClick={handleLogout}>Sair do painel</button></footer></aside>
-   <main className="admin-shell-content">{children}</main>
+   <main className="admin-shell-content">{pathname==='/admin/produtos'?children:<div className="admin-page">{pathname!=='/admin/login'&&<div className="admin-page-banner"><span>Ô BICHA! / {(navItems.find(item=>item.href===pathname)?.label||'GESTÃO').toUpperCase()}</span><Link href="/" target="_blank" rel="noopener noreferrer">Ver site ↗</Link></div>}{children}</div>}</main>
   </div>
 }

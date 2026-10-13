@@ -41,7 +41,7 @@ export default function AuditoriaCliques() {
           { label: 'Últimos 7 dias', value: stats.reduce((acc, s) => acc + parseInt(s.cliques_semana || '0'), 0) },
           { label: 'Últimos 30 dias', value: stats.reduce((acc, s) => acc + parseInt(s.cliques_mes || '0'), 0) },
         ].map(card => (
-          <div key={card.label} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(212,168,67,.15)', borderRadius: 4, padding: '1.5rem' }}>
+          <div key={card.label} style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,.15)', borderRadius: 4, padding: '1.5rem' }}>
             <p className="text-xs tracking-widest uppercase opacity-50 mb-1">{card.label}</p>
             <p className="font-playfair text-3xl font-bold" style={{ color: 'var(--gold)' }}>{card.value}</p>
           </div>
@@ -52,10 +52,10 @@ export default function AuditoriaCliques() {
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : (
-        <div style={{ border: '1px solid rgba(212,168,67,.15)', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(163,43,34,.15)', borderRadius: 4, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(212,168,67,.08)', borderBottom: '1px solid rgba(212,168,67,.15)' }}>
+              <tr style={{ background: 'rgba(163,43,34,.08)', borderBottom: '1px solid rgba(163,43,34,.15)' }}>
                 {['Link', 'Hoje', '7 dias', '30 dias', 'Total', 'Status'].map(h => (
                   <th key={h} style={{ padding: '.75rem 1rem', textAlign: 'left', fontSize: '.75rem', letterSpacing: '2px', textTransform: 'uppercase', opacity: .6 }}>{h}</th>
                 ))}
@@ -66,12 +66,12 @@ export default function AuditoriaCliques() {
                 const total = parseInt(s.total_cliques || '0')
                 const pct = totalGeral > 0 ? Math.round((total / totalGeral) * 100) : 0
                 return (
-                  <tr key={s.id} style={{ borderBottom: '1px solid rgba(212,168,67,.08)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.01)' }}>
+                  <tr key={s.id} style={{ borderBottom: '1px solid rgba(163,43,34,.08)', background: i % 2 === 0 ? 'transparent' : 'var(--admin-paper)' }}>
                     <td style={{ padding: '.9rem 1rem' }}>
                       <p className="font-bold text-sm">{s.label}</p>
                       <p className="text-xs opacity-30 truncate" style={{ maxWidth: 200 }}>{s.url}</p>
                       {/* Barra de proporção */}
-                      <div style={{ marginTop: '.4rem', height: 3, background: 'rgba(255,255,255,.06)', borderRadius: 2, width: 120 }}>
+                      <div style={{ marginTop: '.4rem', height: 3, background: 'var(--admin-paper)', borderRadius: 2, width: 120 }}>
                         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--gold)', borderRadius: 2, transition: 'width .5s' }} />
                       </div>
                       <p style={{ fontSize: '.65rem', opacity: .3, marginTop: '.2rem' }}>{pct}% do total</p>
@@ -89,7 +89,7 @@ export default function AuditoriaCliques() {
                       {total}
                     </td>
                     <td style={{ padding: '.9rem 1rem' }}>
-                      <span style={{ fontSize: '.75rem', color: s.active ? '#4ade80' : 'rgba(242,235,217,.3)' }}>
+                      <span style={{ fontSize: '.75rem', color: s.active ? 'var(--admin-success)' : 'rgba(26,39,68,.3)' }}>
                         {s.active ? '● Ativo' : '○ Oculto'}
                       </span>
                     </td>

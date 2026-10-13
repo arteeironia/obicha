@@ -35,8 +35,8 @@ export default function AdminSiteConfig() {
   }
 
   const inputStyle = {
-    background: 'rgba(255,255,255,.05)',
-    border: '1px solid rgba(212,168,67,.3)',
+    background: 'var(--admin-paper)',
+    border: '1px solid rgba(163,43,34,.3)',
     color: 'var(--creme)',
     width: '100%',
     padding: '.7rem 1rem',
@@ -55,7 +55,7 @@ export default function AdminSiteConfig() {
       {loading ? (
         <p className="opacity-50">Carregando...</p>
       ) : (
-        <div className="border rounded p-6 space-y-4" style={{ borderColor: 'rgba(212,168,67,.2)', background: 'rgba(255,255,255,.02)' }}>
+        <div className="border rounded p-6 space-y-4" style={{ borderColor: 'rgba(163,43,34,.2)', background: 'var(--admin-paper)' }}>
           {fields.map(field => (
             <div key={field.key}>
               <label className="block text-xs tracking-widest uppercase opacity-60 mb-2">{field.label}</label>
@@ -69,7 +69,7 @@ export default function AdminSiteConfig() {
           ))}
 
           {status === 'success' && (
-            <p style={{ color: '#4ade80', fontSize: '.85rem' }}>✅ Links atualizados com sucesso!</p>
+            <p style={{ color: 'var(--admin-success)', fontSize: '.85rem' }}>✅ Links atualizados com sucesso!</p>
           )}
           {status === 'error' && (
             <p style={{ color: 'var(--red)', fontSize: '.85rem' }}>❌ Erro ao salvar. Tenta novamente.</p>
@@ -79,7 +79,7 @@ export default function AdminSiteConfig() {
             onClick={handleSave}
             disabled={saving}
             className="w-full py-3 font-bebas tracking-widest text-lg"
-            style={{ background: saving ? 'rgba(212,168,67,.5)' : 'var(--gold)', color: 'var(--navy)' }}
+            style={{ background: saving ? 'rgba(163,43,34,.5)' : 'var(--gold)', color: 'var(--navy)' }}
           >
             {saving ? 'Salvando...' : 'Salvar Links'}
           </button>

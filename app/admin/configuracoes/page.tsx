@@ -7,7 +7,7 @@ function PasswordInput({ value, onChange }: { value: string; onChange: (v: strin
     <div style={{ position: 'relative' }}>
       <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} required
         className="w-full px-4 py-3 outline-none"
-        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(212,168,67,0.3)', color: 'var(--creme)', paddingRight: '3rem' }} />
+        style={{ background: 'var(--admin-paper)', border: '1px solid rgba(163,43,34,0.3)', color: 'var(--creme)', paddingRight: '3rem' }} />
       <button type="button" onClick={() => setShow(s => !s)}
         style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', opacity: .5, color: 'var(--creme)', padding: 0 }}>
         {show ? (
@@ -52,7 +52,7 @@ export default function AdminConfiguracoes() {
     <div className="p-8 max-w-xl">
       <h1 className="font-playfair text-3xl font-bold mb-2" style={{ color: 'var(--gold)' }}>Configurações</h1>
       <p className="opacity-50 text-sm mb-8">Gerencie as configurações do painel admin</p>
-      <div className="border rounded p-6" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
+      <div className="border rounded p-6" style={{ borderColor: 'rgba(163,43,34,0.2)', background: 'var(--admin-paper)' }}>
         <h2 className="font-bebas text-xl tracking-widest mb-6" style={{ color: 'var(--gold)' }}>🔐 Alterar Senha</h2>
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
@@ -69,17 +69,17 @@ export default function AdminConfiguracoes() {
             <PasswordInput value={confirmPassword} onChange={setConfirmPassword} />
           </div>
           {status && (
-            <div className="px-4 py-3 rounded text-sm" style={{ background: status.type === 'success' ? 'rgba(0,200,100,0.1)' : 'rgba(192,40,28,0.1)', border: `1px solid ${status.type === 'success' ? 'rgba(0,200,100,0.3)' : 'rgba(192,40,28,0.3)'}`, color: status.type === 'success' ? '#4ade80' : 'var(--red)' }}>
+            <div className="px-4 py-3 rounded text-sm" style={{ background: status.type === 'success' ? 'rgba(0,200,100,0.1)' : 'rgba(192,40,28,0.1)', border: `1px solid ${status.type === 'success' ? 'rgba(0,200,100,0.3)' : 'rgba(192,40,28,0.3)'}`, color: status.type === 'success' ? 'var(--admin-success)' : 'var(--red)' }}>
               {status.message}
             </div>
           )}
           <button type="submit" disabled={loading} className="w-full py-3 font-bebas tracking-widest text-lg transition-all"
-            style={{ background: loading ? 'rgba(212,168,67,0.5)' : 'var(--gold)', color: 'var(--navy)' }}>
+            style={{ background: loading ? 'rgba(163,43,34,0.5)' : 'var(--gold)', color: 'var(--navy)' }}>
             {loading ? 'Salvando...' : 'Alterar Senha'}
           </button>
         </form>
       </div>
-      <div className="border rounded p-6 mt-6" style={{ borderColor: 'rgba(212,168,67,0.2)', background: 'rgba(255,255,255,0.02)' }}>
+      <div className="border rounded p-6 mt-6" style={{ borderColor: 'rgba(163,43,34,0.2)', background: 'var(--admin-paper)' }}>
         <h2 className="font-bebas text-xl tracking-widest mb-4" style={{ color: 'var(--gold)' }}>🌐 Links Rápidos</h2>
         <div className="space-y-2 text-sm opacity-60">
           <p>🛍 Loja: <a href="https://umapenca.com/obicha/" target="_blank" className="underline" style={{ color: 'var(--gold)' }}>umapenca.com/obicha</a></p>

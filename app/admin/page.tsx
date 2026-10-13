@@ -11,8 +11,8 @@ type Comment = { id: number }
 type RespiraStats = { total: number; recent: { display_name: string; quit_at: string; created_at: string }[] }
 
 const cardStyle = {
-  background: 'rgba(255,255,255,0.02)',
-  border: '1px solid rgba(212,168,67,0.2)',
+  background: 'var(--admin-paper)',
+  border: '1px solid rgba(163,43,34,0.2)',
   borderRadius: 4,
 }
 
