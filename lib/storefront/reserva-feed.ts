@@ -2,6 +2,15 @@ import {supplier,variants,model,type SourceProduct} from './catalog'
 export function productKey(link:string){
  try{const u=new URL(link);return supplier(link)==='reserva'?u.pathname.replace(/\/$/,''):null}catch{return null}
 }
+export function designKey(link:string){
+ const key=productKey(link);return key?.split('/').pop()?.replace(/-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,'').replace(/^camiseta-/,'')||null;
+}
+export function feedModel(title:string){return title.split(' - ')[0].trim()}
+export function findReservaVariant(link:string,type:string,feed:ReturnType<typeof parseReservaFeed>){
+ const exact=feed.get(productKey(link)||'');if(exact)return exact;
+ const matches=[...feed.values()].filter(e=>designKey(e.link)===designKey(link)&&feedModel(e.title).toLowerCase()===type.toLowerCase());
+ return matches.length===1?matches[0]:undefined;
+}
 export function parseReservaFeed(text:string){
  // TSV fields may contain escaped quotes, tabs and line breaks.
  const rows:string[][]=[];let row:string[]=[],field='',quoted=false;
@@ -23,7 +32,7 @@ export function reconcileReserva(p:SourceProduct,feed:ReturnType<typeof parseRes
  const stored=variants(p.manual_variants);const options=stored.length?stored:p.link?[{type:model(p.category),link:p.link,price:p.price||'',image:null,active:true,available:true}]:[];
  return options.map(v=>{
   const key=productKey(v.link);if(!key)return {...v,image_url:v.image};
-  const live=feed.get(key);
-  return {...v,image_url:v.image,available:!!live && !['out of stock','out_of_stock','discontinued'].includes(live.availability?.toLowerCase()),price:live?.price?.replace(/\s*BRL$/,'').replace('.',',')||v.price};
+  const live=findReservaVariant(v.link,v.type,feed);
+  return {...v,link:live?.link||v.link,image_url:v.image,pending_until:live?undefined:v.pending_until,available:!live&&v.pending_until&&Date.parse(v.pending_until)>Date.now()?v.available!==false:!!live && !['out of stock','out_of_stock','discontinued'].includes(live.availability?.toLowerCase()),price:live?.price?.replace(/\s*BRL$/,'').replace('.',',')||v.price};
  });
 }

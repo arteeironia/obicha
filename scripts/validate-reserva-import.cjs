@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText,f);
+const {parseReservaFeed,reconcileReserva}=require('../lib/storefront/reserva-feed.ts');const {parseReservaProduct,validateReservaLink}=require('../lib/storefront/reserva-import.ts');
+const root='https://lojareservaink.obicha.com.br/obichacamisetas/product/';const old=root+'camiseta-lunch-pop-11111111-1111-1111-1111-111111111111',fresh=root+'lunch-pop-22222222-2222-2222-2222-222222222222';
+const feed=parseReservaFeed(`id\ttitle\tlink\tprice\tavailability\n1\tCamiseta - Lunch Pop\t${fresh}\t114.90 BRL\tin stock\n`);
+const p={id:1,name:'Lunch',manual_variants:[{type:'Camiseta',link:old,price:'',active:false,available:false},{type:'Ecobag',link:'https://umapenca.com/obicha/ecobag/lunch',price:'55'}]};
+const v=reconcileReserva(p,feed);assert.equal(v[0].link,fresh);assert.equal(v[0].available,true);assert.equal(v[0].active,false);assert.equal(v[1].price,'55');
+const ambiguous=parseReservaFeed(`id\ttitle\tlink\tprice\n1\tCamiseta - Lunch\t${fresh}\t10\n2\tCamiseta - Lunch\t${root}lunch-pop\t10\n`);assert.equal(reconcileReserva(p,ambiguous)[0].available,false);
+const parsed=parseReservaProduct(`<script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'Camiseta Algodão Peruano A Revolução',category:'Camiseta Algodão Peruano',offers:{price:149.99,priceCurrency:'BRL',availability:'https://schema.org/InStock'}})}</script>`,root+'revolucao');assert.equal(parsed.name,'A Revolução');assert.equal(parsed.manual_variants[0].type,'Camiseta Algodão Peruano');assert.equal(reconcileReserva({id:2,name:'New',manual_variants:parsed.manual_variants},feed)[0].available,true);
+parsed.manual_variants[0].pending_until='2020-01-01';assert.equal(reconcileReserva({id:2,name:'New',manual_variants:parsed.manual_variants},feed)[0].available,false);
+for(const link of ['http://localhost/test','https://evil.com/product/x','https://lojareservaink.obicha.com.br/other'])assert.throws(()=>validateReservaLink(link));
+console.log('PASS changed URLs, ambiguity rejection, editorial/Penca preservation, structured import, bounded feed grace, host restriction');

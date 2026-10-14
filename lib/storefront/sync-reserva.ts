@@ -1,6 +1,6 @@
 import postgres from 'postgres'
 import {ensureCatalog} from './migrate-catalog'
-import {parseReservaFeed,reconcileReserva,productKey} from './reserva-feed'
+import {parseReservaFeed,reconcileReserva,productKey,findReservaVariant} from './reserva-feed'
 import {variants,type SourceProduct} from './catalog'
 const sql=postgres(process.env.DATABASE_URL!,{ssl:'require'})
 const url='https://reserva.ink/user/dashboard/export_csv.google_tsv_store_feed_200568'
@@ -17,7 +17,7 @@ export async function refreshReservaCatalog(force=false){
    await tx`SELECT pg_advisory_xact_lock(68412793)`;
    const rows=await tx`SELECT * FROM products WHERE catalog_group_id IS NULL OR catalog_group_id=id FOR UPDATE`;
    const oldKeys=[...new Set(rows.flatMap(p=>variants(p.manual_variants).filter(v=>v.available!==false).map(v=>productKey(v.link)).filter(Boolean)))];
-   const missing=oldKeys.filter(key=>!feed.has(key!));
+   const missing=oldKeys.filter(key=>!feed.has(key!)&&!rows.some(p=>variants(p.manual_variants).some(v=>productKey(v.link)===key&&findReservaVariant(v.link,v.type,feed))));
    if(oldKeys.length>10&&missing.length/oldKeys.length>.2)throw new Error('Mais de 20% das opções da Reserva sumiram do arquivo. Atualização interrompida para proteger o catálogo. Confira a loja antes de tentar novamente.');
    let updated=0,unavailable=0;
    for(const p of rows){
