@@ -314,11 +314,15 @@ export default function HomeLayout({products,content}:{products:Design[];content
 </div>
 </section>
   </main>
+  <dialog id="image-dialog" className="image-viewer" aria-label="Imagem ampliada da estampa">
+<div className="image-viewer-toolbar"><button type="button" id="image-zoom" aria-pressed="false">Zoom +</button><a id="image-original" target="_blank" rel="noopener noreferrer">Abrir original ↗</a><button type="button" id="image-close" aria-label="Fechar imagem ampliada">Fechar ×</button></div>
+<div className="image-viewer-stage" id="image-stage"><img id="image-large" alt="" /></div>
+</dialog>
   <dialog id="product-dialog" aria-labelledby="dialog-title">
 <button className="dialog-close" id="dialog-close" aria-label="Fechar detalhes do produto">×</button>
 <div className="dialog-layout">
 <div className="dialog-picture">
-<img id="dialog-image" alt="" width="600" height="600" />
+<button type="button" id="image-expand" className="image-expand" aria-label="Ampliar imagem da estampa"><img id="dialog-image" alt="" width="600" height="600" /><span>Ampliar imagem ⤢</span></button>
 <p id="dialog-image-note">
 </p>
 </div>

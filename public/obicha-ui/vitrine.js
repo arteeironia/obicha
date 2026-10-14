@@ -107,6 +107,15 @@ window.mountObichaVitrine = function(data) {
     $('dialog-title').textContent=activeProduct.name;renderSelection();
     $('product-dialog').setAttribute('data-product-name',activeProduct.name);$('product-dialog').showModal();document.body.classList.add('dialog-open');$('dialog-close').focus();
   }
+  function closeImage(){ $('image-dialog').close(); }
+  $('image-expand').addEventListener('click',()=>{
+    const source=$('dialog-image');$('image-large').src=source.src;$('image-large').alt=source.alt;$('image-original').href=source.src;
+    $('image-stage').classList.remove('zoomed');$('image-zoom').setAttribute('aria-pressed','false');$('image-zoom').textContent='Zoom +';
+    $('image-dialog').showModal();$('image-close').focus();
+  },{signal:controller.signal});
+  $('image-close').addEventListener('click',closeImage,{signal:controller.signal});
+  $('image-dialog').addEventListener('close',()=>{$('image-expand').focus()},{signal:controller.signal});
+  $('image-zoom').addEventListener('click',()=>{const zoomed=$('image-stage').classList.toggle('zoomed');$('image-zoom').setAttribute('aria-pressed',String(zoomed));$('image-zoom').textContent=zoomed?'Zoom −':'Zoom +';},{signal:controller.signal});
   function closeDialog() { $('product-dialog').close(); }
   $('product-dialog').addEventListener('close',()=>{document.body.classList.remove('dialog-open');lastFocus?.focus();},{signal:controller.signal});
   $('dialog-close').addEventListener('click',closeDialog,{signal:controller.signal});
@@ -130,6 +139,6 @@ window.mountObichaVitrine = function(data) {
   const query=new URLSearchParams(window.location.search);
   const collection=query.get('collection'); if(collection && products.some(p=>p.collections.includes(collection))){filters.collection=collection;render();$('vitrine').scrollIntoView();}
   if(query.get('product')){openAnyProduct(query.get('product'));const requested=query.get('model');if(activeProduct?.variants.some(v=>v.type===requested)){activeType=requested;renderSelection();}}
-  return () => {disposeCampaigns?.();controller.abort();mountedDialog?.close();document.body.classList.remove('dialog-open');};
+  return () => {disposeCampaigns?.();controller.abort();$('image-dialog')?.close();mountedDialog?.close();document.body.classList.remove('dialog-open');};
 };
 
