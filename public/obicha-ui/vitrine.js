@@ -104,9 +104,17 @@ window.mountObichaVitrine = function(data) {
     if(!matches.length)return;
     activeType=matches[0].type; activeStore=L.supplier(matches[0].link);activeStoreFilter=filters.store;
     lastFocus=document.activeElement;
-    $('dialog-title').textContent=activeProduct.name;renderSelection();
+    $('dialog-title').textContent=activeProduct.name;renderSelection();$('product-page-link').href=activeProduct.slug?'/produtos/'+encodeURIComponent(activeProduct.slug):'/?product='+activeProduct.id+'#vitrine';$('product-share-status').textContent='';$('product-share-url').hidden=true;
     $('product-dialog').setAttribute('data-product-name',activeProduct.name);$('product-dialog').showModal();document.body.classList.add('dialog-open');$('dialog-close').focus();
   }
+  async function shareSelected(copyOnly=false){
+    if(!activeProduct)return;
+    const url=new URL($('product-page-link').getAttribute('href'),window.location.origin).href;
+    try{const result=await window.ObichaShare(activeProduct.name,url,copyOnly);$('product-share-status').textContent=result==='copied'?'Link copiado!':result==='shared'?'Compartilhado.':'';}
+    catch{$('product-share-status').textContent='Selecione e copie este endereço:';$('product-share-url').value=url;$('product-share-url').hidden=false;$('product-share-url').focus();$('product-share-url').select();}
+  }
+  $('product-share').addEventListener('click',()=>shareSelected(),{signal:controller.signal});
+  $('product-copy').addEventListener('click',()=>shareSelected(true),{signal:controller.signal});
   function closeImage(){ $('image-dialog').close(); }
   $('image-expand').addEventListener('click',()=>{
     const source=$('dialog-image');$('image-large').src=source.src;$('image-large').alt=source.alt;$('image-original').href=source.src;
