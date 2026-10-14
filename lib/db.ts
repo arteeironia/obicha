@@ -1,4 +1,5 @@
 import {ensureCatalog} from './storefront/migrate-catalog'
+import {supplier,model} from './storefront/catalog'
 // v3 - postgres client + memory cache
 import postgres from 'postgres'
 
@@ -80,11 +81,13 @@ export async function createProduct(data: {
   show_on_site?: boolean; manual_variants?: any[]; hidden?:boolean
 }) {
   await ensureCatalog()
+  const pendingUntil=new Date(Date.now()+48*3600000).toISOString()
+  const options=(data.manual_variants?.length?data.manual_variants:data.link?[{type:model(data.category),link:data.link,price:data.price,active:true,available:true}]:[]).map(v=>supplier(v.link)==='reserva'?{...v,pending_until:v.pending_until||pendingUntil}:v)
   const baseSlug = slugify(data.name)
   const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-6)}`
   const [product] = await sql`
     INSERT INTO products (name, category, price, link, image_url, description, featured, collection_name, supplier, show_on_site, manual_variants, slug, hidden)
-    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${sql.json(data.manual_variants || [])}, ${uniqueSlug}, ${data.hidden ?? false})
+    VALUES (${data.name}, ${data.category}, ${data.price}, ${data.link}, ${data.image_url || null}, ${data.description || null}, ${data.featured ?? false}, ${data.collection_name || null}, ${data.supplier || null}, ${data.show_on_site ?? false}, ${sql.json(options)}, ${uniqueSlug}, ${data.hidden ?? false})
     RETURNING *`
   invalidateCache('featured_products', 'products_all', `products_${data.category}`)
   return product
