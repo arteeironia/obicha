@@ -82,7 +82,7 @@ export async function createProduct(data: {
 }) {
   await ensureCatalog()
   const pendingUntil=new Date(Date.now()+48*3600000).toISOString()
-  const options=(data.manual_variants?.length?data.manual_variants:data.link?[{type:model(data.category),link:data.link,price:data.price,active:true,available:true}]:[]).map(v=>supplier(v.link)==='reserva'?{...v,pending_until:v.pending_until||pendingUntil}:v)
+  const options=(data.manual_variants?.length?data.manual_variants:data.link?[{type:model(data.category),link:data.link,price:data.price,active:true,available:true}]:[]).map(v=>supplier(v.link)==='reserva'?{...v,availability_source:v.availability_source||'manual',pending_until:v.pending_until||pendingUntil}:v)
   const baseSlug = slugify(data.name)
   const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-6)}`
   const [product] = await sql`

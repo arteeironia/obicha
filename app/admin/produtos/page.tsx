@@ -29,7 +29,7 @@ const inputStyle = {
   outline: 'none', fontFamily: 'inherit', fontSize: '0.9rem',
 }
 
-function parseVariants(mv: any): {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean; pending_until?:string}[] {
+function parseVariants(mv: any): {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean; pending_until?:string; availability_source?:'manual'|'reserva'}[] {
   if (typeof mv === 'string') { try { mv = JSON.parse(mv) } catch { return [] } }
   return Array.isArray(mv) ? mv : []
 }
@@ -41,7 +41,7 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: '', image_url: '', description: '', featured: false, hidden:false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean; pending_until?:string}[] })
+  const [form, setForm] = useState({ name: '', category: 'camisetas', price: 'R$ ', link: '', image_url: '', description: '', featured: false, hidden:false, collection_name: '', manual_variants: [] as {type: string; price: string; link: string; image_url?: string; active?: boolean; available?: boolean; pending_until?:string; availability_source?:'manual'|'reserva'}[] })
   const [selectedCollections, setSelectedCollections] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [syncing,setSyncing]=useState(false)
@@ -180,7 +180,7 @@ export default function AdminProdutos() {
     <div className="catalog-admin">
       <header className="catalog-admin-heading"><div><p className="catalog-eyebrow">Ô BICHA! / SUA VITRINE</p><h1>Seu catálogo.<br/><em>Do seu jeito.</em></h1><p>Estampas, modelos e visibilidade em um só lugar.</p></div><div className="catalog-heading-actions"><a href="/" target="_blank" rel="noopener noreferrer">Ver vitrine ↗</a><button className="catalog-button primary" onClick={openAdd}>+ Nova estampa</button></div></header>
       <div className="catalog-stat-grid">{['visible','hidden','paused','unavailable'].map(status=><button key={status} aria-pressed={filters.status===status} onClick={()=>changeFilter('status',filters.status===status?'all':status)}><strong>{products.filter(p=>visibilityStatus(p)===status).length}</strong><span>{statusLabels[status]}</span></button>)}</div>
-      <section className="catalog-sync"><div><strong>Importar da Reserva Ink</strong><p>Busque estampas novas ou cole o link de um produto. Revise o cadastro antes de salvar.</p><label>Link do produto<input className="catalog-input" value={importLink} onChange={e=>setImportLink(e.target.value)} placeholder="https://lojareservaink.obicha.com.br/…" /></label><button className="catalog-button" disabled={importing||!importLink.trim()} onClick={()=>importReserva(importLink.trim())}>Importar por link</button><button className="catalog-button" disabled={importing} onClick={()=>importReserva()}>Buscar estampas novas</button>{candidates.map(c=><p key={c.link}><button className="catalog-button" disabled={importing} onClick={()=>importReserva(c.link)}>{c.name}</button> <small>{c.models.join(', ')}</small></p>)}</div></section>
+      <section className="catalog-sync"><div><strong>Importar da Reserva Ink</strong><p>O link traz todos os modelos encontrados no arquivo da Reserva. Se a estampa ainda não está nesse arquivo, traz somente o modelo do link. Para cadastrar todos agora, use Nova estampa e controle manual.</p><label>Link do produto<input className="catalog-input" value={importLink} onChange={e=>setImportLink(e.target.value)} placeholder="https://lojareservaink.obicha.com.br/…" /></label><button className="catalog-button" disabled={importing||!importLink.trim()} onClick={()=>importReserva(importLink.trim())}>Importar por link</button><button className="catalog-button" disabled={importing} onClick={()=>importReserva()}>Buscar estampas novas</button>{candidates.map(c=><p key={c.link}><button className="catalog-button" disabled={importing} onClick={()=>importReserva(c.link)}>{c.name}</button> <small>{c.models.join(', ')}</small></p>)}</div></section>
       <section className="catalog-sync"><div><strong>Conferência da Reserva Ink</strong><p>{syncState?.succeeded_at?'Última conferência concluída: '+new Date(syncState.succeeded_at).toLocaleString('pt-BR'):'Nenhuma conferência concluída registrada.'}</p>{syncState?.error&&<p className="catalog-error">{syncState.error} O último catálogo foi preservado.</p>}<small>Automática ao acessar a vitrine, no máximo uma vez por hora. Respeita o que você ocultou. Atualiza cadastros existentes; use a importação acima para estampas novas.</small></div><button className="catalog-button" disabled={syncing||acting} onClick={syncReserva}>{syncing?'Conferindo…':'Conferir agora'}</button></section>
       {notice&&<p role="status" className="catalog-notice">{notice}</p>}
       <section className="catalog-filters" aria-label="Filtrar catálogo"><label className="catalog-search">Buscar estampa<input type="search" placeholder="Nome ou coleção…" value={filters.search} onChange={e=>changeFilter('search',e.target.value)}/></label><label>Coleção<select value={filters.collection} onChange={e=>changeFilter('collection',e.target.value)}><option value="all">Todas</option>{[...new Set([...collections.map(c=>c.name),...products.flatMap(p=>p.collections?.map(c=>c.name)||[p.collection_name||''])])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR')).map(c=><option key={c}>{c}</option>)}</select></label><label>Modelo<select value={filters.family} onChange={e=>changeFilter('family',e.target.value)}><option value="all">Todos</option>{Object.entries(modelFamilies).map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label><label>Parceira<select value={filters.store} onChange={e=>changeFilter('store',e.target.value)}><option value="all">Todas</option><option value="reserva">Reserva Ink</option><option value="penca">Uma Penca</option></select></label><label>Situação<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Todas</option>{Object.entries(statusLabels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label></section>
@@ -238,7 +238,7 @@ export default function AdminProdutos() {
                   {collections.map(c => (
                     <label key={c.id} style={{ display:'flex', alignItems:'center', gap:'.6rem', cursor:'pointer', padding:'.5rem .8rem', border:'1px solid', borderColor: selectedCollections.includes(c.id) ? 'var(--gold)' : 'rgba(212,168,67,.2)', background: selectedCollections.includes(c.id) ? 'rgba(212,168,67,.1)' : 'transparent', borderRadius:2, transition:'all .2s' }}>
                       <input type="checkbox" checked={selectedCollections.includes(c.id)} onChange={() => toggleCollection(c.id)} style={{ accentColor:'var(--gold)' }} />
-                      <span style={{ fontSize:'.85rem', color: selectedCollections.includes(c.id) ? 'var(--gold)' : 'rgba(242,235,217,.6)' }}>{c.name}</span>
+                      <span style={{ fontSize:'.85rem', color: selectedCollections.includes(c.id) ? 'var(--gold)' : '#1a2744' }}>{c.name}</span>
                     </label>
                   ))}
                 </div>
@@ -251,7 +251,7 @@ export default function AdminProdutos() {
                     const already = false
                     return (
                       <button key={type} type="button" disabled={already}
-                        onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type, price: '', link:''}]}))}
+                        onClick={() => setForm(f => ({...f, manual_variants: [...f.manual_variants, {type, price: '', link:'',availability_source:'manual'}]}))}
                         style={{ fontSize:'.75rem', padding:'.35rem .7rem', borderRadius:2, border:'1px solid', borderColor: already ? 'rgba(212,168,67,.15)' : 'rgba(212,168,67,.4)', background: already ? 'rgba(212,168,67,.05)' : 'transparent', color: already ? 'rgba(242,235,217,.25)' : 'var(--creme)', cursor: already ? 'default' : 'pointer' }}>
                         {already ? '✓ ' : '+ '}{type}
                       </button>
@@ -277,7 +277,8 @@ export default function AdminProdutos() {
                         setForm(f => ({ ...f, manual_variants: mv }))
                       }} />
                     </label>
-                    <span style={{ fontSize:'.8rem', color:'var(--gold)', minWidth:140, flexShrink:0 }}>{v.type}<small style={{display:'block'}}>{supplier(v.link)==='reserva'?'Reserva Ink':supplier(v.link)==='penca'?'Uma Penca':'Defina um link válido'}</small><small style={{display:'block'}}>{v.available===false?'Indisponível na última sincronização':'Disponibilidade a confirmar na loja'}</small></span>
+                    <span style={{ fontSize:'.8rem', color:'var(--gold)', minWidth:140, flexShrink:0 }}>{v.type}<small style={{display:'block'}}>{supplier(v.link)==='reserva'?'Reserva Ink':supplier(v.link)==='penca'?'Uma Penca':'Defina um link válido'}</small><small style={{display:'block'}}>{v.availability_source==='manual'?'Disponibilidade controlada por você':v.available===false?'Indisponível na última sincronização':'Disponibilidade consultada na Reserva'}</small></span>
+                    <label title="No modo manual, a sincronização não altera preço, link nem disponibilidade deste modelo."><input type="checkbox" checked={v.availability_source==='manual'} onChange={e=>{const mv=[...form.manual_variants];mv[i]={...mv[i],availability_source:e.target.checked?'manual':'reserva',available:e.target.checked?true:mv[i].available};setForm(f=>({...f,manual_variants:mv}))}}/> Controle manual</label>
                     <label><input type="checkbox" checked={v.active!==false} onChange={e=>{const mv=[...form.manual_variants];mv[i]={...mv[i],active:e.target.checked};setForm(f=>({...f,manual_variants:mv}))}}/> Ativo</label>
                     <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:1, minWidth:0 }} placeholder="Preço" value={v.price} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], price: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
                     <input style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,67,0.3)', color:'var(--creme)', padding:'.5rem .8rem', outline:'none', fontSize:'.85rem', flex:2, minWidth:0 }} placeholder="Link do produto" value={v.link} onChange={e => { const mv = [...form.manual_variants]; mv[i] = {...mv[i], link: e.target.value}; setForm(f => ({...f, manual_variants: mv})) }} />
@@ -288,7 +289,7 @@ export default function AdminProdutos() {
                   </div>
                 ))}
                 {form.manual_variants.length === 0 && <p style={{ fontSize:'.78rem', opacity:.4 }}>Opcional — clique nos tipos acima se essa estampa existir em mais de um modelo.</p>}
-                {form.manual_variants.length > 0 && <p style={{ fontSize:'.78rem', opacity:.4, marginTop:'.5rem' }}>Preço e link do produto agora são definidos por cada variante acima — não há mais um único preço/link geral. A foto (📷) é opcional: sem ela, usa a foto principal da estampa.</p>}
+                {form.manual_variants.length > 0 && <p style={{ fontSize:'.78rem', opacity:.4, marginTop:'.5rem' }}>No controle manual, você mantém preço, link e disponibilidade; a sincronização não altera esse modelo. Nos demais modelos, a Reserva atualiza esses dados. Preço e link do produto são definidos por cada variante acima — não há mais um único preço/link geral. A foto (📷) é opcional: sem ela, usa a foto principal da estampa.</p>}
               </div>
 
               <label style={{ display:'flex', alignItems:'center', gap:'.8rem', cursor:'pointer' }}>
