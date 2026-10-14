@@ -31,7 +31,7 @@ export function parseReservaFeed(text:string){
 export function reconcileReserva(p:SourceProduct,feed:ReturnType<typeof parseReservaFeed>){
  const stored=variants(p.manual_variants);const options=stored.length?stored:p.link?[{type:model(p.category),link:p.link,price:p.price||'',image:null,active:true,available:true}]:[];
  return options.map(v=>{
-  const key=productKey(v.link);if(!key)return {...v,image_url:v.image};
+  const key=productKey(v.link);if(!key||v.availability_source==='manual')return {...v,image_url:v.image};
   const live=findReservaVariant(v.link,v.type,feed);
   return {...v,link:live?.link||v.link,image_url:v.image,pending_until:live?undefined:v.pending_until,available:!live&&v.pending_until&&Date.parse(v.pending_until)>Date.now()?v.available!==false:!!live && !['out of stock','out_of_stock','discontinued'].includes(live.availability?.toLowerCase()),price:live?.price?.replace(/\s*BRL$/,'').replace('.',',')||v.price};
  });

@@ -10,3 +10,5 @@ const parsed=parseReservaProduct(`<script type="application/ld+json">${JSON.stri
 parsed.manual_variants[0].pending_until='2020-01-01';assert.equal(reconcileReserva({id:2,name:'New',manual_variants:parsed.manual_variants},feed)[0].available,false);
 for(const link of ['http://localhost/test','https://evil.com/product/x','https://lojareservaink.obicha.com.br/other'])assert.throws(()=>validateReservaLink(link));
 console.log('PASS changed URLs, ambiguity rejection, editorial/Penca preservation, structured import, bounded feed grace, host restriction');
+
+const manual={...p,manual_variants:[{type:'Camiseta',link:old,price:'123,45',active:true,available:true,availability_source:'manual'}]};const untouched=reconcileReserva(manual,feed)[0];assert.equal(untouched.link,old);assert.equal(untouched.price,'123,45');assert.equal(untouched.available,true);assert.equal(untouched.availability_source,'manual');assert.equal(reconcileReserva(manual,ambiguous)[0].available,true);console.log('PASS Manual ownership survives changed and missing feed links without price or availability overrides');

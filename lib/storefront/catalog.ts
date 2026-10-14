@@ -1,4 +1,4 @@
-export type Variant = { type: string; link: string; price: string; image?: string | null; active?: boolean; available?: boolean; pending_until?:string }
+export type Variant = { type: string; link: string; price: string; image?: string | null; active?: boolean; available?: boolean; pending_until?:string; availability_source?:'manual'|'reserva' }
 export type Design = { id: number; aliases: number[]; name: string; originalName: string; image: string; referenceType: string; slug?:string|null; collections: string[]; variants: Variant[] }
 export type SourceProduct = { id: number; name: string; category?: string; price?: string; link?: string; image_url?: string | null; manual_variants?: unknown; collection_name?: string | null; collections?: { name: string }[]; catalog_group_id?: number | null; slug?:string|null; hidden?:boolean }
 export function supplier(link: string) {
@@ -9,7 +9,7 @@ export function supplier(link: string) {
 }
 export function variants(value: unknown): Variant[] {
   if(typeof value === 'string') {try {value=JSON.parse(value)}catch{return []}}
-  return Array.isArray(value) ? value.filter(v => v && typeof v.type==='string' && typeof v.link==='string').map(v=>({type:v.type,link:v.link,price:v.price || '',image:v.image_url || v.image || null, active:v.active !== false, available:v.available !== false, pending_until:v.pending_until})) : [];
+  return Array.isArray(value) ? value.filter(v => v && typeof v.type==='string' && typeof v.link==='string').map(v=>({type:v.type,link:v.link,price:v.price || '',image:v.image_url || v.image || null, active:v.active !== false, available:v.available !== false, pending_until:v.pending_until, availability_source:v.availability_source})) : [];
 }
 export function model(category = '') {
  const c=category.toLowerCase();
