@@ -5,6 +5,7 @@ import { notFound,permanentRedirect } from 'next/navigation'
 import Link from 'next/link'
 import postgres from 'postgres'
 import Reviews from '@/components/reviews/Reviews'
+import ShareProduct from '@/components/ShareProduct'
 import ZoomableProductImage from '@/components/ZoomableProductImage'
 
 export const dynamic = 'force-dynamic'
@@ -172,6 +173,7 @@ export default async function ProdutoPage({ params }: { params: Promise<{ slug: 
               {product.name}
             </h1>
 
+            <ShareProduct name={product.name} slug={product.slug} />
             {product.description && (
               <p style={{ opacity: .75, lineHeight: 1.7, marginBottom: '2rem', fontSize: '.95rem' }}>{product.description}</p>
             )}

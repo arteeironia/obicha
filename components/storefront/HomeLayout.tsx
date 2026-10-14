@@ -330,6 +330,7 @@ export default function HomeLayout({products,content}:{products:Design[];content
 <p className="eyebrow">SUA ESTAMPA, SEU MODELO</p>
 <h2 id="dialog-title">
 </h2>
+<div className="product-share"><button type="button" id="product-share" className="button outline">Compartilhar estampa ↗</button><button type="button" id="product-copy" className="button outline">Copiar link</button><a id="product-page-link" className="text-link">Abrir página da estampa</a><p id="product-share-status" role="status" aria-live="polite"></p><input id="product-share-url" aria-label="Link direto desta estampa" readOnly hidden /></div>
 <p className="dialog-label">Escolha sua peça</p>
 <div className="variant-options" id="variant-options" role="group" aria-label="Modelos desta estampa">
 </div>
