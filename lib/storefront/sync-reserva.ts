@@ -22,11 +22,12 @@ export async function refreshReservaCatalog(force=false){
   const result=await sql.begin(async tx=>{
    await tx`SELECT pg_advisory_xact_lock(68412793)`;
    const rows=await tx`SELECT * FROM products FOR UPDATE`;
-   const oldKeys=[...new Set(rows.flatMap(p=>variants(p.manual_variants).filter(v=>v.available!==false&&v.availability_source!=='manual').map(v=>productKey(v.link)).filter(Boolean)))];
-   const missing=oldKeys.filter(key=>!feed.has(key!)&&!rows.some(p=>variants(p.manual_variants).some(v=>productKey(v.link)===key&&findReservaVariant(v.link,v.type,feed))));
+   const primaryRows=rows.filter(p=>!p.catalog_group_id||p.catalog_group_id===p.id);
+   const oldKeys=[...new Set(primaryRows.flatMap(p=>variants(p.manual_variants).filter(v=>v.available!==false&&v.availability_source!=='manual').map(v=>productKey(v.link)).filter(Boolean)))];
+   const missing=oldKeys.filter(key=>!feed.has(key!)&&!primaryRows.some(p=>variants(p.manual_variants).some(v=>productKey(v.link)===key&&findReservaVariant(v.link,v.type,feed))));
    if(oldKeys.length>10&&missing.length/oldKeys.length>.2)throw new Error('Mais de 20% das opções da Reserva sumiram do arquivo. Atualização interrompida para proteger o catálogo. Confira a loja antes de tentar novamente.');
    let updated=0,unavailable=0;
-   for(const p of rows.filter(p=>!p.catalog_group_id||p.catalog_group_id===p.id)){
+   for(const p of primaryRows){
     const options=reconcileReserva(p as SourceProduct,feed);
     if(!options.some(v=>productKey(v.link)))continue;
     const representative=options.find(v=>v.link===p.link&&v.available!==false&&v.active!==false)||options.find(v=>v.available!==false&&v.active!==false);
