@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:migrate": "node lib/migrate.js",
     "test:storefront": "node scripts/validate-storefront.cjs",
-    "test:storefront:access": "node scripts/validate-storefront-access.cjs"
+    "test:storefront:access": "node scripts/validate-storefront-access.cjs",
+    "test:security": "node scripts/validate-security.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -18,12 +19,13 @@
     "cloudinary": "^2.5.1",
     "jose": "^5.9.6",
     "lucide-react": "^1.27.0",
-    "next": "^16.2.4",
+    "next": "16.4.1",
     "postgres": "^3.4.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^4.0.0",
-    "sharp": "^0.33.5",
+    "sanitize-html": "2.18.1",
+    "sharp": "0.35.5",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
@@ -31,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "2.16.2",
     "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",

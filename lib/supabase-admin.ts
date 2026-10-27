@@ -1,3 +1,4 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 
 // ATENÇÃO: só usar em rotas de servidor (API routes). Nunca importar em componentes de cliente.
@@ -10,3 +11,4 @@ export function createAdminSupabaseClient() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 }
+

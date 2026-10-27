@@ -107,7 +107,7 @@ function CommentItem({ comment, replies, user, token, onRefresh, slug }: {
     if (!confirm('Remover este comentário?')) return
     await fetch('/api/comments', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ id: comment.id }),
     })
     onRefresh()

@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     await setProductCollections(product_id, collection_ids)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Não foi possível concluir a operação.' }, { status: 500 })
   }
 }
+

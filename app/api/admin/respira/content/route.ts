@@ -1,14 +1,21 @@
+import { requireAdmin } from '@/lib/admin-access'
 import { NextRequest, NextResponse } from 'next/server'
 import postgres from 'postgres'
 
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const content = await sql`SELECT * FROM quit_content ORDER BY type ASC, position ASC, created_at DESC`
   return NextResponse.json(content)
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const data = await request.json()
   const [row] = await sql`
     INSERT INTO quit_content (type, title, body, url, source, description, position, active)
@@ -18,6 +25,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { id, ...data } = await request.json()
   const [row] = await sql`
     UPDATE quit_content SET
@@ -35,7 +45,11 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { id } = await request.json()
   await sql`DELETE FROM quit_content WHERE id = ${id}`
   return NextResponse.json({ ok: true })
 }
+

@@ -1,9 +1,13 @@
+import { requireAdmin } from '@/lib/admin-access'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { updateAdminPassword } from '@/lib/db'
 
 // POST /api/auth/logout
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const response = NextResponse.json({ ok: true })
   response.cookies.delete('admin_token')
   return response
@@ -11,9 +15,12 @@ export async function DELETE() {
 
 // POST /api/auth/password — troca de senha
 export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { currentPassword, newPassword } = await request.json()
 
-  if (!currentPassword || !newPassword) {
+  if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !currentPassword || !newPassword || Buffer.byteLength(currentPassword)>72 || Buffer.byteLength(newPassword)>72) {
     return NextResponse.json({ error: 'Preencha todos os campos' }, { status: 400 })
   }
 
@@ -34,3 +41,4 @@ export async function PATCH(request: NextRequest) {
 
   return NextResponse.json({ ok: true })
 }
+

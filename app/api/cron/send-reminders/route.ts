@@ -10,7 +10,7 @@ const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 export async function GET(request: NextRequest) {
   // proteção simples contra chamadas externas indevidas
   const authHeader = request.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
@@ -71,3 +71,4 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ ok: true, checked: plans.length, sent, failed })
 }
+

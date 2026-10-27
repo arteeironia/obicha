@@ -1,3 +1,4 @@
+import { safeHtml } from '@/lib/safe-html'
 import BlogComments from '@/components/blog/BlogComments'
 import { getBlogPostBySlug } from '@/lib/db'
 import { notFound } from 'next/navigation'
@@ -93,7 +94,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         <div className="post-divider" />
 
-        <div className="post-content" dangerouslySetInnerHTML={{ __html: post.content }} />
+        <div className="post-content" dangerouslySetInnerHTML={{ __html: safeHtml(post.content) }} />
 
         <div className="share-section">
           <span className="share-label">★ Compartilhar ★</span>
@@ -107,3 +108,4 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     </>
   )
 }
+
