@@ -1,8 +1,17 @@
+import { escapeHtml, rateLimited } from '@/lib/request-security'
+import { sameOrigin } from '@/lib/admin-access'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
+  if(!sameOrigin(request))return NextResponse.json({error:'Origem inválida.'},{status:403})
+  if(rateLimited('contact',request,5,60*60*1000))return NextResponse.json({error:'Muitas mensagens. Tente mais tarde.'},{status:429})
   try {
-    const { name, email, organization, message, type } = await request.json()
+    const raw = await request.text()
+    if(Buffer.byteLength(raw)>16000)return NextResponse.json({error:'Mensagem muito grande.'},{status:413})
+    const input = JSON.parse(raw)
+    if(!input || typeof input.name!=='string' || typeof input.email!=='string' || typeof input.message!=='string' || (input.organization!=null && typeof input.organization!=='string'))return NextResponse.json({error:'Dados inválidos.'},{status:400})
+    const {name,email,organization,message,type}=input
+    if(name.length>120 || email.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /[\r\n]/.test(name+email) || message.length>10000 || (organization||'').length>200)return NextResponse.json({error:'Dados inválidos.'},{status:400})
 
     if (!name || !email || !message) {
       return NextResponse.json({ error: 'Preencha todos os campos obrigatórios' }, { status: 400 })
@@ -18,13 +27,13 @@ export async function POST(request: NextRequest) {
 
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-        <h2 style="color:#C0281C;">${subject}</h2>
+        <h2 style="color:#C0281C;">${escapeHtml(subject)}</h2>
         <hr style="border-color:#D4A843;"/>
-        <p><strong>Nome:</strong> ${name}</p>
-        <p><strong>E-mail:</strong> ${email}</p>
-        ${organization ? `<p><strong>Organização:</strong> ${organization}</p>` : ''}
+        <p><strong>Nome:</strong> ${escapeHtml(name)}</p>
+        <p><strong>E-mail:</strong> ${escapeHtml(email)}</p>
+        ${organization ? `<p><strong>Organização:</strong> ${escapeHtml(organization)}</p>` : ''}
         <p><strong>Mensagem:</strong></p>
-        <p style="background:#f5f5f5;padding:1rem;border-left:4px solid #D4A843;">${message}</p>
+        <p style="background:#f5f5f5;padding:1rem;border-left:4px solid #D4A843;">${escapeHtml(message)}</p>
         <hr style="border-color:#D4A843;"/>
         <p style="font-size:.8rem;color:#999;">Enviado via obicha.com.br</p>
       </div>
@@ -54,6 +63,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('Contact error:', err)
-    return NextResponse.json({ error: err.message || 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
+

@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-access'
 import { NextRequest, NextResponse } from 'next/server'
 import postgres from 'postgres'
 
@@ -7,8 +8,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const source = searchParams.get('source')
   const search = searchParams.get('search')
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '24')
+  const page = Math.max(1, Math.min(10000, Number.parseInt(searchParams.get('page') || '1') || 1))
+  const limit = Math.max(1, Math.min(100, Number.parseInt(searchParams.get('limit') || '24') || 24))
   const offset = (page - 1) * limit
 
   const products = source
@@ -40,6 +41,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { id, scene_image_url, active } = await request.json()
   const [product] = await sql`
     UPDATE feed_products SET
@@ -49,3 +53,4 @@ export async function PATCH(request: NextRequest) {
     WHERE id = ${id} RETURNING *`
   return NextResponse.json(product)
 }
+

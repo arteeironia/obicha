@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-access'
 import { NextRequest, NextResponse } from 'next/server'
 import postgres from 'postgres'
 import { createAdminSupabaseClient } from '@/lib/supabase-admin'
@@ -18,7 +19,10 @@ const TABLES_TO_CLEAN = [
   'quit_profiles',
 ]
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const profiles = await sql`
     SELECT
       p.user_id, p.display_name, p.photo_url, p.quit_at, p.cigs_per_day, p.price_per_pack, p.cigs_per_pack,
@@ -31,6 +35,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { user_id, is_admin } = await request.json()
   if (!user_id) return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
   await sql`UPDATE quit_profiles SET is_admin = ${is_admin} WHERE user_id = ${user_id}`
@@ -38,6 +45,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { user_id } = await request.json()
   if (!user_id) return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
 
@@ -51,3 +61,4 @@ export async function DELETE(request: NextRequest) {
 
   return NextResponse.json({ ok: true })
 }
+

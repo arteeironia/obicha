@@ -1,3 +1,4 @@
+import { validPushEndpoint } from '@/lib/request-security'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import postgres from 'postgres'
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const { subscription } = await request.json()
-  if (!subscription?.endpoint) return NextResponse.json({ error: 'Assinatura inválida' }, { status: 400 })
+  if (!validPushEndpoint(subscription?.endpoint) || typeof subscription?.keys?.p256dh!=='string' || typeof subscription?.keys?.auth!=='string' || !/^[A-Za-z0-9_-]{80,100}={0,2}$/.test(subscription.keys.p256dh) || !/^[A-Za-z0-9_-]{20,30}={0,2}$/.test(subscription.keys.auth)) return NextResponse.json({ error: 'Assinatura inválida' }, { status: 400 })
 
   await sql`
     INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
@@ -41,3 +42,4 @@ export async function DELETE(request: NextRequest) {
   }
   return NextResponse.json({ ok: true })
 }
+

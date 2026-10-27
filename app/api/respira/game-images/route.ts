@@ -12,7 +12,7 @@ function cropForGame(url: string) {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const count = Math.min(parseInt(searchParams.get('count') || '8'), 12)
+  const count = Math.max(1, Math.min(Number.parseInt(searchParams.get('count') || '8') || 8, 12))
 
   const rows = await sql`
     SELECT id, name, image_url FROM products
@@ -23,3 +23,4 @@ export async function GET(request: NextRequest) {
   const cropped = rows.map((r) => ({ ...r, image_url: cropForGame(r.image_url) }))
   return NextResponse.json(cropped)
 }
+

@@ -1,4 +1,5 @@
 'use client'
+import { safeRedirect } from '@/lib/safe-redirect'
 
 import { useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
@@ -18,7 +19,7 @@ export default function AuthCallback() {
         const next = new URLSearchParams(window.location.search).get('next') ||
           document.cookie.match(/auth_next=([^;]+)/)?.[1] ||
           '/'
-        router.push(next)
+        router.push(safeRedirect(next, window.location.origin))
       }
     })
 
@@ -26,7 +27,7 @@ export default function AuthCallback() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         const next = new URLSearchParams(window.location.search).get('next') || '/'
-        router.push(next)
+        router.push(safeRedirect(next, window.location.origin))
       }
     })
   }, [])
@@ -40,3 +41,4 @@ export default function AuthCallback() {
     </div>
   )
 }
+

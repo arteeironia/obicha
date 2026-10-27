@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-access'
 import { NextRequest, NextResponse } from 'next/server'
 import postgres from 'postgres'
 
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   try {
     const { id, active, position, label } = await request.json()
     const [cat] = await sql`
@@ -23,6 +27,7 @@ export async function PATCH(request: NextRequest) {
       WHERE id = ${id} RETURNING *`
     return NextResponse.json(cat)
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Não foi possível concluir a operação.' }, { status: 500 })
   }
 }
+

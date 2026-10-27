@@ -1,3 +1,4 @@
+import { validPushEndpoint } from './request-security'
 import webpush from 'web-push'
 
 let configured = false
@@ -13,6 +14,7 @@ function ensureConfigured() {
 }
 
 export async function sendPush(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }, payload: { title: string; body: string; url?: string }) {
+  if(!validPushEndpoint(subscription.endpoint))return {ok:false,error:'Endpoint inválido',statusCode:400}
   ensureConfigured()
   try {
     await webpush.sendNotification(subscription as any, JSON.stringify(payload))
@@ -21,3 +23,4 @@ export async function sendPush(subscription: { endpoint: string; keys: { p256dh:
     return { ok: false, error: err.message, statusCode: err.statusCode }
   }
 }
+

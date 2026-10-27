@@ -1,9 +1,13 @@
+import { requireAdmin } from '@/lib/admin-access'
 import { NextRequest, NextResponse } from 'next/server'
 import postgres from 'postgres'
 
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   // Posts ocultados automaticamente (3+ denúncias), aguardando revisão de um admin
   const hidden = await sql`
     SELECT p.id, p.user_id, p.display_name, p.content, p.created_at,
@@ -36,6 +40,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { post_id, approved } = await request.json()
   if (!post_id) return NextResponse.json({ error: 'post_id obrigatório' }, { status: 400 })
   await sql`UPDATE quit_forum_posts SET approved = ${approved} WHERE id = ${post_id}`
@@ -43,8 +50,12 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+
   const { post_id } = await request.json()
   if (!post_id) return NextResponse.json({ error: 'post_id obrigatório' }, { status: 400 })
   await sql`DELETE FROM quit_forum_posts WHERE id = ${post_id}`
   return NextResponse.json({ ok: true })
 }
+

@@ -16,9 +16,10 @@ export async function signToken(payload: Record<string, unknown>) {
 
 export async function verifyToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] })
     return payload
   } catch {
     return null
   }
 }
+
