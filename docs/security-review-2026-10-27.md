@@ -4,7 +4,7 @@
 
 Revisão do código de `arteeironia/obicha`, permissões e políticas do projeto Supabase `dbihqhzskcxzvkewhhtp`, funções SQL, Edge Function disponível, metadados de Storage e dependências resolvidas no lockfile. Não é certificação de ausência de vulnerabilidades, pentest destrutivo ou perícia de incidente.
 
-As correções de banco abaixo já foram aplicadas e verificadas. As correções de código deste conjunto só entram em produção quando a revisão for incorporada e a hospedagem concluir a publicação. Build e testes locais não comprovam o estado da publicação atual.
+As correções de banco foram aplicadas e verificadas. O PR #22 foi incorporado em `6461c226efbb254e83b76feca67f7e9b9e060dae`; a Vercel confirmou publicação com sucesso. Verificações HTTP em produção confirmaram home, Respira e estatísticas agregadas com 200, e seis consultas administrativas sem sessão com 401. Login real, Google OAuth e operações autenticadas não foram exercitados com credenciais do usuário.
 
 ## Aplicado no banco
 
@@ -45,8 +45,8 @@ As correções de banco abaixo já foram aplicadas e verificadas. As correções
 
 ## Pendências e limites
 
-1. **Publicar e validar as correções do site.** Este conjunto precisa ser incorporado e publicado; depois, conferir login administrativo, edição, comentário próprio, Google OAuth, uploads, cron e push em ambiente real. Não é correto declarar essas rotas corrigidas em produção antes disso.
-2. **Privilégios amplos do banco.** Há concessões de TRUNCATE em tabelas além das quatro iniciais. RLS não controla TRUNCATE, mas o acesso depende de uma interface capaz de executar essa operação; a presença da concessão não prova exploração via REST. A revisão automática bloqueou a retirada global de TRUNCATE/REFERENCES/TRIGGER e CREATE no esquema por considerar a alteração ampla e não especificamente autorizada. Não foi aplicada. Preparar aprovação e validação por conjunto de tabelas.
+1. **Validar fluxos autenticados em produção.** Publicação concluída e bloqueios anônimos confirmados. Ainda cabe conferir login administrativo, edição, comentário próprio, Google OAuth, uploads, cron e push com contas reais, sem inventar credenciais nem enviar mensagens de teste sem necessidade.
+2. **Privilégios adicionais retirados.** Após autorização explícita, foram revogados TRUNCATE/REFERENCES/TRIGGER de PUBLIC, anon e authenticated nas tabelas públicas, e CREATE no esquema public. A verificação retornou zero concessões dessas operações para clientes, CREATE falso para os dois papéis, zero tabelas sem RLS e nenhuma permissão de edição de is_admin pelo usuário.
 3. **Proteção contra senhas vazadas.** Permanece desativada. O recurso exige plano Pro ou superior. Não houve contratação nem alteração de plano; a conexão não disponibiliza ferramenta para editar a configuração de Auth.
 4. **`pg_net` no esquema público.** Extensão marcada `extrelocatable=false`; não executar simplesmente `ALTER EXTENSION ... SET SCHEMA`. Exige procedimento próprio e validação das dependências, sem apagar/recriar às cegas.
 5. **Funções privilegiadas.** Parte dos avisos restantes corresponde a funções intencionalmente disponíveis para usuários conectados ou agregados públicos. `is_forum_admin`, `connect_buddy` e `get_buddy_stats` referenciam tabelas legadas não encontradas no inventário atual (`quit_forum_admins`/`quit_buddies`); tratar a compatibilidade antes de reativar essas funcionalidades. Não foram removidas nem reescritas nesta revisão.
