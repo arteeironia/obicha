@@ -1,5 +1,7 @@
 "use client";
 
+import { attemptStats } from "@/lib/respira-journey";
+import JourneyCheckin from "@/components/respira/JourneyCheckin";
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Activity, Wind, Heart, ListChecks, BookOpen, Award, Users, User, ArrowLeft, LifeBuoy,
@@ -113,7 +115,10 @@ export default function RespiraPage() {
   const [milestonesMarked, setMilestonesMarked] = useState([]);
   const [movementLogs, setMovementLogs] = useState([]);
   const [selfesteemChecks, setSelfesteemChecks] = useState([]);
+  const [attempts, setAttempts] = useState([]);
   const [relapses, setRelapses] = useState([]);
+  const [journeyRevision, setJourneyRevision] = useState(0);
+  const [journeyError, setJourneyError] = useState("");
   const [now, setNow] = useState(Date.now());
   const [sosOpen, setSosOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -146,6 +151,16 @@ export default function RespiraPage() {
     setSelfesteemChecks(se ?? []);
     const { data: rl } = await supabase.from("quit_relapses").select("*").eq("user_id", uid).order("created_at", { ascending: false });
     setRelapses(rl ?? []);
+    const { data: ats } = await supabase.from("quit_attempts").select("id,started_at,ended_at,cigs_per_day,cigs_per_pack,price_per_pack").eq("user_id",uid);
+    setAttempts(ats ?? []);
+  }
+
+  async function journeyAction(action, occurredAt) {
+    setJourneyError("");
+    const response = await fetch("/api/respira/journey", {method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({action,occurredAt,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone||"America/Sao_Paulo"})});
+    const result=await response.json();
+    if(!response.ok){setJourneyError(result.error||"Não foi possível salvar.");return false;}
+    await loadAll(session.user.id);setJourneyRevision(v=>v+1);return true;
   }
 
   useEffect(() => {
@@ -184,7 +199,7 @@ export default function RespiraPage() {
 
   const quitAt = new Date(profile.quit_at).getTime();
   const isFuture = quitAt > now;
-  const elapsedMin = Math.max(0, (now - quitAt) / 60000);
+  const elapsedMin = profile.paused_at ? 0 : Math.max(0, (now - quitAt) / 60000);
   const dayNumber = Math.floor(elapsedMin / 1440);
   const cravingsSurvived = cravings.filter((c) => c.survived).length;
   const cigsAvoided = isFuture ? 0 : (elapsedMin / 1440) * profile.cigs_per_day;
@@ -192,7 +207,8 @@ export default function RespiraPage() {
   const co2Grams = cigsAvoided * 14;
   const lifeMinutes = cigsAvoided * 11;
 
-  const longestStreakDays = Math.max(dayNumber, ...relapses.filter((r) => r.action === "restart").map((r) => r.days_reached || 0), 0);
+  const previousAttemptStats = attempts.filter(a=>a.ended_at).map(a=>attemptStats(a));
+  const longestStreakDays = Math.max(dayNumber, ...previousAttemptStats.map(a=>a.days), ...relapses.filter((r) => r.action === "restart").map((r) => r.days_reached || 0), 0);
   const hardDaysCount = 0; // calculado dentro do PanelTab a partir do histórico de humor, se necessário no futuro
 
   return (
@@ -214,7 +230,10 @@ export default function RespiraPage() {
           </div>
         )}
 
+        {journeyError && <p role="alert" className="rounded-xl p-3 mb-3" style={{background:C.navySoft,color:C.gold}}>{journeyError}</p>}
+        {tab === "hoje" && <JourneyCheckin session={session} profile={profile} refreshKey={journeyRevision} previousBest={Math.max(...relapses.map(r=>r.days_reached||0),...previousAttemptStats.map(a=>a.days),0)} onChanged={async()=>{await loadAll(session.user.id);setJourneyRevision(v=>v+1);}} />}
         {tab === "hoje" && (
+          profile.paused_at ? <FunctionCardGrid onNavigate={setTab} /> :
           isFuture ? (
             <div>
               <CountdownView
@@ -222,13 +241,11 @@ export default function RespiraPage() {
                 now={now}
                 onStartNow={async () => {
                   const nowIso = new Date().toISOString();
-                  await supabase.from("quit_profiles").update({ quit_at: nowIso }).eq("user_id", session.user.id);
-                  setProfile((p) => ({ ...p, quit_at: nowIso }));
+                  await journeyAction("set_start", nowIso);
                 }}
                 onReschedule={async (dateStr) => {
                   const iso = new Date(`${dateStr}T00:00:00`).toISOString();
-                  await supabase.from("quit_profiles").update({ quit_at: iso }).eq("user_id", session.user.id);
-                  setProfile((p) => ({ ...p, quit_at: iso }));
+                  await journeyAction("set_start", iso);
                 }}
               />
               <p style={{ ...bebas, letterSpacing: 1 }} className="text-sm opacity-70 mb-3">EXPLORE O APP</p>
@@ -335,7 +352,7 @@ export default function RespiraPage() {
 
         {tab === "dicas" && <AprendaTab />}
 
-        {tab === "medalhas" && <MedalhasTab dayNumber={dayNumber} moneySaved={moneySaved} cigsAvoided={cigsAvoided} />}
+        {tab === "medalhas" && <><p className="text-xs opacity-70 mb-3">Conquistas preservadas: consideram também suas melhores tentativas anteriores.</p><MedalhasTab dayNumber={longestStreakDays} moneySaved={Math.max(moneySaved,...previousAttemptStats.map(a=>a.money),0)} cigsAvoided={Math.max(cigsAvoided,...previousAttemptStats.map(a=>a.cigarettes),0)} /></>}
 
         {tab === "comunidade" && <CommunityTab supabase={supabase} session={session} profile={profile} />}
 
@@ -350,8 +367,7 @@ export default function RespiraPage() {
             onOpenAprenda={() => setTab("dicas")}
             onChangeQuitDate={async (dateStr) => {
               const iso = new Date(`${dateStr}T00:00:00`).toISOString();
-              await supabase.from("quit_profiles").update({ quit_at: iso }).eq("user_id", session.user.id);
-              setProfile((p) => ({ ...p, quit_at: iso }));
+              await journeyAction("set_start", iso);
             }}
             onSignOut={() => supabase.auth.signOut()}
             onDeleteAccount={async () => {
@@ -396,11 +412,8 @@ export default function RespiraPage() {
             const row = { user_id: session.user.id, trigger_tag: cause, note: note || null, action, days_reached, place_company: diary?.company || null, emotion_before: diary?.emotion || null, urge_intensity: diary?.urge ?? null };
             await supabase.from("quit_relapses").insert(row);
             setRelapses((cur) => [{ ...row, created_at: new Date().toISOString() }, ...cur]);
-            if (action === "restart") {
-              const newQuitAt = new Date().toISOString();
-              await supabase.from("quit_profiles").update({ quit_at: newQuitAt }).eq("user_id", session.user.id);
-              setProfile((p) => ({ ...p, quit_at: newQuitAt }));
-            }
+            if(!await journeyAction("pause",new Date().toISOString()))return;
+            if(action === "restart" && !await journeyAction("restart"))return;
             setRelapseOpen(false);
           }}
         />
@@ -1822,7 +1835,7 @@ function ConfigTab({ profile, onSave, onRereadWelcome, onOpenAprenda, onChangeQu
           </div>
         ) : (
           <button onClick={() => setEditingDate(true)} style={{ color: C.gold }} className="text-xs underline">
-            {isFutureDate ? "mudar minha data de parar" : "reiniciar a contagem a partir de outra data"}
+            {isFutureDate ? "mudar minha data de parar" : "corrigir a data inicial desta tentativa"}
           </button>
         )}
       </div>
@@ -2581,7 +2594,7 @@ function RelapseModal({ onClose, onChoose }) {
 
         {confirming === null && (
           <div className="space-y-2">
-            <button onClick={() => setConfirming("slip")} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="w-full rounded-xl py-3 text-sm">Foi só um deslize — continuar contando</button>
+            <button onClick={() => setConfirming("slip")} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="w-full rounded-xl py-3 text-sm">Registrar que fumei e pausar a contagem</button>
             <button onClick={() => setConfirming("restart")} style={{ background: C.navySoft, border: `1px solid ${C.line}` }} className="w-full rounded-xl py-3 text-sm">Prefiro recomeçar a contagem agora</button>
             <button onClick={onClose} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-xs py-2">cancelar</button>
           </div>
@@ -2589,7 +2602,7 @@ function RelapseModal({ onClose, onChoose }) {
 
         {confirming === "slip" && (
           <div className="space-y-2">
-            <p className="text-xs opacity-70 mb-2">Seus dias já construídos continuam contando normalmente. Um deslize não apaga o que você já conquistou.</p>
+            <p className="text-xs opacity-70 mb-2">Sua tentativa fica no histórico. A contagem para agora e você pode recomeçar quando estiver pronto.</p>
             <button onClick={() => onChoose(cause, note, "slip", { company, emotion, urge })} style={{ background: C.red, color: C.cream, ...bebas, letterSpacing: 1 }} className="w-full rounded-full py-3">CONFIRMAR</button>
             <button onClick={() => setConfirming(null)} style={{ color: C.cream, opacity: 0.5 }} className="w-full text-xs py-2">voltar</button>
           </div>

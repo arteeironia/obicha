@@ -6,6 +6,8 @@ import { createAdminSupabaseClient } from '@/lib/supabase-admin'
 const sql = postgres(process.env.DATABASE_URL!, { ssl: 'require' })
 
 const TABLES_TO_CLEAN = [
+  'quit_checkins',
+  'quit_attempts',
   'quit_forum_reports',
   'quit_forum_reactions',
   'quit_forum_posts',

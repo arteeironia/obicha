@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { createAdminSupabaseClient } from '@/lib/supabase-admin'
 
 const TABLES_TO_CLEAN = [
+  'quit_checkins',
+  'quit_attempts',
   'quit_forum_reports',
   'quit_forum_reactions',
   'quit_forum_posts',
