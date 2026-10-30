@@ -46,7 +46,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .obicha-legacy .main { margin-left:var(--sidebar); min-height:100vh; padding:5rem 4rem; max-width:calc(var(--sidebar) + 800px); }
         .obicha-legacy .back-link { display:inline-flex; align-items:center; gap:.5rem; font-family:var(--font-bebas); font-size:.85rem; letter-spacing:2px; color:var(--ink); text-decoration:none; opacity:.7; transition:opacity .3s; margin-bottom:3rem; }
         .obicha-legacy .back-link:hover { opacity:1; }
-        .obicha-legacy .post-cover { width:100%; max-height:480px; object-fit:cover; border-radius:4px; margin-bottom:3rem; display:block; }
+        .obicha-legacy .post-cover { width:100%; height:auto; object-fit:contain; border-radius:4px; margin-bottom:3rem; display:block; }
         .obicha-legacy .post-eyebrow { font-family:var(--font-bebas); font-size:.8rem; letter-spacing:4px; color:var(--ink); opacity:.7; margin-bottom:.8rem; display:block; }
         .obicha-legacy .post-title { font-family:var(--font-playfair); font-size:clamp(2rem,5vw,3.5rem); font-weight:900; line-height:1.1; margin:0 0 1.5rem; }
         .obicha-legacy .post-divider { height:1px; background:linear-gradient(to right, var(--gold), transparent); margin:2rem 0; opacity:.3; }
