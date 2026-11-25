@@ -1,5 +1,6 @@
 "use client";
 
+import SetasRanking from "@/components/respira/SetasRanking";
 import { attemptStats } from "@/lib/respira-journey";
 import JourneyCheckin from "@/components/respira/JourneyCheckin";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -391,6 +392,7 @@ export default function RespiraPage() {
 
       {sosOpen && (
         <SOSModal
+          getGameToken={async () => (await supabase.auth.getSession()).data.session?.access_token}
           why={profile.why_text}
           stats={{ days: dayNumber, moneySaved, cigsAvoided, cravingsSurvived }}
           onSurvived={async (intensity, technique) => {
@@ -2314,7 +2316,8 @@ function TetrisGame() {
 }
 
 
-function SOSModal({ why, stats, onSurvived, onClose }) {
+function SOSModal({ why, stats, onSurvived, onClose, getGameToken }) {
+  const [showGameRanking, setShowGameRanking] = useState(false);
   const [intensity, setIntensity] = useState(null);
   const [active, setActive] = useState(null);
   const [breathPhase, setBreathPhase] = useState(0);
@@ -2447,14 +2450,20 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
         <button
           type="button"
           autoFocus
-          onClick={() => setActive(null)}
+          onClick={() => { setShowGameRanking(false); setActive(null); }}
           style={{ color: C.cream }}
           className="min-h-11 shrink-0 self-start px-4 text-sm"
         >
           ← Voltar às técnicas
         </button>
+        <button type="button" onClick={() => setShowGameRanking(!showGameRanking)}
+          className="absolute right-3 top-0 min-h-11 px-2 text-sm text-[#daf58a]" aria-pressed={showGameRanking}>
+          Ranking
+        </button>
+        {showGameRanking && <SetasRanking getToken={getGameToken} onClose={() => setShowGameRanking(false)} />}
         <iframe
           title="Setas Soltas"
+          hidden={showGameRanking}
           src="/respira/jogos/setas-soltas.html"
           allowFullScreen
           className="min-h-0 w-full flex-1 border-0"
