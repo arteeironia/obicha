@@ -44,6 +44,13 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 #treasurePanel p{margin:0;color:var(--sub)}
 .board[data-power="ghost"]{border-color:#bb83ff;box-shadow:0 0 18px #bb83ff55}
 .board[data-power="shield"]{border-color:#88decc;box-shadow:0 0 18px #88decc55}
+#chainStatus{color:#ffe58a}
+.arrow.chain-ready .ink{stroke:#ffe58a;filter:drop-shadow(0 0 8px #ffce47)}
+.board[data-power="ghost"] .arrow:not(.chain-ready) .ink{filter:drop-shadow(0 0 2px #bb83ff)}
+.board[data-power="shield"] .arrow:not(.chain-ready) .ink{filter:drop-shadow(0 0 2px #88decc)}
+.arrow.ghost-flight .ink{stroke:#d7b7ff;filter:drop-shadow(0 0 9px #c288ff)}
+.arrow.chain-flight .ink{stroke:#ffe58a;filter:drop-shadow(0 0 7px #ffce47)}
+.arrow.ghost-flight .ink.depth,.arrow.chain-flight .ink.depth{filter:none}
 .board.blast{animation:blast .48s ease-out}
 @keyframes blast{20%{box-shadow:inset 0 0 70px #ffda83,0 0 26px #ffda83}65%{box-shadow:inset 0 0 30px #ffb59a}}
 @media(prefers-reduced-motion:reduce){.board.blast{animation:none}}
@@ -53,7 +60,7 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 <main>
 <header><h1>Setas <em>Soltas</em></h1><button id="mode" type="button" aria-pressed="false">Extremo</button><button id="restart" type="button">Recomeçar</button></header>
 <div class="stats"><strong id="level"></strong><span id="count"></span><span id="hearts" role="img"></span></div>
-<div class="run-tools"><strong id="score"></strong><span id="combo"></span><span id="record"></span><span id="nextPower"></span></div>
+<div class="run-tools"><strong id="score"></strong><span id="combo"></span><span id="record"></span><span id="nextPower"></span><strong id="chainStatus" hidden></strong></div>
 <progress id="progress" aria-label="Progresso da fase"></progress>
 <section class="board" aria-label="Tabuleiro">
 <div id="boardScroll" class="board-scroll"><svg id="board" aria-label="Setas do tabuleiro"></svg></div>
@@ -314,6 +321,10 @@ let treasure = ['available','spent'].includes(saved?.treasure) ? saved.treasure 
 let loss = saved?.loss === 'treasure' ? 'treasure' : '';
 let winReason = ['blast','hole'].includes(saved?.winReason) ? saved.winReason : '';
 let showDirections = false;
+const chainDuration = 3200;
+const chainLimit = 6;
+let chainIds = new Set();
+let chainTime = 0;
 let hinted;
 let blocked;
 const animations = new Map();
@@ -357,8 +368,11 @@ function updatePower() {
   const next = firstPowerScore + powerTier(score)*powerScoreStep;
   byId('nextPower').textContent = active ? '' : 'Próximo poder aos '+next.toLocaleString('pt-BR')+' pts';
 }
+function canTick() {
+  return !finished() && !document.hidden && byId('startScreen').hidden && byId('treasurePanel').hidden;
+}
 function tickPower(elapsed) {
-  if (!powerTime || finished() || document.hidden || !byId('startScreen').hidden || !byId('treasurePanel').hidden) return;
+  if (!powerTime || !canTick()) return;
   const previousSecond = Math.ceil(powerTime/1000);
   powerTime = Math.max(0,powerTime-Math.round(elapsed));
   if (!powerTime) power = '';
@@ -373,7 +387,50 @@ function addArrowPoints(count) {
     addPoints(100 * Math.min(5,1+Math.floor((combo-1)/3)));
   }
 }
+function chainCandidates(launched, occupied) {
+  const without = new Set(occupied);
+  for (const cell of launched.cells) without.delete(key(...cell));
+  return activeArrows().filter(candidate => candidate.id !== launched.id &&
+    !exitClear(candidate.cells,candidate.direction,occupied,size) &&
+    exitClear(candidate.cells,candidate.direction,without,size)).slice(0,chainLimit);
+}
+function updateChain() {
+  const status = byId('chainStatus');
+  status.hidden = !chainTime;
+  status.textContent = chainTime ? 'Toque numa dourada · '+(Math.ceil(chainTime/100)/10).toLocaleString('pt-BR')+' s' : '';
+}
+function clearChain() {
+  chainIds.clear();
+  chainTime = 0;
+}
+function tickChain(elapsed) {
+  if (!chainTime || !canTick()) return;
+  chainTime = Math.max(0,chainTime-elapsed);
+  if (!chainTime) {
+    clearChain();
+    for (const group of board.querySelectorAll('.chain-ready')) {
+      group.classList.remove('chain-ready');
+      group.setAttribute('aria-label',group.dataset.label);
+    }
+  }
+  updateChain();
+}
+function animateImpact(cell,effect) {
+  if (!cell) return;
+  const [cx,cy] = point(cell);
+  const color = effect === 'shield' ? '#88ffda' : '#d7b7ff';
+  const ring = shape('circle',{cx,cy,r:unit*.54,fill:color+'35',stroke:color,'stroke-width':4,
+    'pointer-events':'none','aria-hidden':'true'});
+  ring.style.transformOrigin = cx+'px '+cy+'px';
+  if (reducedMotion.matches || !ring.animate) {
+    setTimeout(() => ring.remove(),350);
+    return;
+  }
+  ring.animate([{opacity:1,transform:'scale(.5)'},{opacity:0,transform:'scale(2.6)'}],
+    {duration:550,fill:'forwards'}).finished.then(() => ring.remove(),() => ring.remove());
+}
 function winPhase(reason = '') {
+  clearChain();
   winReason = reason;
   best = Math.max(best,level);
   phaseBonus = mistakes === 0 ? perfectBonus : 0;
@@ -407,8 +464,11 @@ function redraw() {
   }
   const target = holeTurns ? holeTarget(active)?.id : undefined;
   for (const arrow of active) {
-    const group = shape('g',{class:'arrow'+(arrow.id===hinted?' hint':'')+(arrow.id===blocked?' blocked':''),
-      role:'button',tabindex:finished()?-1:0,'aria-label':'Seta '+(arrow.id+1)+' para '+directionNames[arrow.direction]});
+    const label = 'Seta '+(arrow.id+1)+' para '+directionNames[arrow.direction];
+    const chained = chainIds.has(arrow.id);
+    const group = shape('g',{class:'arrow'+(arrow.id===hinted?' hint':'')+(arrow.id===blocked?' blocked':'')+(chained?' chain-ready':''),
+      role:'button',tabindex:finished()?-1:0,'aria-label':label+(chained?' · ativa reação em cadeia':'')});
+    group.dataset.label = label;
     group.style.color = arrow.color;
     const points = arrowPoints(arrow);
     shape('polyline',{points:pointList(points),fill:'none',stroke:'transparent','stroke-width':34,'stroke-linecap':'round','stroke-linejoin':'round'},group);
@@ -428,27 +488,34 @@ let route;
 function previewRoute(arrow) {
   if (finished() || removed.has(arrow.id)) return;
   route?.remove();
-  const cell = firstObstacle(arrow.cells,arrow.direction,occupiedCells(),size);
+  const occupied = occupiedCells();
+  const cell = firstObstacle(arrow.cells,arrow.direction,occupied,size);
+  const ghost = cell && power === 'ghost' && powerTime > 0;
+  const stop = ghost ? undefined : cell;
   const [x,y] = arrowPoints(arrow).at(-1);
   const [dx,dy] = directions[arrow.direction];
   const extent = size*unit+pad*2;
-  const [endX,endY] = cell ? point(cell) : [
+  const [endX,endY] = stop ? point(stop) : [
     dx ? (dx>0 ? extent-8 : 8) : x,
     dy ? (dy>0 ? extent-8 : 8) : y
   ];
-  const color = cell ? '#ff9c7d' : '#daf58a';
+  const color = ghost ? '#d7b7ff' : stop ? '#ff9c7d' : '#daf58a';
   route = shape('g',{'pointer-events':'none','aria-hidden':'true'});
   shape('line',{x1:x,y1:y,x2:endX,y2:endY,stroke:color,'stroke-width':extreme?8:4,
     'stroke-linecap':'round','stroke-dasharray':extreme?'10 12':'5 7'},route);
-  shape('circle',{cx:endX,cy:endY,r:extreme?15:8,fill:cell?'#172421':color,stroke:color,
+  shape('circle',{cx:endX,cy:endY,r:extreme?15:8,fill:stop?'#172421':color,stroke:color,
     'stroke-width':extreme?5:2},route);
-  if (cell) {
+  if (stop) {
     const cross = extreme ? 6 : 3;
     shape('path',{d:'M '+(endX-cross)+' '+(endY-cross)+' l '+(2*cross)+' '+(2*cross)+
       ' M '+(endX+cross)+' '+(endY-cross)+' l '+(-2*cross)+' '+(2*cross),
       stroke:color,'stroke-width':extreme?4:2},route);
   }
-  message(cell?'A seta bate no ponto marcado.':'Caminho livre até a borda.');
+  const count = stop ? 0 : chainCandidates(arrow,occupied).length;
+  message(chainIds.has(arrow.id) ? 'Esta seta dispara a cadeia.'
+    : count >= 2 ? 'Esta jogada destrava '+count+' setas para uma cadeia.'
+    : ghost ? 'O Fantasma atravessa o bloqueio.'
+    : stop ? 'A seta bate no ponto marcado.' : 'Caminho livre até a borda.');
 }
 
 function bindArrow(group,arrow) {
@@ -536,6 +603,7 @@ function updateStatus() {
   byId('combo').textContent = combo ? 'Combo '+combo+' · ×'+Math.min(5,1+Math.floor((combo-1)/3)) : '';
   byId('viewTreasure').hidden = treasure !== 'available' || finished();
   updatePower();
+  updateChain();
   const won = hearts > 0 && active.length === 0;
   byId('restart').disabled = won;
   byId('result').classList.toggle('is-win',won);
@@ -573,7 +641,7 @@ function arrowhead(tip,direction) {
 
 function drawInk(group,points,direction) {
   const style = {class:'ink','stroke-width':extreme ? 5.5 : 4.4,'pointer-events':'none'};
-  const depth = {...style,opacity:.6,transform:'translate(1 2)',
+  const depth = {...style,class:'ink depth',opacity:.6,transform:'translate(1 2)',
     style:'stroke:#060d0b;stroke-width:7'};
   const shadow = shape('polyline',{...depth,points:pointList(points)},group);
   const shadowHead = shape('polyline',{...depth,points:pointList(arrowhead(points.at(-1),direction))},group);
@@ -583,7 +651,7 @@ function drawInk(group,points,direction) {
   ];
 }
 
-function animateExit(arrow) {
+function animateExit(arrow,effect = '',delay = 0) {
   const points = arrowPoints(arrow);
   const tip = points.at(-1);
   const [dx,dy] = directions[arrow.direction];
@@ -598,7 +666,7 @@ function animateExit(arrow) {
   const length = offsets.at(-2);
   const travel = distance+length;
   const duration = reducedMotion.matches ? 420 : Math.min(1100,620+travel*.48);
-  const group = shape('g',{class:'arrow','pointer-events':'none','aria-hidden':'true'});
+  const group = shape('g',{class:'arrow'+(effect?' '+effect+'-flight':''),'pointer-events':'none','aria-hidden':'true'});
   group.style.color = arrow.color;
   const [body,head,shadow,shadowHead] = drawInk(group,points,arrow.direction);
   const animation = {group,frame:0};
@@ -613,7 +681,7 @@ function animateExit(arrow) {
   }
 
   function frame(now) {
-    start ??= now;
+    start ??= now+(reducedMotion.matches ? 0 : delay);
     const progress = Math.min(1,Math.max(0,(now-start)/duration));
     const advance = travel*progress*(.65+.35*progress);
     if (progress === 1) {
@@ -644,25 +712,47 @@ function advanceHole() {
   addArrowPoints(1);
   return true;
 }
+function releaseArrow(arrow,effect,delay) {
+  removed.add(arrow.id);
+  if (arrow.id === treasureArrow() && !treasure) treasure = 'available';
+  addArrowPoints(1);
+  animateExit(arrow,effect,delay);
+}
 function play(arrow) {
   if (finished() || !byId('treasurePanel').hidden || removed.has(arrow.id)) return;
   hinted = blocked = undefined;
-  const clear = exitClear(arrow.cells,arrow.direction,occupiedCells(),size);
+  const occupied = occupiedCells();
+  const obstacle = firstObstacle(arrow.cells,arrow.direction,occupied,size);
+  const ghost = obstacle && power === 'ghost' && powerTime > 0;
+  const shield = obstacle && power === 'shield' && powerTime > 0;
+  const chain = chainIds.has(arrow.id)
+    ? [arrow,...activeArrows().filter(candidate => candidate !== arrow && chainIds.has(candidate.id))]
+    : [];
+  clearChain();
   let notice = '';
-  if (clear || (power === 'ghost' && powerTime > 0)) {
-    removed.add(arrow.id);
-    if (arrow.id === treasureArrow() && !treasure) {
-      treasure = 'available';
-      notice = 'Você encontrou um baú.';
+  if (chain.length > 1) {
+    const hadTreasure = treasure;
+    chain.forEach((candidate,index) => releaseArrow(candidate,'chain',index*110));
+    const bonus = chain.length*250;
+    addPoints(bonus);
+    notice = 'Reação em cadeia! '+chain.length+' setas · +'+bonus+' pts';
+    if (!hadTreasure && treasure) notice += '. Você encontrou um baú.';
+  } else if (!obstacle || ghost) {
+    const candidates = chainCandidates(arrow,occupied);
+    const hadTreasure = treasure;
+    releaseArrow(arrow,ghost?'ghost':'');
+    if (ghost) notice = 'O Fantasma atravessou o bloqueio.';
+    if (!hadTreasure && treasure) notice += (notice ? ' ' : '')+'Você encontrou um baú.';
+    if (candidates.length >= 2) {
+      chainIds = new Set(candidates.map(candidate => candidate.id));
+      chainTime = chainDuration;
+      if (!notice) notice = 'Setas douradas liberadas. Toque numa para disparar a cadeia!';
     }
-    addArrowPoints(1);
-    if (!clear) notice = 'A seta atravessou o bloqueio.';
-    animateExit(arrow);
   } else {
     blocked = arrow.id;
     mistakes++;
-    if (power === 'shield' && powerTime > 0) {
-      notice = 'O Escudo protegeu sua vida e seu combo.';
+    if (shield) {
+      notice = 'O Escudo segurou o impacto.';
     } else {
       hearts--;
       combo = 0;
@@ -671,13 +761,17 @@ function play(arrow) {
   }
   if (hearts > 0) {
     const swallowed = advanceHole();
-    if (swallowed) notice = 'O buraco negro puxou a seta marcada.';
-    else if (holeTurns) notice = 'O buraco negro vai puxar a seta marcada na próxima jogada.';
+    if (swallowed) {
+      const openChain = activeArrows().filter(candidate => chainIds.has(candidate.id));
+      if (openChain.length < 2) clearChain();
+      notice += (notice ? ' ' : '')+'O buraco negro puxou a seta marcada.';
+    } else if (holeTurns && !notice) notice = 'O buraco negro vai puxar a seta marcada na próxima jogada.';
     if (removed.size === arrows.length) winPhase(swallowed ? 'hole' : '');
-  }
+  } else clearChain();
   message(notice);
   save();
   redraw();
+  if (ghost || shield) animateImpact(obstacle,ghost?'ghost':'shield');
   if (finished() && !byId('result').hidden) byId('continue').focus();
 }
 function showTreasure(open) {
@@ -722,6 +816,7 @@ function openTreasure() {
   } else if (chance < .15) {
     hearts = score = phaseScore = combo = powerTime = holeTurns = 0;
     power = '';
+    clearChain();
     loss = 'treasure';
     message('O baú levou as vidas, os pontos e o poder desta partida.');
   } else if (chance < .33) {
@@ -764,6 +859,7 @@ function reset(nextLevel) {
   level = nextLevel;
   ({size,arrows,mask} = generate(level,extreme,layout));
   removed = new Set();
+  clearChain();
   treasure = loss = winReason = '';
   holeTurns = 0;
   blocked = hinted = undefined;
@@ -833,6 +929,7 @@ let lastPowerTick = performance.now();
 setInterval(() => {
   const now = performance.now();
   tickPower(now-lastPowerTick);
+  tickChain(now-lastPowerTick);
   lastPowerTick = now;
 },100);
 document.addEventListener('visibilitychange',() => { lastPowerTick = performance.now(); });
