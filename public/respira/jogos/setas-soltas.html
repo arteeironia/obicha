@@ -31,21 +31,26 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 #zoomValue{min-width:3.5em;text-align:center;font-variant-numeric:tabular-nums}
 .immersive main,:fullscreen main{width:min(100% - 16px,650px);padding-top:max(10px,env(safe-area-inset-top))}
 #confetti{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
-#confetti i{position:absolute;left:50%;top:53%;width:8px;height:12px;background:var(--color);border-radius:2px;animation:celebrate 1.25s ease-out both}
+#confetti i{position:absolute;left:var(--left);top:var(--top);width:var(--width);height:var(--height);background:var(--color);border-radius:2px;opacity:0;animation:celebrate var(--time) ease-out var(--delay) both}
+.win-mark{justify-self:center;display:grid;place-items:center;width:68px;height:68px;border-radius:50%;font-size:38px;color:#172421;background:#daf58a;box-shadow:0 0 32px #daf58555}.win-mark[hidden]{display:none}
+.result.is-win{background:radial-gradient(ellipse at 50% 42%,#344c34f7,#101c19f5 72%)}
+#roundSummary{margin:0;color:var(--sub);font-size:.95rem}
+.result.celebrating .win-mark{animation:win-pop .66s cubic-bezier(.17,.85,.27,1.3)}
+@keyframes win-pop{from{transform:scale(.25) rotate(-25deg);opacity:.2}to{transform:scale(1) rotate(0);opacity:1}}
 @keyframes celebrate{0%{opacity:1;transform:translate(-50%,-50%) scale(.5)}65%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--spin))}}
-@media(prefers-reduced-motion:reduce){#confetti{display:none}}
+@media(prefers-reduced-motion:reduce){#confetti{display:none}.result.celebrating .win-mark{animation:none}}
 </style>
 </head>
 <body>
 <main>
 <header><h1>Setas <em>Soltas</em></h1><button id="mode" type="button" aria-pressed="false">Extremo</button><button id="restart" type="button">Recomeçar</button></header>
-<div class="stats"><strong id="level"></strong><span id="count"></span><span id="hearts" role="img"></span></div>
+<div class="stats"><span><strong id="level"></strong><small id="difficulty" style="display:block"></small></span><span id="count"></span><span id="hearts" role="img"></span></div>
 <progress id="progress" aria-label="Progresso da fase"></progress>
 <section class="board" aria-label="Tabuleiro">
 <div id="boardScroll" class="board-scroll"><svg id="board" aria-label="Setas do tabuleiro"></svg></div>
 <div id="confetti" aria-hidden="true"></div>
 <div class="result" id="startScreen"><button id="start" type="button">Jogar em tela cheia</button></div>
-<div class="result" id="result" hidden><h2 id="resultTitle"></h2><button id="continue" type="button"></button><button id="retry" type="button" hidden>Recomeçar fase</button></div>
+<div class="result" id="result" hidden><div id="winMark" class="win-mark" aria-hidden="true" hidden>★</div><h2 id="resultTitle"></h2><p id="roundSummary" hidden></p><button id="continue" type="button"></button><button id="retry" type="button" hidden>Recomeçar fase</button></div>
 </section>
 <div class="zoom-controls" aria-label="Zoom do tabuleiro">
 <button id="zoomOut" type="button" aria-label="Diminuir zoom">−</button><output id="zoomValue">100%</output><button id="zoomIn" type="button" aria-label="Aumentar zoom">+</button>
@@ -128,11 +133,13 @@ function octopusMask(size) {
   return cells;
 }
 
-function generate(level,extreme=false) {
+function generate(level,extreme=false,layout=1) {
   const [name, pixels] = figures[(level-1) % figures.length];
   const width = pixels[0].length;
   const originalSize = Math.max(width,pixels.length);
-  const size = extreme ? 46 : Math.min(22,originalSize + 2 * Math.floor((level-1)/5));
+  const size = layout === 1
+    ? (extreme ? 46 : Math.min(22,originalSize + 2*Math.floor((level-1)/5)))
+    : (extreme ? Math.min(66,36+3*(level-1)) : Math.min(34,13+2*Math.floor((level-1)/2)));
   let seed = (Math.imul(level,2654435761) >>> 0) || 1;
   const random = max => {
     seed ^= seed << 13;
@@ -178,7 +185,9 @@ function generate(level,extreme=false) {
       if (!wantShort && tail) {
         cells.push(tail);
         remaining.delete(key(...tail));
-        const length = 2 + random(extreme ? 10 : Math.min(9,4+Math.floor(level/3)));
+        const length = 2 + random(layout === 1
+          ? (extreme ? 10 : Math.min(9,4+Math.floor(level/3)))
+          : (extreme ? Math.min(18,9+level) : Math.min(14,4+Math.floor(level/2))));
         while (cells.length < length) {
           const [x,y] = cells.at(-1);
           const neighbors = directions.map(([dx,dy]) => remaining.get(key(x+dx,y+dy))).filter(Boolean);
@@ -247,7 +256,14 @@ try {
   }
 } catch {}
 let level = Number.isSafeInteger(saved?.level) && saved.level > 0 ? saved.level : 1;
-let {size,arrows,mask,name} = generate(level,extreme);
+let layout = saved ? (saved.layout === 2 ? 2 : 1) : 2;
+let {size,arrows,mask,name} = generate(level,extreme,layout);
+let best = Math.max(level-1,Number.isSafeInteger(saved?.best) ? saved.best : 0);
+if (removedAllOnLoad()) best = Math.max(best,level);
+function removedAllOnLoad() {
+  const ids = new Set(Array.isArray(saved?.removed) ? saved.removed : []);
+  return arrows.every(arrow => ids.has(arrow.id));
+}
 let removed = new Set(Array.isArray(saved?.removed) ? saved.removed.filter(id => arrows.some(arrow => arrow.id === id)) : []);
 const maxHearts = extreme ? 5 : 3;
 const previousMax = extreme && saved?.maxHearts !== 5 ? 3 : maxHearts;
@@ -262,7 +278,7 @@ const animations = new Map();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function save() {
-  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts})); } catch {}
+  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best})); } catch {}
 }
 function activeArrows() { return arrows.filter(arrow => !removed.has(arrow.id)); }
 function occupiedCells() {
@@ -375,12 +391,20 @@ let celebrateWin = false;
 function celebratePhase() {
   const layer = byId('confetti');
   layer.replaceChildren();
+  byId('result').classList.add('celebrating');
   if (reducedMotion.matches) return;
   const radius = layer.clientWidth * .65;
-  for (let i=0;i<30;i++) {
+  for (let i=0;i<72;i++) {
     const angle = i*2.39996;
     const distance = radius*(.42+(i%7)/12);
     const piece = document.createElement('i');
+    const burst = Math.floor(i/24);
+    piece.style.setProperty('--left',[ '50%','17%','83%' ][burst]);
+    piece.style.setProperty('--top',burst === 0 ? '44%' : '70%');
+    piece.style.setProperty('--width',5+i%7+'px');
+    piece.style.setProperty('--height',8+i%9+'px');
+    piece.style.setProperty('--time',1.1+(i%6)*.12+'s');
+    piece.style.setProperty('--delay',burst*.22+'s');
     piece.style.setProperty('--x',Math.cos(angle)*distance+'px');
     piece.style.setProperty('--y',Math.sin(angle)*distance+'px');
     piece.style.setProperty('--spin',(i%2 ? -1 : 1)*(160+37*i)+'deg');
@@ -391,7 +415,12 @@ function celebratePhase() {
 }
 function updateStatus() {
   const active = activeArrows();
+  const difficulty = extreme
+    ? (size >= 60 ? 'Extremo III' : size >= 48 ? 'Extremo II' : 'Extremo I')
+    : (size >= 24 ? 'Avançado' : size >= 16 ? 'Intermediário' : 'Iniciante');
   byId('level').textContent = 'Fase '+level+' · '+name;
+  byId('level').title = difficulty;
+  byId('difficulty').textContent = difficulty;
   byId('count').textContent = active.length+(active.length===1?' seta':' setas');
   byId('hearts').textContent = '♥'.repeat(hearts)+'♡'.repeat(maxHearts-hearts);
   byId('hearts').setAttribute('aria-label',hearts+' de '+maxHearts+' vidas');
@@ -400,7 +429,12 @@ function updateStatus() {
   byId('guide').disabled = byId('hint').disabled = finished();
   byId('result').hidden = !finished() || (hearts > 0 && animations.size > 0);
   byId('retry').hidden = hearts > 0;
-  byId('resultTitle').textContent = active.length ? 'Acabaram as vidas' : 'Fase concluída! 🎉';
+  const won = active.length === 0;
+  byId('result').classList.toggle('is-win',won);
+  byId('winMark').hidden = !won;
+  byId('roundSummary').hidden = !won;
+  byId('roundSummary').textContent = name+' · '+arrows.length+' setas liberadas';
+  byId('resultTitle').textContent = won ? 'Fase '+level+' concluída!' : 'Acabaram as vidas';
   byId('continue').textContent = active.length ? 'Continuar' : 'Próxima fase';
   if (celebrateWin && !byId('result').hidden) {
     celebrateWin = false;
@@ -488,6 +522,7 @@ function play(arrow) {
   if (exitClear(arrow.cells,arrow.direction,occupiedCells(),size)) {
     removed.add(arrow.id);
     celebrateWin = removed.size === arrows.length;
+    if (celebrateWin) best = Math.max(best,level);
     animateExit(arrow);
     message(finished()?'Você liberou todas as setas.':'');
   } else {
@@ -504,8 +539,10 @@ function reset(nextLevel) {
   animations.clear();
   celebrateWin = false;
   byId('confetti').replaceChildren();
+  byId('result').classList.remove('celebrating');
+  if (nextLevel !== level) layout = 2;
   level = nextLevel;
-  ({size,arrows,mask,name} = generate(level,extreme));
+  ({size,arrows,mask,name} = generate(level,extreme,layout));
   removed = new Set();
   hearts = maxHearts;
   blocked = hinted = undefined;
