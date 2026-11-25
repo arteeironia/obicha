@@ -42,6 +42,8 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 .run-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;color:var(--sub);font-size:.85rem}
 .run-tools strong{color:var(--accent)}
 #treasurePanel p{margin:0;color:var(--sub)}
+.board[data-power="ghost"]{border-color:#bb83ff;box-shadow:0 0 18px #bb83ff55}
+.board[data-power="shield"]{border-color:#88decc;box-shadow:0 0 18px #88decc55}
 .board.blast{animation:blast .48s ease-out}
 @keyframes blast{20%{box-shadow:inset 0 0 70px #ffda83,0 0 26px #ffda83}65%{box-shadow:inset 0 0 30px #ffb59a}}
 @media(prefers-reduced-motion:reduce){.board.blast{animation:none}}
@@ -50,7 +52,7 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 <body>
 <main>
 <header><h1>Setas <em>Soltas</em></h1><button id="mode" type="button" aria-pressed="false">Extremo</button><button id="restart" type="button">Recomeçar</button></header>
-<div class="stats"><span><strong id="level"></strong><small id="difficulty" style="display:block"></small></span><span id="count"></span><span id="hearts" role="img"></span></div>
+<div class="stats"><strong id="level"></strong><span id="count"></span><span id="hearts" role="img"></span></div>
 <div class="run-tools"><strong id="score"></strong><span id="combo"></span><span id="record"></span><span id="nextPower"></span></div>
 <progress id="progress" aria-label="Progresso da fase"></progress>
 <section class="board" aria-label="Tabuleiro">
@@ -67,8 +69,7 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 <button id="zoomOut" type="button" aria-label="Diminuir zoom">−</button><output id="zoomValue">100%</output><button id="zoomIn" type="button" aria-label="Aumentar zoom">+</button>
 </div>
 <div class="run-tools" aria-label="Poderes">
-<span id="usePower" hidden></span>
-<span id="shield" hidden></span>
+<strong id="powerStatus" hidden></strong>
 <button id="viewTreasure" type="button" hidden>Baú encontrado</button>
 </div>
 <p id="message" role="status"></p>
@@ -150,7 +151,7 @@ function octopusMask(size) {
 }
 
 function generate(level,extreme=false,layout=1) {
-  const [name, pixels] = figures[(level-1) % figures.length];
+  const [,pixels] = figures[(level-1) % figures.length];
   const width = pixels[0].length;
   const originalSize = Math.max(width,pixels.length);
   const size = layout === 1
@@ -250,7 +251,7 @@ function generate(level,extreme=false,layout=1) {
       score = candidateScore;
     }
   }
-  return {size:progressiveSize,arrows,mask,name:extreme ? 'Polvo' : name};
+  return {size:progressiveSize,arrows,mask};
 }
 
 const byId = id => document.getElementById(id);
@@ -277,7 +278,7 @@ try {
 } catch {}
 let level = Number.isSafeInteger(saved?.level) && saved.level > 0 ? saved.level : 1;
 let layout = saved ? ([2,3].includes(saved.layout) ? saved.layout : 1) : 3;
-let {size,arrows,mask,name} = generate(level,extreme,layout);
+let {size,arrows,mask} = generate(level,extreme,layout);
 let best = Math.max(level-1,Number.isSafeInteger(saved?.best) ? saved.best : 0);
 if (removedAllOnLoad()) best = Math.max(best,level);
 function removedAllOnLoad() {
@@ -295,16 +296,19 @@ const number = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
 let score = number(saved?.score);
 let record = number(saved?.record);
 let combo = number(saved?.combo);
-const ghostThreshold = 10000;
-const shieldThreshold = 30000;
+const firstPowerScore = 10000;
+const powerScoreStep = 20000;
+const powerDuration = 8000;
+const powerNames = {ghost:'Fantasma',shield:'Escudo'};
+const powerTier = points => Math.max(0,1+Math.floor((points-firstPowerScore)/powerScoreStep));
 const perfectBonus = 1000;
 let phaseScore = Math.min(score,saved?.phaseScore === undefined ? score : number(saved.phaseScore));
 let mistakes = saved?.mistakes === undefined
   ? Number(removed.size > 0 || hearts < maxHearts)
   : number(saved.mistakes);
 let phaseBonus = number(saved?.phaseBonus);
-let charge = number(saved?.charge);
-let shieldCharge = number(saved?.shieldCharge);
+let power = Object.hasOwn(powerNames,saved?.power) ? saved.power : '';
+let powerTime = Math.min(powerDuration,number(saved?.powerTime));
 let holeTurns = Math.min(2,number(saved?.holeTurns));
 let treasure = ['available','spent'].includes(saved?.treasure) ? saved.treasure : '';
 let loss = saved?.loss === 'treasure' ? 'treasure' : '';
@@ -316,7 +320,7 @@ const animations = new Map();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function save() {
-  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best,score,record,combo,phaseScore,mistakes,phaseBonus,charge,shieldCharge,holeTurns,treasure,loss,winReason})); } catch {}
+  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best,score,record,combo,phaseScore,mistakes,phaseBonus,power,powerTime,holeTurns,treasure,loss,winReason})); } catch {}
 }
 function activeArrows() { return arrows.filter(arrow => !removed.has(arrow.id)); }
 function occupiedCells() {
@@ -335,17 +339,45 @@ function holeTarget(active = activeArrows()) {
   };
   return active.reduce((closest,arrow) => !closest || distance(arrow) < distance(closest) ? arrow : closest, undefined);
 }
+function addPoints(points) {
+  const previousTier = powerTier(score);
+  score += points;
+  const tier = powerTier(score);
+  if (tier > previousTier) {
+    power = tier % 2 ? 'ghost' : 'shield';
+    powerTime = powerDuration;
+  }
+}
+function updatePower() {
+  const active = powerTime > 0 ? power : '';
+  const status = byId('powerStatus');
+  status.hidden = !active;
+  status.textContent = active ? powerNames[active]+' · '+Math.ceil(powerTime/1000)+' s' : '';
+  board.closest('.board').dataset.power = active;
+  const next = firstPowerScore + powerTier(score)*powerScoreStep;
+  byId('nextPower').textContent = active ? '' : 'Próximo poder aos '+next.toLocaleString('pt-BR')+' pts';
+}
+function tickPower(elapsed) {
+  if (!powerTime || finished() || document.hidden || !byId('startScreen').hidden || !byId('treasurePanel').hidden) return;
+  const previousSecond = Math.ceil(powerTime/1000);
+  powerTime = Math.max(0,powerTime-Math.round(elapsed));
+  if (!powerTime) power = '';
+  if (Math.ceil(powerTime/1000) !== previousSecond) {
+    updatePower();
+    save();
+  }
+}
 function addArrowPoints(count) {
   for (let index=0;index<count;index++) {
     combo++;
-    score += 100 * Math.min(5,1+Math.floor((combo-1)/3));
+    addPoints(100 * Math.min(5,1+Math.floor((combo-1)/3)));
   }
 }
 function winPhase(reason = '') {
   winReason = reason;
   best = Math.max(best,level);
   phaseBonus = mistakes === 0 ? perfectBonus : 0;
-  score += phaseBonus;
+  addPoints(phaseBonus);
   record = Math.max(record,score);
   hearts = maxHearts;
   celebrateWin = true;
@@ -491,12 +523,7 @@ function celebratePhase() {
 }
 function updateStatus() {
   const active = activeArrows();
-  const difficulty = extreme
-    ? (size >= 60 ? 'Extremo III' : size >= 48 ? 'Extremo II' : 'Extremo I')
-    : (size >= 24 ? 'Avançado' : size >= 16 ? 'Intermediário' : 'Iniciante');
-  byId('level').textContent = 'Fase '+level+' · '+name;
-  byId('level').title = difficulty;
-  byId('difficulty').textContent = difficulty;
+  byId('level').textContent = 'Fase '+level;
   byId('count').textContent = active.length+(active.length===1?' seta':' setas');
   byId('hearts').textContent = '♥'.repeat(hearts)+'♡'.repeat(maxHearts-hearts);
   byId('hearts').setAttribute('aria-label',hearts+' de '+maxHearts+' vidas');
@@ -508,14 +535,7 @@ function updateStatus() {
   byId('record').textContent = 'Recorde '+record.toLocaleString('pt-BR');
   byId('combo').textContent = combo ? 'Combo '+combo+' · ×'+Math.min(5,1+Math.floor((combo-1)/3)) : '';
   byId('viewTreasure').hidden = treasure !== 'available' || finished();
-  const power = byId('usePower');
-  byId('nextPower').textContent = score < ghostThreshold ? 'Fantasma aos 10.000 pts'
-    : score < shieldThreshold ? 'Escudo aos 30.000 pts' : '';
-  power.hidden = score < ghostThreshold;
-  power.textContent = charge ? 'Fantasma · recarga '+charge : 'Fantasma pronto';
-  const shield = byId('shield');
-  shield.hidden = score < shieldThreshold;
-  shield.textContent = shieldCharge ? 'Escudo · recarga '+shieldCharge : 'Escudo pronto';
+  updatePower();
   const won = hearts > 0 && active.length === 0;
   byId('restart').disabled = won;
   byId('result').classList.toggle('is-win',won);
@@ -524,8 +544,7 @@ function updateStatus() {
   byId('roundSummary').textContent = won
     ? [winReason === 'blast' ? 'Explosão total!' : '',
       phaseBonus ? 'Fase perfeita +' + phaseBonus.toLocaleString('pt-BR')+' pts' : '',
-      phaseScore < ghostThreshold && score >= ghostThreshold ? 'Fantasma desbloqueado' : '',
-      phaseScore < shieldThreshold && score >= shieldThreshold ? 'Escudo desbloqueado' : '',
+      powerTime ? powerNames[power]+' · '+Math.ceil(powerTime/1000)+' s restantes' : '',
       score.toLocaleString('pt-BR')+' pts'].filter(Boolean).join(' · ')
     : 'Fase '+level+' · '+score.toLocaleString('pt-BR')+' pts';
   byId('resultTitle').textContent = won ? 'Fase '+level+' concluída!' : loss ? 'O baú levou tudo' : 'Acabaram as vidas';
@@ -630,24 +649,19 @@ function play(arrow) {
   hinted = blocked = undefined;
   const clear = exitClear(arrow.cells,arrow.direction,occupiedCells(),size);
   let notice = '';
-  if (clear || (score >= ghostThreshold && charge === 0)) {
+  if (clear || (power === 'ghost' && powerTime > 0)) {
     removed.add(arrow.id);
     if (arrow.id === treasureArrow() && !treasure) {
       treasure = 'available';
       notice = 'Você encontrou um baú.';
     }
     addArrowPoints(1);
-    if (!clear) {
-      charge = 4;
-      notice = 'A seta atravessou o bloqueio.';
-    } else if (charge) charge--;
-    if (shieldCharge) shieldCharge--;
+    if (!clear) notice = 'A seta atravessou o bloqueio.';
     animateExit(arrow);
   } else {
     blocked = arrow.id;
     mistakes++;
-    if (score >= shieldThreshold && shieldCharge === 0) {
-      shieldCharge = 6;
+    if (power === 'shield' && powerTime > 0) {
       notice = 'O Escudo protegeu sua vida e seu combo.';
     } else {
       hearts--;
@@ -706,8 +720,8 @@ function openTreasure() {
     }
     message('Explosão total! Todas as setas foram liberadas.');
   } else if (chance < .15) {
-    hearts = score = phaseScore = combo = charge = holeTurns = 0;
-    shieldCharge = 0;
+    hearts = score = phaseScore = combo = powerTime = holeTurns = 0;
+    power = '';
     loss = 'treasure';
     message('O baú levou as vidas, os pontos e o poder desta partida.');
   } else if (chance < .33) {
@@ -717,7 +731,7 @@ function openTreasure() {
     hearts++;
     message('Você ganhou uma vida!');
   } else if (chance < .83) {
-    score += 500;
+    addPoints(500);
     message('Você ganhou 500 pontos!');
   } else {
     combo = 0;
@@ -739,7 +753,8 @@ function reset(nextLevel) {
   board.closest('.board').classList.remove('blast');
   if (nextLevel === level) {
     score = phaseScore;
-    combo = charge = shieldCharge = 0;
+    combo = powerTime = 0;
+    power = '';
   } else {
     layout = 3;
   }
@@ -747,7 +762,7 @@ function reset(nextLevel) {
   phaseScore = score;
   mistakes = phaseBonus = 0;
   level = nextLevel;
-  ({size,arrows,mask,name} = generate(level,extreme,layout));
+  ({size,arrows,mask} = generate(level,extreme,layout));
   removed = new Set();
   treasure = loss = winReason = '';
   holeTurns = 0;
@@ -814,6 +829,14 @@ byId('hint').onclick = () => {
 };
 redraw();
 message('Toque para soltar. Segure uma seta para conferir o caminho.');
+let lastPowerTick = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  tickPower(now-lastPowerTick);
+  lastPowerTick = now;
+},100);
+document.addEventListener('visibilitychange',() => { lastPowerTick = performance.now(); });
+window.addEventListener('pagehide',save);
 </script>
 </body>
 </html>
