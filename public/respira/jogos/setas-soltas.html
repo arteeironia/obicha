@@ -52,7 +52,7 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 <main>
 <header><h1>Setas <em>Soltas</em></h1><button id="mode" type="button" aria-pressed="false">Extremo</button><button id="restart" type="button">Recomeçar</button></header>
 <div class="stats"><span><strong id="level"></strong><small id="difficulty" style="display:block"></small></span><span id="count"></span><span id="hearts" role="img"></span></div>
-<div class="run-tools"><strong id="score"></strong><span id="combo"></span><span id="record"></span></div>
+<div class="run-tools"><strong id="score"></strong><span id="combo"></span><span id="record"></span><span id="nextPower"></span></div>
 <progress id="progress" aria-label="Progresso da fase"></progress>
 <section class="board" aria-label="Tabuleiro">
 <div id="boardScroll" class="board-scroll"><svg id="board" aria-label="Setas do tabuleiro"></svg></div>
@@ -296,11 +296,18 @@ const number = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
 let score = number(saved?.score);
 let record = number(saved?.record);
 let combo = number(saved?.combo);
-let powerRank = number(saved?.powerRank);
+const ghostThreshold = 10000;
+const shieldThreshold = 30000;
+const perfectBonus = 1000;
+let phaseScore = Math.min(score,saved?.phaseScore === undefined ? score : number(saved.phaseScore));
+let mistakes = saved?.mistakes === undefined
+  ? Number(removed.size > 0 || hearts < maxHearts)
+  : number(saved.mistakes);
+let phaseBonus = number(saved?.phaseBonus);
 let charge = number(saved?.charge);
-let armed = Boolean(saved?.armed && powerRank && !charge);
+let armed = Boolean(saved?.armed && score >= ghostThreshold && !charge);
 let shieldCharge = number(saved?.shieldCharge);
-let shieldArmed = Boolean(saved?.shieldArmed && powerRank >= 2 && !shieldCharge);
+let shieldArmed = Boolean(saved?.shieldArmed && score >= shieldThreshold && !shieldCharge);
 let holeTurns = Math.min(2,number(saved?.holeTurns));
 let treasure = ['available','spent'].includes(saved?.treasure) ? saved.treasure : '';
 let loss = saved?.loss === 'treasure' ? 'treasure' : '';
@@ -312,7 +319,7 @@ const animations = new Map();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function save() {
-  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best,score,record,combo,powerRank,charge,armed,shieldCharge,shieldArmed,holeTurns,treasure,loss,winReason})); } catch {}
+  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best,score,record,combo,phaseScore,mistakes,phaseBonus,charge,armed,shieldCharge,shieldArmed,holeTurns,treasure,loss,winReason})); } catch {}
 }
 function activeArrows() { return arrows.filter(arrow => !removed.has(arrow.id)); }
 function occupiedCells() {
@@ -340,8 +347,10 @@ function addArrowPoints(count) {
 function winPhase(reason = '') {
   winReason = reason;
   best = Math.max(best,level);
+  phaseBonus = mistakes === 0 ? perfectBonus : 0;
+  score += phaseBonus;
   record = Math.max(record,score);
-  if (level % 5 === 0) powerRank++;
+  hearts = maxHearts;
   celebrateWin = true;
 }
 function redraw() {
@@ -503,26 +512,31 @@ function updateStatus() {
   byId('combo').textContent = combo ? 'Combo '+combo+' · ×'+Math.min(5,1+Math.floor((combo-1)/3)) : '';
   byId('viewTreasure').hidden = treasure !== 'available' || finished();
   const power = byId('usePower');
-  power.hidden = !powerRank;
+  byId('nextPower').textContent = score < ghostThreshold ? 'Fantasma aos 10.000 pts'
+    : score < shieldThreshold ? 'Escudo aos 30.000 pts' : '';
+  power.hidden = score < ghostThreshold;
   power.disabled = finished() || charge > 0;
   power.setAttribute('aria-pressed',armed);
   power.textContent = charge ? 'Fantasma · recarga '+charge : armed ? 'Fantasma · selecione uma seta' : 'Usar Fantasma';
   const shield = byId('shield');
-  shield.hidden = powerRank < 2;
+  shield.hidden = score < shieldThreshold;
   shield.disabled = finished() || shieldCharge > 0;
   shield.setAttribute('aria-pressed',shieldArmed);
   shield.textContent = shieldCharge ? 'Escudo · recarga '+shieldCharge : shieldArmed ? 'Escudo ativo' : 'Ativar Escudo';
   const won = hearts > 0 && active.length === 0;
+  byId('restart').disabled = won;
   byId('result').classList.toggle('is-win',won);
   byId('winMark').hidden = !won;
   byId('roundSummary').hidden = false;
   byId('roundSummary').textContent = won
-    ? [winReason === 'blast' ? 'Explosão total!' : '',level % 5 === 0
-      ? (level === 5 ? 'Fantasma desbloqueado' : level === 10 ? 'Escudo desbloqueado' : 'Poderes recarregam mais rápido') : '',
+    ? [winReason === 'blast' ? 'Explosão total!' : '',
+      phaseBonus ? 'Fase perfeita +' + phaseBonus.toLocaleString('pt-BR')+' pts' : '',
+      phaseScore < ghostThreshold && score >= ghostThreshold ? 'Fantasma desbloqueado' : '',
+      phaseScore < shieldThreshold && score >= shieldThreshold ? 'Escudo desbloqueado' : '',
       score.toLocaleString('pt-BR')+' pts'].filter(Boolean).join(' · ')
     : 'Fase '+level+' · '+score.toLocaleString('pt-BR')+' pts';
   byId('resultTitle').textContent = won ? 'Fase '+level+' concluída!' : loss ? 'O baú levou tudo' : 'Acabaram as vidas';
-  byId('continue').textContent = won ? 'Próxima fase' : 'Nova partida';
+  byId('continue').textContent = won ? 'Próxima fase' : 'Tentar fase de novo';
   if (celebrateWin && !byId('result').hidden) {
     celebrateWin = false;
     celebratePhase();
@@ -631,7 +645,7 @@ function play(arrow) {
     }
     addArrowPoints(1);
     if (!clear) {
-      charge = Math.max(1,5-powerRank);
+      charge = 4;
       armed = false;
       notice = 'A seta atravessou o bloqueio.';
     } else if (charge) charge--;
@@ -639,15 +653,15 @@ function play(arrow) {
     animateExit(arrow);
   } else {
     blocked = arrow.id;
+    mistakes++;
     if (shieldArmed) {
       shieldArmed = false;
-      shieldCharge = Math.max(2,8-powerRank);
+      shieldCharge = 6;
       notice = 'O Escudo protegeu sua vida e seu combo.';
     } else {
       hearts--;
       combo = 0;
       notice = 'Tem outra seta no caminho.';
-      if (!hearts) record = Math.max(record,score);
     }
   }
   if (hearts > 0) {
@@ -701,7 +715,7 @@ function openTreasure() {
     }
     message('Explosão total! Todas as setas foram liberadas.');
   } else if (chance < .15) {
-    hearts = score = combo = powerRank = charge = holeTurns = 0;
+    hearts = score = phaseScore = combo = charge = holeTurns = 0;
     shieldCharge = 0;
     shieldArmed = armed = false;
     loss = 'treasure';
@@ -723,7 +737,7 @@ function openTreasure() {
   redraw();
   (finished() ? byId('continue') : byId('hint')).focus();
 }
-function reset(nextLevel, newRun = false) {
+function reset(nextLevel) {
   for (const {frame} of animations.values()) cancelAnimationFrame(frame);
   animations.clear();
   clearTimeout(blastTimer);
@@ -733,14 +747,16 @@ function reset(nextLevel, newRun = false) {
   byId('result').classList.remove('celebrating');
   byId('treasurePanel').hidden = true;
   board.closest('.board').classList.remove('blast');
-  if (newRun) {
-    record = Math.max(record,score);
-    score = combo = powerRank = charge = 0;
-    shieldCharge = 0;
+  if (nextLevel === level) {
+    score = phaseScore;
+    combo = charge = shieldCharge = 0;
     shieldArmed = armed = false;
-    hearts = maxHearts;
+  } else {
+    layout = 3;
   }
-  layout = 3;
+  hearts = maxHearts;
+  phaseScore = score;
+  mistakes = phaseBonus = 0;
   level = nextLevel;
   ({size,arrows,mask,name} = generate(level,extreme,layout));
   removed = new Set();
@@ -785,9 +801,10 @@ byId('mode').onclick = () => {
   location.assign(url);
 };
 byId('restart').onclick = () => {
-  if (finished() || confirm('Recomeçar do início com cinco vidas?')) reset(1,true);
+  if (removed.size === arrows.length) return;
+  if (!hearts || confirm('Recomeçar esta fase com o tabuleiro inteiro?')) reset(level);
 };
-byId('continue').onclick = () => hearts > 0 ? reset(level+1) : reset(1,true);
+byId('continue').onclick = () => reset(hearts > 0 ? level+1 : level);
 byId('viewTreasure').onclick = () => showTreasure(true);
 byId('skipTreasure').onclick = () => showTreasure(false);
 byId('openTreasure').onclick = openTreasure;
