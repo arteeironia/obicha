@@ -39,21 +39,45 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 @keyframes win-pop{from{transform:scale(.25) rotate(-25deg);opacity:.2}to{transform:scale(1) rotate(0);opacity:1}}
 @keyframes celebrate{0%{opacity:1;transform:translate(-50%,-50%) scale(.5)}65%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--spin))}}
 @media(prefers-reduced-motion:reduce){#confetti{display:none}.result.celebrating .win-mark{animation:none}}
+.run-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;color:var(--sub);font-size:.85rem}
+.run-tools strong{color:var(--accent)}
+#treasurePanel p{margin:0;color:var(--sub)}
+.board[data-power="ghost"]{border-color:#bb83ff;box-shadow:0 0 18px #bb83ff55}
+.board[data-power="shield"]{border-color:#88decc;box-shadow:0 0 18px #88decc55}
+#chainStatus{color:#ffe58a}
+.arrow.chain-ready .ink{stroke:#ffe58a;filter:drop-shadow(0 0 8px #ffce47)}
+.board[data-power="ghost"] .arrow:not(.chain-ready) .ink{filter:drop-shadow(0 0 2px #bb83ff)}
+.board[data-power="shield"] .arrow:not(.chain-ready) .ink{filter:drop-shadow(0 0 2px #88decc)}
+.arrow.ghost-flight .ink{stroke:#d7b7ff;filter:drop-shadow(0 0 9px #c288ff)}
+.arrow.chain-flight .ink{stroke:#ffe58a;filter:drop-shadow(0 0 7px #ffce47)}
+.arrow.ghost-flight .ink.depth,.arrow.chain-flight .ink.depth{filter:none}
+.board.blast{animation:blast .48s ease-out}
+@keyframes blast{20%{box-shadow:inset 0 0 70px #ffda83,0 0 26px #ffda83}65%{box-shadow:inset 0 0 30px #ffb59a}}
+@media(prefers-reduced-motion:reduce){.board.blast{animation:none}}
 </style>
 </head>
 <body>
 <main>
 <header><h1>Setas <em>Soltas</em></h1><button id="mode" type="button" aria-pressed="false">Extremo</button><button id="restart" type="button">Recomeçar</button></header>
-<div class="stats"><span><strong id="level"></strong><small id="difficulty" style="display:block"></small></span><span id="count"></span><span id="hearts" role="img"></span></div>
+<div class="stats"><strong id="level"></strong><span id="count"></span><span id="hearts" role="img"></span></div>
+<div class="run-tools"><strong id="score"></strong><span id="combo"></span><span id="record"></span><span id="nextPower"></span><strong id="chainStatus" hidden></strong></div>
 <progress id="progress" aria-label="Progresso da fase"></progress>
 <section class="board" aria-label="Tabuleiro">
 <div id="boardScroll" class="board-scroll"><svg id="board" aria-label="Setas do tabuleiro"></svg></div>
+<div id="treasurePanel" class="result" hidden role="dialog" aria-labelledby="treasureTitle">
+<h2 id="treasureTitle">Baú encontrado</h2><p>Pode limpar a fase ou acabar com a partida.</p>
+<button id="openTreasure" type="button">Abrir baú</button><button id="skipTreasure" type="button">Seguir jogando</button>
+</div>
 <div id="confetti" aria-hidden="true"></div>
 <div class="result" id="startScreen"><button id="start" type="button">Jogar em tela cheia</button></div>
-<div class="result" id="result" hidden><div id="winMark" class="win-mark" aria-hidden="true" hidden>★</div><h2 id="resultTitle"></h2><p id="roundSummary" hidden></p><button id="continue" type="button"></button><button id="retry" type="button" hidden>Recomeçar fase</button></div>
+<div class="result" id="result" hidden><div id="winMark" class="win-mark" aria-hidden="true" hidden>★</div><h2 id="resultTitle"></h2><p id="roundSummary" hidden></p><button id="continue" type="button"></button></div>
 </section>
 <div class="zoom-controls" aria-label="Zoom do tabuleiro">
 <button id="zoomOut" type="button" aria-label="Diminuir zoom">−</button><output id="zoomValue">100%</output><button id="zoomIn" type="button" aria-label="Aumentar zoom">+</button>
+</div>
+<div class="run-tools" aria-label="Poderes">
+<strong id="powerStatus" hidden></strong>
+<button id="viewTreasure" type="button" hidden>Baú encontrado</button>
 </div>
 <p id="message" role="status"></p>
 <div class="controls"><button id="guide" type="button" aria-pressed="false">Ver direções</button><button id="hint" type="button">Dica</button></div>
@@ -134,12 +158,16 @@ function octopusMask(size) {
 }
 
 function generate(level,extreme=false,layout=1) {
-  const [name, pixels] = figures[(level-1) % figures.length];
+  const [,pixels] = figures[(level-1) % figures.length];
   const width = pixels[0].length;
   const originalSize = Math.max(width,pixels.length);
   const size = layout === 1
     ? (extreme ? 46 : Math.min(22,originalSize + 2*Math.floor((level-1)/5)))
     : (extreme ? Math.min(66,36+3*(level-1)) : Math.min(34,13+2*Math.floor((level-1)/2)));
+  // Keep legacy boards reproducible for existing saved arrow IDs.
+  const progressiveSize = layout === 3
+    ? (extreme ? Math.min(66,36+3*(level-1)) : Math.min(38,13+2*(level-1)))
+    : size;
   let seed = (Math.imul(level,2654435761) >>> 0) || 1;
   const random = max => {
     seed ^= seed << 13;
@@ -147,10 +175,10 @@ function generate(level,extreme=false,layout=1) {
     seed ^= seed << 5;
     return (seed >>> 0) % max;
   };
-  const mask = extreme ? octopusMask(size) : [];
-  if (!extreme) for (let y=0;y<size;y++) for (let x=0;x<size;x++) {
-    const row = Math.floor((y+.5)*originalSize/size - (originalSize-pixels.length)/2);
-    const col = Math.floor((x+.5)*originalSize/size - (originalSize-width)/2);
+  const mask = extreme ? octopusMask(progressiveSize) : [];
+  if (!extreme) for (let y=0;y<progressiveSize;y++) for (let x=0;x<progressiveSize;x++) {
+    const row = Math.floor((y+.5)*originalSize/progressiveSize - (originalSize-pixels.length)/2);
+    const col = Math.floor((x+.5)*originalSize/progressiveSize - (originalSize-width)/2);
     if (pixels[row]?.[col] === '#') mask.push([x,y]);
   }
 
@@ -159,8 +187,8 @@ function generate(level,extreme=false,layout=1) {
     const arrows = [];
     while (remaining.size) {
       const exits = [];
-      const minX = Array(size).fill(size), maxX = Array(size).fill(-1);
-      const minY = Array(size).fill(size), maxY = Array(size).fill(-1);
+      const minX = Array(progressiveSize).fill(progressiveSize), maxX = Array(progressiveSize).fill(-1);
+      const minY = Array(progressiveSize).fill(progressiveSize), maxY = Array(progressiveSize).fill(-1);
       if (extreme) for (const [x,y] of remaining.values()) {
         minX[y] = Math.min(minX[y],x); maxX[y] = Math.max(maxX[y],x);
         minY[x] = Math.min(minY[x],y); maxY[x] = Math.max(maxY[x],y);
@@ -170,14 +198,14 @@ function generate(level,extreme=false,layout=1) {
         for (let direction=0;direction<4;direction++) {
           const clear = extreme
             ? [x===maxX[y],y===maxY[x],x===minX[y],y===minY[x]][direction]
-            : exitClear([cell],direction,remaining,size);
+            : exitClear([cell],direction,remaining,progressiveSize);
           if (!clear) continue;
           const [dx,dy] = directions[direction];
           exits.push({cell,direction,tail:remaining.get(key(x-dx,y-dy))});
         }
       }
       const longExits = exits.filter(exit => exit.tail);
-      const wantShort = random(5) === 0;
+      const wantShort = layout === 3 ? random(12) < Math.min(6,2+Math.floor(level/3)) : random(5) === 0;
       const choices = !wantShort && longExits.length ? longExits : exits;
       const {cell,direction,tail} = choices[random(choices.length)];
       const cells = [cell];
@@ -197,7 +225,7 @@ function generate(level,extreme=false,layout=1) {
           remaining.delete(key(...next));
         }
       }
-      arrows.push({id:arrows.length,cells:cells.reverse(),direction,color:extreme ? (cell[1]<size*.48 ? '#b8f4cf' : '#9addc7') : colors[random(colors.length)]});
+      arrows.push({id:arrows.length,cells:cells.reverse(),direction,color:extreme ? (cell[1]<progressiveSize*.48 ? '#b8f4cf' : '#9addc7') : colors[random(colors.length)]});
     }
     return arrows;
   }
@@ -210,7 +238,7 @@ function generate(level,extreme=false,layout=1) {
       const [dx,dy] = directions[arrow.direction];
       const [x,y] = arrow.cells.at(-1);
       let depth = 0;
-      for (let a=x+dx,b=y+dy;inside(a,b,size);a+=dx,b+=dy) {
+      for (let a=x+dx,b=y+dy;inside(a,b,progressiveSize);a+=dx,b+=dy) {
         const owner = owners.get(key(a,b));
         if (owner !== undefined) depth = Math.max(depth,1+depthsForOwners[owner]);
       }
@@ -230,7 +258,7 @@ function generate(level,extreme=false,layout=1) {
       score = candidateScore;
     }
   }
-  return {size,arrows,mask,name:extreme ? 'Polvo' : name};
+  return {size:progressiveSize,arrows,mask};
 }
 
 const byId = id => document.getElementById(id);
@@ -256,8 +284,8 @@ try {
   }
 } catch {}
 let level = Number.isSafeInteger(saved?.level) && saved.level > 0 ? saved.level : 1;
-let layout = saved ? (saved.layout === 2 ? 2 : 1) : 2;
-let {size,arrows,mask,name} = generate(level,extreme,layout);
+let layout = saved ? ([2,3].includes(saved.layout) ? saved.layout : 1) : 3;
+let {size,arrows,mask} = generate(level,extreme,layout);
 let best = Math.max(level-1,Number.isSafeInteger(saved?.best) ? saved.best : 0);
 if (removedAllOnLoad()) best = Math.max(best,level);
 function removedAllOnLoad() {
@@ -265,26 +293,152 @@ function removedAllOnLoad() {
   return arrows.every(arrow => ids.has(arrow.id));
 }
 let removed = new Set(Array.isArray(saved?.removed) ? saved.removed.filter(id => arrows.some(arrow => arrow.id === id)) : []);
-const maxHearts = extreme ? 5 : 3;
-const previousMax = extreme && saved?.maxHearts !== 5 ? 3 : maxHearts;
+const maxHearts = 5;
+const previousMax = saved?.maxHearts === 5 ? 5 : 3;
 const savedHearts = saved?.hearts;
 let hearts = Number.isInteger(savedHearts) && savedHearts >= 0 && savedHearts <= previousMax
   ? savedHearts === 0 ? 0 : savedHearts + maxHearts - previousMax
   : maxHearts;
+const number = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
+let score = number(saved?.score);
+let record = number(saved?.record);
+let combo = number(saved?.combo);
+const firstPowerScore = 10000;
+const powerScoreStep = 20000;
+const powerDuration = 8000;
+const powerNames = {ghost:'Fantasma',shield:'Escudo'};
+const powerTier = points => Math.max(0,1+Math.floor((points-firstPowerScore)/powerScoreStep));
+const perfectBonus = 1000;
+let phaseScore = Math.min(score,saved?.phaseScore === undefined ? score : number(saved.phaseScore));
+let mistakes = saved?.mistakes === undefined
+  ? Number(removed.size > 0 || hearts < maxHearts)
+  : number(saved.mistakes);
+let phaseBonus = number(saved?.phaseBonus);
+let power = Object.hasOwn(powerNames,saved?.power) ? saved.power : '';
+let powerTime = Math.min(powerDuration,number(saved?.powerTime));
+let holeTurns = Math.min(2,number(saved?.holeTurns));
+let treasure = ['available','spent'].includes(saved?.treasure) ? saved.treasure : '';
+let loss = saved?.loss === 'treasure' ? 'treasure' : '';
+let winReason = ['blast','hole'].includes(saved?.winReason) ? saved.winReason : '';
 let showDirections = false;
+const chainDuration = 3200;
+const chainLimit = 6;
+let chainIds = new Set();
+let chainTime = 0;
 let hinted;
 let blocked;
 const animations = new Map();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function save() {
-  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best})); } catch {}
+  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best,score,record,combo,phaseScore,mistakes,phaseBonus,power,powerTime,holeTurns,treasure,loss,winReason})); } catch {}
 }
 function activeArrows() { return arrows.filter(arrow => !removed.has(arrow.id)); }
 function occupiedCells() {
   return new Set(activeArrows().flatMap(arrow => arrow.cells.map(cell => key(...cell))));
 }
 function finished() { return removed.size === arrows.length || hearts === 0; }
+function treasureArrow() {
+  if (level < 2 || level % 4 === 0) return undefined;
+  return Math.max(0,Math.floor(arrows.length * .58));
+}
+function holeTarget(active = activeArrows()) {
+  const center = (size-1)/2;
+  const distance = ({cells}) => {
+    const [x,y] = cells.at(-1);
+    return (x-center)**2 + (y-center)**2;
+  };
+  return active.reduce((closest,arrow) => !closest || distance(arrow) < distance(closest) ? arrow : closest, undefined);
+}
+function addPoints(points) {
+  const previousTier = powerTier(score);
+  score += points;
+  const tier = powerTier(score);
+  if (tier > previousTier) {
+    power = tier % 2 ? 'ghost' : 'shield';
+    powerTime = powerDuration;
+  }
+}
+function updatePower() {
+  const active = powerTime > 0 ? power : '';
+  const status = byId('powerStatus');
+  status.hidden = !active;
+  status.textContent = active ? powerNames[active]+' · '+Math.ceil(powerTime/1000)+' s' : '';
+  board.closest('.board').dataset.power = active;
+  const next = firstPowerScore + powerTier(score)*powerScoreStep;
+  byId('nextPower').textContent = active ? '' : 'Próximo poder aos '+next.toLocaleString('pt-BR')+' pts';
+}
+function canTick() {
+  return !finished() && !document.hidden && byId('startScreen').hidden && byId('treasurePanel').hidden;
+}
+function tickPower(elapsed) {
+  if (!powerTime || !canTick()) return;
+  const previousSecond = Math.ceil(powerTime/1000);
+  powerTime = Math.max(0,powerTime-Math.round(elapsed));
+  if (!powerTime) power = '';
+  if (Math.ceil(powerTime/1000) !== previousSecond) {
+    updatePower();
+    save();
+  }
+}
+function addArrowPoints(count) {
+  for (let index=0;index<count;index++) {
+    combo++;
+    addPoints(100 * Math.min(5,1+Math.floor((combo-1)/3)));
+  }
+}
+function chainCandidates(launched, occupied) {
+  const without = new Set(occupied);
+  for (const cell of launched.cells) without.delete(key(...cell));
+  return activeArrows().filter(candidate => candidate.id !== launched.id &&
+    !exitClear(candidate.cells,candidate.direction,occupied,size) &&
+    exitClear(candidate.cells,candidate.direction,without,size)).slice(0,chainLimit);
+}
+function updateChain() {
+  const status = byId('chainStatus');
+  status.hidden = !chainTime;
+  status.textContent = chainTime ? 'Toque numa dourada · '+(Math.ceil(chainTime/100)/10).toLocaleString('pt-BR')+' s' : '';
+}
+function clearChain() {
+  chainIds.clear();
+  chainTime = 0;
+}
+function tickChain(elapsed) {
+  if (!chainTime || !canTick()) return;
+  chainTime = Math.max(0,chainTime-elapsed);
+  if (!chainTime) {
+    clearChain();
+    for (const group of board.querySelectorAll('.chain-ready')) {
+      group.classList.remove('chain-ready');
+      group.setAttribute('aria-label',group.dataset.label);
+    }
+  }
+  updateChain();
+}
+function animateImpact(cell,effect) {
+  if (!cell) return;
+  const [cx,cy] = point(cell);
+  const color = effect === 'shield' ? '#88ffda' : '#d7b7ff';
+  const ring = shape('circle',{cx,cy,r:unit*.54,fill:color+'35',stroke:color,'stroke-width':4,
+    'pointer-events':'none','aria-hidden':'true'});
+  ring.style.transformOrigin = cx+'px '+cy+'px';
+  if (reducedMotion.matches || !ring.animate) {
+    setTimeout(() => ring.remove(),350);
+    return;
+  }
+  ring.animate([{opacity:1,transform:'scale(.5)'},{opacity:0,transform:'scale(2.6)'}],
+    {duration:550,fill:'forwards'}).finished.then(() => ring.remove(),() => ring.remove());
+}
+function winPhase(reason = '') {
+  clearChain();
+  winReason = reason;
+  best = Math.max(best,level);
+  phaseBonus = mistakes === 0 ? perfectBonus : 0;
+  addPoints(phaseBonus);
+  record = Math.max(record,score);
+  hearts = maxHearts;
+  celebrateWin = true;
+}
 function redraw() {
   const extent = size * unit + pad * 2;
   board.setAttribute('viewBox','0 0 '+extent+' '+extent);
@@ -304,13 +458,26 @@ function redraw() {
         opacity:arrow.id === hinted ? .85 : .28,'stroke-dasharray':'3 5'});
     }
   }
+  if (holeTurns) {
+    const center = pad+unit*size/2;
+    shape('circle',{cx:center,cy:center,r:unit*.43,fill:'#07050f',stroke:'#bb83ff','stroke-width':3});
+  }
+  const target = holeTurns ? holeTarget(active)?.id : undefined;
   for (const arrow of active) {
-    const group = shape('g',{class:'arrow'+(arrow.id===hinted?' hint':'')+(arrow.id===blocked?' blocked':''),
-      role:'button',tabindex:finished()?-1:0,'aria-label':'Seta '+(arrow.id+1)+' para '+directionNames[arrow.direction]});
+    const label = 'Seta '+(arrow.id+1)+' para '+directionNames[arrow.direction];
+    const chained = chainIds.has(arrow.id);
+    const group = shape('g',{class:'arrow'+(arrow.id===hinted?' hint':'')+(arrow.id===blocked?' blocked':'')+(chained?' chain-ready':''),
+      role:'button',tabindex:finished()?-1:0,'aria-label':label+(chained?' · ativa reação em cadeia':'')});
+    group.dataset.label = label;
     group.style.color = arrow.color;
     const points = arrowPoints(arrow);
     shape('polyline',{points:pointList(points),fill:'none',stroke:'transparent','stroke-width':34,'stroke-linecap':'round','stroke-linejoin':'round'},group);
     drawInk(group,points,arrow.direction);
+    if ((arrow.id === treasureArrow() && !treasure) || arrow.id === target) {
+      const [cx,cy] = point(arrow.cells[0]);
+      shape('circle',{cx,cy,r:6,fill:arrow.id === target ? '#bb83ff' : '#ffda83',
+        stroke:'#101c19','stroke-width':2,'pointer-events':'none'},group);
+    }
     if (arrow.id === blocked) group.animate?.([{opacity:.4},{opacity:1},{opacity:.5},{opacity:1}],{duration:240});
     bindArrow(group,arrow);
   }
@@ -321,27 +488,34 @@ let route;
 function previewRoute(arrow) {
   if (finished() || removed.has(arrow.id)) return;
   route?.remove();
-  const cell = firstObstacle(arrow.cells,arrow.direction,occupiedCells(),size);
+  const occupied = occupiedCells();
+  const cell = firstObstacle(arrow.cells,arrow.direction,occupied,size);
+  const ghost = cell && power === 'ghost' && powerTime > 0;
+  const stop = ghost ? undefined : cell;
   const [x,y] = arrowPoints(arrow).at(-1);
   const [dx,dy] = directions[arrow.direction];
   const extent = size*unit+pad*2;
-  const [endX,endY] = cell ? point(cell) : [
+  const [endX,endY] = stop ? point(stop) : [
     dx ? (dx>0 ? extent-8 : 8) : x,
     dy ? (dy>0 ? extent-8 : 8) : y
   ];
-  const color = cell ? '#ff9c7d' : '#daf58a';
+  const color = ghost ? '#d7b7ff' : stop ? '#ff9c7d' : '#daf58a';
   route = shape('g',{'pointer-events':'none','aria-hidden':'true'});
   shape('line',{x1:x,y1:y,x2:endX,y2:endY,stroke:color,'stroke-width':extreme?8:4,
     'stroke-linecap':'round','stroke-dasharray':extreme?'10 12':'5 7'},route);
-  shape('circle',{cx:endX,cy:endY,r:extreme?15:8,fill:cell?'#172421':color,stroke:color,
+  shape('circle',{cx:endX,cy:endY,r:extreme?15:8,fill:stop?'#172421':color,stroke:color,
     'stroke-width':extreme?5:2},route);
-  if (cell) {
+  if (stop) {
     const cross = extreme ? 6 : 3;
     shape('path',{d:'M '+(endX-cross)+' '+(endY-cross)+' l '+(2*cross)+' '+(2*cross)+
       ' M '+(endX+cross)+' '+(endY-cross)+' l '+(-2*cross)+' '+(2*cross),
       stroke:color,'stroke-width':extreme?4:2},route);
   }
-  message(cell?'A seta bate no ponto marcado.':'Caminho livre até a borda.');
+  const count = stop ? 0 : chainCandidates(arrow,occupied).length;
+  message(chainIds.has(arrow.id) ? 'Esta seta dispara a cadeia.'
+    : count >= 2 ? 'Esta jogada destrava '+count+' setas para uma cadeia.'
+    : ghost ? 'O Fantasma atravessa o bloqueio.'
+    : stop ? 'A seta bate no ponto marcado.' : 'Caminho livre até a borda.');
 }
 
 function bindArrow(group,arrow) {
@@ -388,6 +562,7 @@ function bindArrow(group,arrow) {
 board.addEventListener('contextmenu',event => event.preventDefault());
 
 let celebrateWin = false;
+let blastTimer = 0;
 function celebratePhase() {
   const layer = byId('confetti');
   layer.replaceChildren();
@@ -415,27 +590,33 @@ function celebratePhase() {
 }
 function updateStatus() {
   const active = activeArrows();
-  const difficulty = extreme
-    ? (size >= 60 ? 'Extremo III' : size >= 48 ? 'Extremo II' : 'Extremo I')
-    : (size >= 24 ? 'Avançado' : size >= 16 ? 'Intermediário' : 'Iniciante');
-  byId('level').textContent = 'Fase '+level+' · '+name;
-  byId('level').title = difficulty;
-  byId('difficulty').textContent = difficulty;
+  byId('level').textContent = 'Fase '+level;
   byId('count').textContent = active.length+(active.length===1?' seta':' setas');
   byId('hearts').textContent = '♥'.repeat(hearts)+'♡'.repeat(maxHearts-hearts);
   byId('hearts').setAttribute('aria-label',hearts+' de '+maxHearts+' vidas');
   byId('progress').max = arrows.length;
   byId('progress').value = removed.size;
   byId('guide').disabled = byId('hint').disabled = finished();
-  byId('result').hidden = !finished() || (hearts > 0 && animations.size > 0);
-  byId('retry').hidden = hearts > 0;
-  const won = active.length === 0;
+  byId('result').hidden = !finished() || (hearts > 0 && (animations.size > 0 || blastTimer));
+  byId('score').textContent = score.toLocaleString('pt-BR')+' pts';
+  byId('record').textContent = 'Recorde '+record.toLocaleString('pt-BR');
+  byId('combo').textContent = combo ? 'Combo '+combo+' · ×'+Math.min(5,1+Math.floor((combo-1)/3)) : '';
+  byId('viewTreasure').hidden = treasure !== 'available' || finished();
+  updatePower();
+  updateChain();
+  const won = hearts > 0 && active.length === 0;
+  byId('restart').disabled = won;
   byId('result').classList.toggle('is-win',won);
   byId('winMark').hidden = !won;
-  byId('roundSummary').hidden = !won;
-  byId('roundSummary').textContent = name+' · '+arrows.length+' setas liberadas';
-  byId('resultTitle').textContent = won ? 'Fase '+level+' concluída!' : 'Acabaram as vidas';
-  byId('continue').textContent = active.length ? 'Continuar' : 'Próxima fase';
+  byId('roundSummary').hidden = false;
+  byId('roundSummary').textContent = won
+    ? [winReason === 'blast' ? 'Explosão total!' : '',
+      phaseBonus ? 'Fase perfeita +' + phaseBonus.toLocaleString('pt-BR')+' pts' : '',
+      powerTime ? powerNames[power]+' · '+Math.ceil(powerTime/1000)+' s restantes' : '',
+      score.toLocaleString('pt-BR')+' pts'].filter(Boolean).join(' · ')
+    : 'Fase '+level+' · '+score.toLocaleString('pt-BR')+' pts';
+  byId('resultTitle').textContent = won ? 'Fase '+level+' concluída!' : loss ? 'O baú levou tudo' : 'Acabaram as vidas';
+  byId('continue').textContent = won ? 'Próxima fase' : 'Tentar fase de novo';
   if (celebrateWin && !byId('result').hidden) {
     celebrateWin = false;
     celebratePhase();
@@ -460,13 +641,17 @@ function arrowhead(tip,direction) {
 
 function drawInk(group,points,direction) {
   const style = {class:'ink','stroke-width':extreme ? 5.5 : 4.4,'pointer-events':'none'};
+  const depth = {...style,class:'ink depth',opacity:.6,transform:'translate(1 2)',
+    style:'stroke:#060d0b;stroke-width:7'};
+  const shadow = shape('polyline',{...depth,points:pointList(points)},group);
+  const shadowHead = shape('polyline',{...depth,points:pointList(arrowhead(points.at(-1),direction))},group);
   return [
     shape('polyline',{...style,points:pointList(points)},group),
-    shape('polyline',{...style,points:pointList(arrowhead(points.at(-1),direction))},group)
+    shape('polyline',{...style,points:pointList(arrowhead(points.at(-1),direction))},group),shadow,shadowHead
   ];
 }
 
-function animateExit(arrow) {
+function animateExit(arrow,effect = '',delay = 0) {
   const points = arrowPoints(arrow);
   const tip = points.at(-1);
   const [dx,dy] = directions[arrow.direction];
@@ -481,9 +666,9 @@ function animateExit(arrow) {
   const length = offsets.at(-2);
   const travel = distance+length;
   const duration = reducedMotion.matches ? 420 : Math.min(1100,620+travel*.48);
-  const group = shape('g',{class:'arrow','pointer-events':'none','aria-hidden':'true'});
+  const group = shape('g',{class:'arrow'+(effect?' '+effect+'-flight':''),'pointer-events':'none','aria-hidden':'true'});
   group.style.color = arrow.color;
-  const [body,head] = drawInk(group,points,arrow.direction);
+  const [body,head,shadow,shadowHead] = drawInk(group,points,arrow.direction);
   const animation = {group,frame:0};
   animations.set(arrow.id,animation);
   let start;
@@ -496,7 +681,7 @@ function animateExit(arrow) {
   }
 
   function frame(now) {
-    start ??= now;
+    start ??= now+(reducedMotion.matches ? 0 : delay);
     const progress = Math.min(1,Math.max(0,(now-start)/duration));
     const advance = travel*progress*(.65+.35*progress);
     if (progress === 1) {
@@ -508,43 +693,175 @@ function animateExit(arrow) {
     }
     const front = Math.min(offsets.at(-1),length+advance);
     const visible = [at(advance),...path.filter((_,i) => offsets[i]>advance && offsets[i]<front),at(front)];
-    body.setAttribute('points',pointList(visible));
-    head.setAttribute('points',pointList(arrowhead(visible.at(-1),arrow.direction)));
+    const bodyPoints = pointList(visible);
+    const headPoints = pointList(arrowhead(visible.at(-1),arrow.direction));
+    for (const ink of [body,shadow]) ink.setAttribute('points',bodyPoints);
+    for (const ink of [head,shadowHead]) ink.setAttribute('points',headPoints);
     animation.frame = requestAnimationFrame(frame);
   }
   animation.frame = requestAnimationFrame(frame);
 }
 
 function message(text) { byId('message').textContent = text; }
+function advanceHole() {
+  if (!holeTurns || --holeTurns) return false;
+  const target = holeTarget();
+  if (!target) return false;
+  removed.add(target.id);
+  if (target.id === treasureArrow() && !treasure) treasure = 'available';
+  addArrowPoints(1);
+  return true;
+}
+function releaseArrow(arrow,effect,delay) {
+  removed.add(arrow.id);
+  if (arrow.id === treasureArrow() && !treasure) treasure = 'available';
+  addArrowPoints(1);
+  animateExit(arrow,effect,delay);
+}
 function play(arrow) {
-  if (finished() || removed.has(arrow.id)) return;
+  if (finished() || !byId('treasurePanel').hidden || removed.has(arrow.id)) return;
   hinted = blocked = undefined;
-  if (exitClear(arrow.cells,arrow.direction,occupiedCells(),size)) {
-    removed.add(arrow.id);
-    celebrateWin = removed.size === arrows.length;
-    if (celebrateWin) best = Math.max(best,level);
-    animateExit(arrow);
-    message(finished()?'Você liberou todas as setas.':'');
+  const occupied = occupiedCells();
+  const obstacle = firstObstacle(arrow.cells,arrow.direction,occupied,size);
+  const ghost = obstacle && power === 'ghost' && powerTime > 0;
+  const shield = obstacle && power === 'shield' && powerTime > 0;
+  const chain = chainIds.has(arrow.id)
+    ? [arrow,...activeArrows().filter(candidate => candidate !== arrow && chainIds.has(candidate.id))]
+    : [];
+  clearChain();
+  let notice = '';
+  if (chain.length > 1) {
+    const hadTreasure = treasure;
+    chain.forEach((candidate,index) => releaseArrow(candidate,'chain',index*110));
+    const bonus = chain.length*250;
+    addPoints(bonus);
+    notice = 'Reação em cadeia! '+chain.length+' setas · +'+bonus+' pts';
+    if (!hadTreasure && treasure) notice += '. Você encontrou um baú.';
+  } else if (!obstacle || ghost) {
+    const candidates = chainCandidates(arrow,occupied);
+    const hadTreasure = treasure;
+    releaseArrow(arrow,ghost?'ghost':'');
+    if (ghost) notice = 'O Fantasma atravessou o bloqueio.';
+    if (!hadTreasure && treasure) notice += (notice ? ' ' : '')+'Você encontrou um baú.';
+    if (candidates.length >= 2) {
+      chainIds = new Set(candidates.map(candidate => candidate.id));
+      chainTime = chainDuration;
+      if (!notice) notice = 'Setas douradas liberadas. Toque numa para disparar a cadeia!';
+    }
   } else {
-    hearts--;
     blocked = arrow.id;
-    message('Tem outra seta no caminho.');
+    mistakes++;
+    if (shield) {
+      notice = 'O Escudo segurou o impacto.';
+    } else {
+      hearts--;
+      combo = 0;
+      notice = 'Tem outra seta no caminho.';
+    }
+  }
+  if (hearts > 0) {
+    const swallowed = advanceHole();
+    if (swallowed) {
+      const openChain = activeArrows().filter(candidate => chainIds.has(candidate.id));
+      if (openChain.length < 2) clearChain();
+      notice += (notice ? ' ' : '')+'O buraco negro puxou a seta marcada.';
+    } else if (holeTurns && !notice) notice = 'O buraco negro vai puxar a seta marcada na próxima jogada.';
+    if (removed.size === arrows.length) winPhase(swallowed ? 'hole' : '');
+  } else clearChain();
+  message(notice);
+  save();
+  redraw();
+  if (ghost || shield) animateImpact(obstacle,ghost?'ghost':'shield');
+  if (finished() && !byId('result').hidden) byId('continue').focus();
+}
+function showTreasure(open) {
+  byId('treasurePanel').hidden = !open;
+  if (open) byId('openTreasure').focus();
+  else byId('viewTreasure').focus();
+}
+function openTreasure() {
+  if (finished() || treasure !== 'available') return;
+  showTreasure(false);
+  treasure = 'spent';
+  const chance = Math.random();
+  if (chance < .10) {
+    const remaining = activeArrows();
+    addArrowPoints(remaining.length);
+    for (const arrow of remaining) removed.add(arrow.id);
+    winPhase('blast');
+    const stage = board.closest('.board');
+    stage.classList.add('blast');
+    if (!reducedMotion.matches) {
+      const fragments = remaining.map((arrow,index) => {
+        const group = shape('g',{class:'arrow','pointer-events':'none','aria-hidden':'true'});
+        group.style.color = arrow.color;
+        drawInk(group,arrowPoints(arrow),arrow.direction);
+        group.animate?.([{opacity:1},{opacity:0,transform:'translate('+((index%9-4)*11)+'px,'+((index%7-3)*14)+'px)'}],
+          {duration:280,delay:index%9*22,fill:'forwards'});
+        return group;
+      });
+      blastTimer = setTimeout(() => {
+        blastTimer = 0;
+        fragments.forEach(group => group.remove());
+        updateStatus();
+        byId('continue').focus();
+      },490);
+      save();
+      redraw();
+      fragments.forEach(group => board.append(group));
+      message('Explosão total! Todas as setas foram liberadas.');
+      return;
+    }
+    message('Explosão total! Todas as setas foram liberadas.');
+  } else if (chance < .15) {
+    hearts = score = phaseScore = combo = powerTime = holeTurns = 0;
+    power = '';
+    clearChain();
+    loss = 'treasure';
+    message('O baú levou as vidas, os pontos e o poder desta partida.');
+  } else if (chance < .33) {
+    holeTurns = 2;
+    message('Buraco negro! Em duas jogadas ele puxa a seta marcada.');
+  } else if (chance < .57 && hearts < maxHearts) {
+    hearts++;
+    message('Você ganhou uma vida!');
+  } else if (chance < .83) {
+    addPoints(500);
+    message('Você ganhou 500 pontos!');
+  } else {
+    combo = 0;
+    message('O baú zerou seu combo.');
   }
   save();
   redraw();
-  if (finished() && !byId('result').hidden) byId('continue').focus();
+  (finished() ? byId('continue') : byId('hint')).focus();
 }
 function reset(nextLevel) {
   for (const {frame} of animations.values()) cancelAnimationFrame(frame);
   animations.clear();
+  clearTimeout(blastTimer);
+  blastTimer = 0;
   celebrateWin = false;
   byId('confetti').replaceChildren();
   byId('result').classList.remove('celebrating');
-  if (nextLevel !== level) layout = 2;
-  level = nextLevel;
-  ({size,arrows,mask,name} = generate(level,extreme,layout));
-  removed = new Set();
+  byId('treasurePanel').hidden = true;
+  board.closest('.board').classList.remove('blast');
+  if (nextLevel === level) {
+    score = phaseScore;
+    combo = powerTime = 0;
+    power = '';
+  } else {
+    layout = 3;
+  }
   hearts = maxHearts;
+  phaseScore = score;
+  mistakes = phaseBonus = 0;
+  level = nextLevel;
+  ({size,arrows,mask} = generate(level,extreme,layout));
+  removed = new Set();
+  clearChain();
+  treasure = loss = winReason = '';
+  holeTurns = 0;
   blocked = hinted = undefined;
   save();
   redraw();
@@ -583,19 +900,14 @@ byId('mode').onclick = () => {
   else url.searchParams.set('modo','extremo');
   location.assign(url);
 };
-byId('restart').onclick = () => reset(level);
-byId('continue').onclick = () => {
-  if (hearts > 0) {
-    reset(level+1);
-    return;
-  }
-  hearts = maxHearts;
-  blocked = hinted = undefined;
-  save();
-  redraw();
-  message('Você recuperou todas as vidas.');
+byId('restart').onclick = () => {
+  if (removed.size === arrows.length) return;
+  if (!hearts || confirm('Recomeçar esta fase com o tabuleiro inteiro?')) reset(level);
 };
-byId('retry').onclick = () => reset(level);
+byId('continue').onclick = () => reset(hearts > 0 ? level+1 : level);
+byId('viewTreasure').onclick = () => showTreasure(true);
+byId('skipTreasure').onclick = () => showTreasure(false);
+byId('openTreasure').onclick = openTreasure;
 byId('guide').onclick = () => {
   showDirections = !showDirections;
   byId('guide').setAttribute('aria-pressed',showDirections);
@@ -613,6 +925,15 @@ byId('hint').onclick = () => {
 };
 redraw();
 message('Toque para soltar. Segure uma seta para conferir o caminho.');
+let lastPowerTick = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  tickPower(now-lastPowerTick);
+  tickChain(now-lastPowerTick);
+  lastPowerTick = now;
+},100);
+document.addEventListener('visibilitychange',() => { lastPowerTick = performance.now(); });
+window.addEventListener('pagehide',save);
 </script>
 </body>
 </html>
