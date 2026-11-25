@@ -41,7 +41,6 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 @media(prefers-reduced-motion:reduce){#confetti{display:none}.result.celebrating .win-mark{animation:none}}
 .run-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;color:var(--sub);font-size:.85rem}
 .run-tools strong{color:var(--accent)}
-.run-tools button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
 #treasurePanel p{margin:0;color:var(--sub)}
 .board.blast{animation:blast .48s ease-out}
 @keyframes blast{20%{box-shadow:inset 0 0 70px #ffda83,0 0 26px #ffda83}65%{box-shadow:inset 0 0 30px #ffb59a}}
@@ -68,8 +67,8 @@ svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:1
 <button id="zoomOut" type="button" aria-label="Diminuir zoom">−</button><output id="zoomValue">100%</output><button id="zoomIn" type="button" aria-label="Aumentar zoom">+</button>
 </div>
 <div class="run-tools" aria-label="Poderes">
-<button id="usePower" type="button" aria-pressed="false" hidden></button>
-<button id="shield" type="button" aria-pressed="false" hidden></button>
+<span id="usePower" hidden></span>
+<span id="shield" hidden></span>
 <button id="viewTreasure" type="button" hidden>Baú encontrado</button>
 </div>
 <p id="message" role="status"></p>
@@ -305,9 +304,7 @@ let mistakes = saved?.mistakes === undefined
   : number(saved.mistakes);
 let phaseBonus = number(saved?.phaseBonus);
 let charge = number(saved?.charge);
-let armed = Boolean(saved?.armed && score >= ghostThreshold && !charge);
 let shieldCharge = number(saved?.shieldCharge);
-let shieldArmed = Boolean(saved?.shieldArmed && score >= shieldThreshold && !shieldCharge);
 let holeTurns = Math.min(2,number(saved?.holeTurns));
 let treasure = ['available','spent'].includes(saved?.treasure) ? saved.treasure : '';
 let loss = saved?.loss === 'treasure' ? 'treasure' : '';
@@ -319,7 +316,7 @@ const animations = new Map();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function save() {
-  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best,score,record,combo,phaseScore,mistakes,phaseBonus,charge,armed,shieldCharge,shieldArmed,holeTurns,treasure,loss,winReason})); } catch {}
+  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts,layout,best,score,record,combo,phaseScore,mistakes,phaseBonus,charge,shieldCharge,holeTurns,treasure,loss,winReason})); } catch {}
 }
 function activeArrows() { return arrows.filter(arrow => !removed.has(arrow.id)); }
 function occupiedCells() {
@@ -515,14 +512,10 @@ function updateStatus() {
   byId('nextPower').textContent = score < ghostThreshold ? 'Fantasma aos 10.000 pts'
     : score < shieldThreshold ? 'Escudo aos 30.000 pts' : '';
   power.hidden = score < ghostThreshold;
-  power.disabled = finished() || charge > 0;
-  power.setAttribute('aria-pressed',armed);
-  power.textContent = charge ? 'Fantasma · recarga '+charge : armed ? 'Fantasma · selecione uma seta' : 'Usar Fantasma';
+  power.textContent = charge ? 'Fantasma · recarga '+charge : 'Fantasma pronto';
   const shield = byId('shield');
   shield.hidden = score < shieldThreshold;
-  shield.disabled = finished() || shieldCharge > 0;
-  shield.setAttribute('aria-pressed',shieldArmed);
-  shield.textContent = shieldCharge ? 'Escudo · recarga '+shieldCharge : shieldArmed ? 'Escudo ativo' : 'Ativar Escudo';
+  shield.textContent = shieldCharge ? 'Escudo · recarga '+shieldCharge : 'Escudo pronto';
   const won = hearts > 0 && active.length === 0;
   byId('restart').disabled = won;
   byId('result').classList.toggle('is-win',won);
@@ -637,7 +630,7 @@ function play(arrow) {
   hinted = blocked = undefined;
   const clear = exitClear(arrow.cells,arrow.direction,occupiedCells(),size);
   let notice = '';
-  if (clear || armed) {
+  if (clear || (score >= ghostThreshold && charge === 0)) {
     removed.add(arrow.id);
     if (arrow.id === treasureArrow() && !treasure) {
       treasure = 'available';
@@ -646,7 +639,6 @@ function play(arrow) {
     addArrowPoints(1);
     if (!clear) {
       charge = 4;
-      armed = false;
       notice = 'A seta atravessou o bloqueio.';
     } else if (charge) charge--;
     if (shieldCharge) shieldCharge--;
@@ -654,8 +646,7 @@ function play(arrow) {
   } else {
     blocked = arrow.id;
     mistakes++;
-    if (shieldArmed) {
-      shieldArmed = false;
+    if (score >= shieldThreshold && shieldCharge === 0) {
       shieldCharge = 6;
       notice = 'O Escudo protegeu sua vida e seu combo.';
     } else {
@@ -717,7 +708,6 @@ function openTreasure() {
   } else if (chance < .15) {
     hearts = score = phaseScore = combo = charge = holeTurns = 0;
     shieldCharge = 0;
-    shieldArmed = armed = false;
     loss = 'treasure';
     message('O baú levou as vidas, os pontos e o poder desta partida.');
   } else if (chance < .33) {
@@ -750,7 +740,6 @@ function reset(nextLevel) {
   if (nextLevel === level) {
     score = phaseScore;
     combo = charge = shieldCharge = 0;
-    shieldArmed = armed = false;
   } else {
     layout = 3;
   }
@@ -808,18 +797,6 @@ byId('continue').onclick = () => reset(hearts > 0 ? level+1 : level);
 byId('viewTreasure').onclick = () => showTreasure(true);
 byId('skipTreasure').onclick = () => showTreasure(false);
 byId('openTreasure').onclick = openTreasure;
-byId('usePower').onclick = () => {
-  armed = !armed;
-  message(armed ? 'Escolha uma seta bloqueada para atravessar o obstáculo.' : '');
-  save();
-  redraw();
-};
-byId('shield').onclick = () => {
-  shieldArmed = !shieldArmed;
-  message(shieldArmed ? 'O próximo erro será protegido.' : '');
-  save();
-  redraw();
-};
 byId('guide').onclick = () => {
   showDirections = !showDirections;
   byId('guide').setAttribute('aria-pressed',showDirections);
