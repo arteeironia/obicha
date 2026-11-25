@@ -2441,6 +2441,28 @@ function SOSModal({ why, stats, onSurvived, onClose }) {
     );
   }
 
+  if (active === "setas-soltas") {
+    return (
+      <div role="dialog" aria-modal="true" aria-label="Setas Soltas" className="fixed inset-0 z-50 flex flex-col bg-[#172421]">
+        <button
+          type="button"
+          autoFocus
+          onClick={() => setActive(null)}
+          style={{ color: C.cream }}
+          className="min-h-11 shrink-0 self-start px-4 text-sm"
+        >
+          ← Voltar às técnicas
+        </button>
+        <iframe
+          title="Setas Soltas"
+          src="/respira/jogos/setas-soltas.html"
+          allowFullScreen
+          className="min-h-0 w-full flex-1 border-0"
+        />
+      </div>
+    );
+  }
+
   const tech = SOS_TECHNIQUES.find((t) => t.id === active);
   const breathCycle = breathPhase % 19;
   const bPhase = breathCycle < 4 ? "inspire" : breathCycle < 11 ? "segure" : "solte";
