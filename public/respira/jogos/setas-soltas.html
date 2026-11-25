@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#172421">
+<title>Setas Soltas</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#172421;color:#f3f0df;--sub:#b6c5b6;--line:#394b43;--accent:#daf58a}*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at 50% 0,#263a32,transparent 550px),#172421}
+main{width:min(100% - 32px,520px);margin:auto;padding:max(22px,env(safe-area-inset-top)) 0 max(22px,env(safe-area-inset-bottom))}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:14px;gap:8px;flex-wrap:wrap}header h1{margin-right:auto}#mode[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
+h1{font:normal clamp(32px,8vw,46px)/1 Georgia,serif;letter-spacing:-.065em;margin:0}h1 em{color:var(--accent)}
+button{font:inherit;font-weight:650;cursor:pointer;color:inherit;border:1px solid #53665b;background:#263a32;border-radius:13px;min-height:44px;padding:0 14px;touch-action:manipulation}
+button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.stats{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px;color:var(--sub);font-size:.92rem}.stats strong{color:#f3f0df}
+#hearts{letter-spacing:.19em;color:#ffad9c;font-size:1.2rem}
+progress{appearance:none;width:100%;height:5px;display:block;border:0;border-radius:6px;overflow:hidden;background:#394b43;margin-bottom:16px}progress::-webkit-progress-bar{background:#394b43}progress::-webkit-progress-value{background:var(--accent)}progress::-moz-progress-bar{background:var(--accent)}
+.board{background:#101c19;border:1px solid var(--line);border-radius:24px;position:relative;overflow:hidden;aspect-ratio:1}
+svg{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:100%;height:100%;display:block;touch-action:manipulation}
+.arrow{cursor:pointer;outline:none}.arrow .ink{stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;fill:none}.arrow:focus-visible .ink,.arrow.hint .ink{filter:drop-shadow(0 0 5px currentColor);stroke:#fff8d9}.arrow.blocked .ink{stroke:#ff8b77}
+.result{position:absolute;inset:0;background:#101c19e8;display:grid;place-content:center;text-align:center;gap:14px;padding:16px}.result[hidden]{display:none}.result h2{font:normal 34px Georgia,serif;margin:0}.result button[hidden]{display:none}.result #retry{background:#263a32;color:#f3f0df;border:1px solid #53665b}.result button{background:var(--accent);color:#172421;border:0}
+#message{min-height:2.6em;margin:12px 0 8px;color:var(--sub);font-size:.93rem}.controls{display:flex;gap:10px}.controls button{flex:1}
+
+.board-scroll{width:100%;aspect-ratio:1;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.board-scroll svg{height:auto;aspect-ratio:1;max-width:none}
+#startScreen{z-index:4}
+.result{z-index:2}
+.zoom-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px}
+.zoom-controls button{min-width:44px;padding:0 10px}
+#zoomValue{min-width:3.5em;text-align:center;font-variant-numeric:tabular-nums}
+.immersive main,:fullscreen main{width:min(100% - 16px,650px);padding-top:max(10px,env(safe-area-inset-top))}
+#confetti{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+#confetti i{position:absolute;left:50%;top:53%;width:8px;height:12px;background:var(--color);border-radius:2px;animation:celebrate 1.25s ease-out both}
+@keyframes celebrate{0%{opacity:1;transform:translate(-50%,-50%) scale(.5)}65%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--spin))}}
+@media(prefers-reduced-motion:reduce){#confetti{display:none}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Setas <em>Soltas</em></h1><button id="mode" type="button" aria-pressed="false">Extremo</button><button id="restart" type="button">Recomeçar</button></header>
+<div class="stats"><strong id="level"></strong><span id="count"></span><span id="hearts" role="img"></span></div>
+<progress id="progress" aria-label="Progresso da fase"></progress>
+<section class="board" aria-label="Tabuleiro">
+<div id="boardScroll" class="board-scroll"><svg id="board" aria-label="Setas do tabuleiro"></svg></div>
+<div id="confetti" aria-hidden="true"></div>
+<div class="result" id="startScreen"><button id="start" type="button">Jogar em tela cheia</button></div>
+<div class="result" id="result" hidden><h2 id="resultTitle"></h2><button id="continue" type="button"></button><button id="retry" type="button" hidden>Recomeçar fase</button></div>
+</section>
+<div class="zoom-controls" aria-label="Zoom do tabuleiro">
+<button id="zoomOut" type="button" aria-label="Diminuir zoom">−</button><output id="zoomValue">100%</output><button id="zoomIn" type="button" aria-label="Aumentar zoom">+</button>
+</div>
+<p id="message" role="status"></p>
+<div class="controls"><button id="guide" type="button" aria-pressed="false">Ver direções</button><button id="hint" type="button">Dica</button></div>
+</main>
+<script>
+const directions = [[1,0],[0,1],[-1,0],[0,-1]];
+const directionNames = ['direita','baixo','esquerda','cima'];
+const colors = ['#daf58a','#88decc','#ffb59a','#dbc0fa','#ffda83'];
+const key = (x,y) => x + ',' + y;
+const inside = (x,y,size) => x >= 0 && y >= 0 && x < size && y < size;
+
+function firstObstacle(cells, direction, occupied, size) {
+  const [dx,dy] = directions[direction];
+  const [x,y] = cells.at(-1);
+  for (let a=x+dx,b=y+dy; inside(a,b,size); a+=dx,b+=dy) {
+    if (occupied.has(key(a,b))) return [a,b];
+  }
+  return null;
+}
+
+function exitClear(cells,direction,occupied,size) {
+  return firstObstacle(cells,direction,occupied,size) === null;
+}
+
+const figures = [
+  ['Coração', [
+    '.###...###.', '#####.#####', '###########', '###########', '.#########.',
+    '.#########.', '..#######..', '...#####...', '....###....', '.....#.....'
+  ]],
+  ['Foguete', [
+    '.....#.....', '....###....', '....###....', '...#####...', '...#####...',
+    '...#####...', '..#######..', '.#########.', '####.#.####', '##..###..##',
+    '....###....', '.....#.....'
+  ]],
+  ['Borboleta', [
+    '##.........##', '####.....####', '#####...#####', '######.######',
+    '.###########.', '..#########..', '.###########.', '.#####.#####.',
+    '..###...###..', '...#.....#...'
+  ]],
+  ['Gato', [
+    '.#.......#.', '.##.....##.', '.###...###.', '.#########.',
+    '###########', '###########', '###########', '.#########.',
+    '..#######..', '...#####...'
+  ]],
+  ['Peixe', [
+    '.....###.....', '...#######...', '..#########.#', '.############',
+    '#############', '.############', '..#########.#', '...#######...',
+    '.....###.....'
+  ]]
+];
+
+function octopusMask(size) {
+  const arms = [
+    [[39,47],[28,48],[15,40],[8,43],[9,51]],
+    [[37,53],[22,57],[9,62],[8,71],[16,73]],
+    [[40,56],[31,68],[20,75],[21,86],[29,88]],
+    [[46,58],[42,74],[34,84],[38,94],[46,90]],
+    [[53,58],[55,74],[63,88],[58,95]],
+    [[59,55],[66,68],[76,77],[76,88],[69,89]],
+    [[62,52],[76,57],[89,63],[91,72],[83,74]],
+    [[64,45],[76,46],[86,38],[93,40],[94,49]]
+  ];
+  const cells = [];
+  for (let y=0;y<size;y++) for (let x=0;x<size;x++) {
+    const u = 100*(x+.5)/size;
+    const v = 100*(y+.5)/size;
+    const inHead = ((u-51)/23)**2 + ((v-33)/28)**2 <= 1;
+    const inArm = arms.some((arm,armIndex) => arm.slice(1).some(([bx,by],index) => {
+      const [ax,ay] = arm[index];
+      const dx = bx-ax, dy = by-ay;
+      const along = Math.max(0,Math.min(1,((u-ax)*dx+(v-ay)*dy)/(dx*dx+dy*dy)));
+      const radius = (armIndex === 3 || armIndex === 4 ? 5.5 : 5) - 2.1*(index+along)/(arm.length-1);
+      return (u-ax-along*dx)**2 + (v-ay-along*dy)**2 <= radius**2;
+    }));
+    if (inHead || inArm) cells.push([x,y]);
+  }
+  return cells;
+}
+
+function generate(level,extreme=false) {
+  const [name, pixels] = figures[(level-1) % figures.length];
+  const width = pixels[0].length;
+  const originalSize = Math.max(width,pixels.length);
+  const size = extreme ? 46 : Math.min(22,originalSize + 2 * Math.floor((level-1)/5));
+  let seed = (Math.imul(level,2654435761) >>> 0) || 1;
+  const random = max => {
+    seed ^= seed << 13;
+    seed ^= seed >>> 17;
+    seed ^= seed << 5;
+    return (seed >>> 0) % max;
+  };
+  const mask = extreme ? octopusMask(size) : [];
+  if (!extreme) for (let y=0;y<size;y++) for (let x=0;x<size;x++) {
+    const row = Math.floor((y+.5)*originalSize/size - (originalSize-pixels.length)/2);
+    const col = Math.floor((x+.5)*originalSize/size - (originalSize-width)/2);
+    if (pixels[row]?.[col] === '#') mask.push([x,y]);
+  }
+
+  function build() {
+    const remaining = new Map(mask.map(cell => [key(...cell),cell]));
+    const arrows = [];
+    while (remaining.size) {
+      const exits = [];
+      const minX = Array(size).fill(size), maxX = Array(size).fill(-1);
+      const minY = Array(size).fill(size), maxY = Array(size).fill(-1);
+      if (extreme) for (const [x,y] of remaining.values()) {
+        minX[y] = Math.min(minX[y],x); maxX[y] = Math.max(maxX[y],x);
+        minY[x] = Math.min(minY[x],y); maxY[x] = Math.max(maxY[x],y);
+      }
+      for (const cell of remaining.values()) {
+        const [x,y] = cell;
+        for (let direction=0;direction<4;direction++) {
+          const clear = extreme
+            ? [x===maxX[y],y===maxY[x],x===minX[y],y===minY[x]][direction]
+            : exitClear([cell],direction,remaining,size);
+          if (!clear) continue;
+          const [dx,dy] = directions[direction];
+          exits.push({cell,direction,tail:remaining.get(key(x-dx,y-dy))});
+        }
+      }
+      const longExits = exits.filter(exit => exit.tail);
+      const wantShort = random(5) === 0;
+      const choices = !wantShort && longExits.length ? longExits : exits;
+      const {cell,direction,tail} = choices[random(choices.length)];
+      const cells = [cell];
+      remaining.delete(key(...cell));
+      if (!wantShort && tail) {
+        cells.push(tail);
+        remaining.delete(key(...tail));
+        const length = 2 + random(extreme ? 10 : Math.min(9,4+Math.floor(level/3)));
+        while (cells.length < length) {
+          const [x,y] = cells.at(-1);
+          const neighbors = directions.map(([dx,dy]) => remaining.get(key(x+dx,y+dy))).filter(Boolean);
+          if (!neighbors.length) break;
+          const next = neighbors[random(neighbors.length)];
+          cells.push(next);
+          remaining.delete(key(...next));
+        }
+      }
+      arrows.push({id:arrows.length,cells:cells.reverse(),direction,color:extreme ? (cell[1]<size*.48 ? '#b8f4cf' : '#9addc7') : colors[random(colors.length)]});
+    }
+    return arrows;
+  }
+
+  // Prefer boards where most arrows are initially blocked and several moves depend on each other.
+  function challenge(arrows) {
+    const owners = new Map(arrows.flatMap(arrow => arrow.cells.map(cell => [key(...cell),arrow.id])));
+    const depthsForOwners = [];
+    const depths = arrows.map(arrow => {
+      const [dx,dy] = directions[arrow.direction];
+      const [x,y] = arrow.cells.at(-1);
+      let depth = 0;
+      for (let a=x+dx,b=y+dy;inside(a,b,size);a+=dx,b+=dy) {
+        const owner = owners.get(key(a,b));
+        if (owner !== undefined) depth = Math.max(depth,1+depthsForOwners[owner]);
+      }
+      depthsForOwners.push(depth);
+      return depth;
+    });
+    return depths.reduce((sum,depth) => sum+depth,0)/arrows.length;
+  }
+
+  let arrows = build();
+  let score = challenge(arrows);
+  for (let attempt=0;attempt<(extreme ? 3 : Math.min(8,2+level));attempt++) {
+    const candidate = build();
+    const candidateScore = challenge(candidate);
+    if (candidateScore > score) {
+      arrows = candidate;
+      score = candidateScore;
+    }
+  }
+  return {size,arrows,mask,name:extreme ? 'Polvo' : name};
+}
+
+const byId = id => document.getElementById(id);
+const board = byId('board');
+const unit = 38;
+const pad = 17;
+const point = cell => cell.map(value => pad + unit * (value+.5));
+const svgNS = 'http://www.w3.org/2000/svg';
+function shape(tag, attributes, parent=board) {
+  const node = document.createElementNS(svgNS,tag);
+  for (const [name,value] of Object.entries(attributes)) node.setAttribute(name,value);
+  parent.append(node);
+  return node;
+}
+const extreme = new URLSearchParams(location.search).get('modo') === 'extremo';
+const saveKey = extreme ? 'setas-soltas-extreme-v1' : 'setas-soltas-save-v2';
+let saved;
+try {
+  saved = JSON.parse(localStorage.getItem(saveKey));
+  if (!saved && !extreme) {
+    const previous = JSON.parse(localStorage.getItem('setas-soltas-save-v1'));
+    if (previous) saved = {level:previous.level};
+  }
+} catch {}
+let level = Number.isSafeInteger(saved?.level) && saved.level > 0 ? saved.level : 1;
+let {size,arrows,mask,name} = generate(level,extreme);
+let removed = new Set(Array.isArray(saved?.removed) ? saved.removed.filter(id => arrows.some(arrow => arrow.id === id)) : []);
+const maxHearts = extreme ? 5 : 3;
+const previousMax = extreme && saved?.maxHearts !== 5 ? 3 : maxHearts;
+const savedHearts = saved?.hearts;
+let hearts = Number.isInteger(savedHearts) && savedHearts >= 0 && savedHearts <= previousMax
+  ? savedHearts === 0 ? 0 : savedHearts + maxHearts - previousMax
+  : maxHearts;
+let showDirections = false;
+let hinted;
+let blocked;
+const animations = new Map();
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function save() {
+  try { localStorage.setItem(saveKey,JSON.stringify({level,removed:[...removed],hearts,maxHearts})); } catch {}
+}
+function activeArrows() { return arrows.filter(arrow => !removed.has(arrow.id)); }
+function occupiedCells() {
+  return new Set(activeArrows().flatMap(arrow => arrow.cells.map(cell => key(...cell))));
+}
+function finished() { return removed.size === arrows.length || hearts === 0; }
+function redraw() {
+  const extent = size * unit + pad * 2;
+  board.setAttribute('viewBox','0 0 '+extent+' '+extent);
+  board.replaceChildren();
+  route = undefined;
+  const active = activeArrows();
+  if (!extreme) for (const cell of mask) {
+    const [cx,cy] = point(cell);
+    shape('circle',{cx,cy,r:1.1,fill:'#34473d'});
+  }
+  if (showDirections || hinted !== undefined) {
+    for (const arrow of active.filter(arrow => showDirections || arrow.id === hinted)) {
+      const [x,y] = point(arrow.cells.at(-1));
+      const [dx,dy] = directions[arrow.direction];
+      shape('line',{x1:x,y1:y,x2:dx ? (dx>0 ? extent-7 : 7) : x,
+        y2:dy ? (dy>0 ? extent-7 : 7) : y,stroke:arrow.color,
+        opacity:arrow.id === hinted ? .85 : .28,'stroke-dasharray':'3 5'});
+    }
+  }
+  for (const arrow of active) {
+    const group = shape('g',{class:'arrow'+(arrow.id===hinted?' hint':'')+(arrow.id===blocked?' blocked':''),
+      role:'button',tabindex:finished()?-1:0,'aria-label':'Seta '+(arrow.id+1)+' para '+directionNames[arrow.direction]});
+    group.style.color = arrow.color;
+    const points = arrowPoints(arrow);
+    shape('polyline',{points:pointList(points),fill:'none',stroke:'transparent','stroke-width':34,'stroke-linecap':'round','stroke-linejoin':'round'},group);
+    drawInk(group,points,arrow.direction);
+    if (arrow.id === blocked) group.animate?.([{opacity:.4},{opacity:1},{opacity:.5},{opacity:1}],{duration:240});
+    bindArrow(group,arrow);
+  }
+  for (const {group} of animations.values()) board.append(group);
+  updateStatus();
+}
+let route;
+function previewRoute(arrow) {
+  if (finished() || removed.has(arrow.id)) return;
+  route?.remove();
+  const cell = firstObstacle(arrow.cells,arrow.direction,occupiedCells(),size);
+  const [x,y] = arrowPoints(arrow).at(-1);
+  const [dx,dy] = directions[arrow.direction];
+  const extent = size*unit+pad*2;
+  const [endX,endY] = cell ? point(cell) : [
+    dx ? (dx>0 ? extent-8 : 8) : x,
+    dy ? (dy>0 ? extent-8 : 8) : y
+  ];
+  const color = cell ? '#ff9c7d' : '#daf58a';
+  route = shape('g',{'pointer-events':'none','aria-hidden':'true'});
+  shape('line',{x1:x,y1:y,x2:endX,y2:endY,stroke:color,'stroke-width':extreme?8:4,
+    'stroke-linecap':'round','stroke-dasharray':extreme?'10 12':'5 7'},route);
+  shape('circle',{cx:endX,cy:endY,r:extreme?15:8,fill:cell?'#172421':color,stroke:color,
+    'stroke-width':extreme?5:2},route);
+  if (cell) {
+    const cross = extreme ? 6 : 3;
+    shape('path',{d:'M '+(endX-cross)+' '+(endY-cross)+' l '+(2*cross)+' '+(2*cross)+
+      ' M '+(endX+cross)+' '+(endY-cross)+' l '+(-2*cross)+' '+(2*cross),
+      stroke:color,'stroke-width':extreme?4:2},route);
+  }
+  message(cell?'A seta bate no ponto marcado.':'Caminho livre até a borda.');
+}
+
+function bindArrow(group,arrow) {
+  let press;
+  let suppressClick = false;
+  function stopPress() {
+    clearTimeout(press?.timer);
+    press = undefined;
+  }
+  group.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || event.button !== 0 || finished()) return;
+    stopPress();
+    suppressClick = false;
+    route?.remove();
+    press = {id:event.pointerId,x:event.clientX,y:event.clientY};
+    press.timer = setTimeout(() => {
+      suppressClick = true;
+      previewRoute(arrow);
+    },380);
+  });
+  group.addEventListener('pointermove', event => {
+    if (press?.id !== event.pointerId) return;
+    if (Math.hypot(event.clientX-press.x,event.clientY-press.y)>10) {
+      suppressClick = true;
+      stopPress();
+    }
+  });
+  for (const type of ['pointerup','pointercancel','pointerleave']) {
+    group.addEventListener(type,event => {
+      if (press?.id === event.pointerId) stopPress();
+    });
+  }
+  group.addEventListener('click',() => {
+    if (!suppressClick) play(arrow);
+    suppressClick = false;
+  });
+  group.addEventListener('keydown',event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    if (event.shiftKey) previewRoute(arrow);
+    else play(arrow);
+  });
+}
+board.addEventListener('contextmenu',event => event.preventDefault());
+
+let celebrateWin = false;
+function celebratePhase() {
+  const layer = byId('confetti');
+  layer.replaceChildren();
+  if (reducedMotion.matches) return;
+  const radius = layer.clientWidth * .65;
+  for (let i=0;i<30;i++) {
+    const angle = i*2.39996;
+    const distance = radius*(.42+(i%7)/12);
+    const piece = document.createElement('i');
+    piece.style.setProperty('--x',Math.cos(angle)*distance+'px');
+    piece.style.setProperty('--y',Math.sin(angle)*distance+'px');
+    piece.style.setProperty('--spin',(i%2 ? -1 : 1)*(160+37*i)+'deg');
+    piece.style.setProperty('--color',colors[i%colors.length]);
+    piece.addEventListener('animationend',() => piece.remove(),{once:true});
+    layer.append(piece);
+  }
+}
+function updateStatus() {
+  const active = activeArrows();
+  byId('level').textContent = 'Fase '+level+' · '+name;
+  byId('count').textContent = active.length+(active.length===1?' seta':' setas');
+  byId('hearts').textContent = '♥'.repeat(hearts)+'♡'.repeat(maxHearts-hearts);
+  byId('hearts').setAttribute('aria-label',hearts+' de '+maxHearts+' vidas');
+  byId('progress').max = arrows.length;
+  byId('progress').value = removed.size;
+  byId('guide').disabled = byId('hint').disabled = finished();
+  byId('result').hidden = !finished() || (hearts > 0 && animations.size > 0);
+  byId('retry').hidden = hearts > 0;
+  byId('resultTitle').textContent = active.length ? 'Acabaram as vidas' : 'Fase concluída! 🎉';
+  byId('continue').textContent = active.length ? 'Continuar' : 'Próxima fase';
+  if (celebrateWin && !byId('result').hidden) {
+    celebrateWin = false;
+    celebratePhase();
+  }
+}
+function pointList(points) { return points.map(pair => pair.join(',')).join(' '); }
+
+function arrowPoints(arrow) {
+  const points = arrow.cells.map(point);
+  const [x,y] = points.at(-1);
+  const [dx,dy] = directions[arrow.direction];
+  if (points.length === 1) points.unshift([x-dx*10,y-dy*10]);
+  points.push([x+dx*10,y+dy*10]);
+  return points;
+}
+
+function arrowhead(tip,direction) {
+  const [dx,dy] = directions[direction];
+  const wing = side => [tip[0]-dx*9-dy*side*6,tip[1]-dy*9+dx*side*6];
+  return [wing(1),tip,wing(-1)];
+}
+
+function drawInk(group,points,direction) {
+  const style = {class:'ink','stroke-width':extreme ? 5.5 : 4.4,'pointer-events':'none'};
+  return [
+    shape('polyline',{...style,points:pointList(points)},group),
+    shape('polyline',{...style,points:pointList(arrowhead(points.at(-1),direction))},group)
+  ];
+}
+
+function animateExit(arrow) {
+  const points = arrowPoints(arrow);
+  const tip = points.at(-1);
+  const [dx,dy] = directions[arrow.direction];
+  const extent = size*unit+pad*2;
+  const exitDistance = dx > 0 ? extent-tip[0] : dx < 0 ? tip[0] : dy > 0 ? extent-tip[1] : tip[1];
+  const distance = exitDistance+12;
+  const path = [...points,[tip[0]+dx*distance,tip[1]+dy*distance]];
+  const offsets = [0];
+  for (let i=1;i<path.length;i++) {
+    offsets.push(offsets.at(-1)+Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]));
+  }
+  const length = offsets.at(-2);
+  const travel = distance+length;
+  const duration = reducedMotion.matches ? 420 : Math.min(1100,620+travel*.48);
+  const group = shape('g',{class:'arrow','pointer-events':'none','aria-hidden':'true'});
+  group.style.color = arrow.color;
+  const [body,head] = drawInk(group,points,arrow.direction);
+  const animation = {group,frame:0};
+  animations.set(arrow.id,animation);
+  let start;
+
+  function at(offset) {
+    const index = offsets.findIndex(value => value >= offset);
+    if (index <= 0) return path[index === 0 ? 0 : path.length-1];
+    const fraction = (offset-offsets[index-1])/(offsets[index]-offsets[index-1]);
+    return path[index-1].map((value,axis) => value+fraction*(path[index][axis]-value));
+  }
+
+  function frame(now) {
+    start ??= now;
+    const progress = Math.min(1,Math.max(0,(now-start)/duration));
+    const advance = travel*progress*(.65+.35*progress);
+    if (progress === 1) {
+      group.remove();
+      animations.delete(arrow.id);
+      updateStatus();
+      if (finished() && !byId('result').hidden) byId('continue').focus();
+      return;
+    }
+    const front = Math.min(offsets.at(-1),length+advance);
+    const visible = [at(advance),...path.filter((_,i) => offsets[i]>advance && offsets[i]<front),at(front)];
+    body.setAttribute('points',pointList(visible));
+    head.setAttribute('points',pointList(arrowhead(visible.at(-1),arrow.direction)));
+    animation.frame = requestAnimationFrame(frame);
+  }
+  animation.frame = requestAnimationFrame(frame);
+}
+
+function message(text) { byId('message').textContent = text; }
+function play(arrow) {
+  if (finished() || removed.has(arrow.id)) return;
+  hinted = blocked = undefined;
+  if (exitClear(arrow.cells,arrow.direction,occupiedCells(),size)) {
+    removed.add(arrow.id);
+    celebrateWin = removed.size === arrows.length;
+    animateExit(arrow);
+    message(finished()?'Você liberou todas as setas.':'');
+  } else {
+    hearts--;
+    blocked = arrow.id;
+    message('Tem outra seta no caminho.');
+  }
+  save();
+  redraw();
+  if (finished() && !byId('result').hidden) byId('continue').focus();
+}
+function reset(nextLevel) {
+  for (const {frame} of animations.values()) cancelAnimationFrame(frame);
+  animations.clear();
+  celebrateWin = false;
+  byId('confetti').replaceChildren();
+  level = nextLevel;
+  ({size,arrows,mask,name} = generate(level,extreme));
+  removed = new Set();
+  hearts = maxHearts;
+  blocked = hinted = undefined;
+  save();
+  redraw();
+  message('Toque para soltar. Segure uma seta para conferir o caminho.');
+}
+let zoom = 1;
+function setZoom(value) {
+  const viewport = byId('boardScroll');
+  const previous = zoom;
+  const centerX = (viewport.scrollLeft+viewport.clientWidth/2)/previous;
+  const centerY = (viewport.scrollTop+viewport.clientHeight/2)/previous;
+  zoom = value;
+  board.style.width = zoom*100+'%';
+  viewport.scrollLeft = centerX*zoom-viewport.clientWidth/2;
+  viewport.scrollTop = centerY*zoom-viewport.clientHeight/2;
+  byId('zoomValue').value = zoom*100+'%';
+  byId('zoomOut').disabled = zoom === 1;
+  byId('zoomIn').disabled = zoom === 3;
+}
+byId('zoomOut').onclick = () => setZoom(Math.max(1,zoom-.5));
+byId('zoomIn').onclick = () => setZoom(Math.min(3,zoom+.5));
+byId('zoomOut').disabled = true;
+byId('start').onclick = () => {
+  byId('startScreen').hidden = true;
+  document.documentElement.classList.add('immersive');
+  if (document.fullscreenEnabled && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+  if (!byId('result').hidden) byId('continue').focus();
+};
+byId('mode').setAttribute('aria-pressed',extreme);
+byId('mode').textContent = extreme ? 'Clássico' : 'Extremo';
+byId('mode').onclick = () => {
+  const url = new URL(location.href);
+  if (extreme) url.searchParams.delete('modo');
+  else url.searchParams.set('modo','extremo');
+  location.assign(url);
+};
+byId('restart').onclick = () => reset(level);
+byId('continue').onclick = () => {
+  if (hearts > 0) {
+    reset(level+1);
+    return;
+  }
+  hearts = maxHearts;
+  blocked = hinted = undefined;
+  save();
+  redraw();
+  message('Você recuperou todas as vidas.');
+};
+byId('retry').onclick = () => reset(level);
+byId('guide').onclick = () => {
+  showDirections = !showDirections;
+  byId('guide').setAttribute('aria-pressed',showDirections);
+  byId('guide').textContent = showDirections ? 'Ocultar direções' : 'Ver direções';
+  redraw();
+};
+byId('hint').onclick = () => {
+  const occupied = occupiedCells();
+  const arrow = activeArrows().find(candidate => exitClear(candidate.cells,candidate.direction,occupied,size));
+  if (!arrow) return;
+  hinted = arrow.id;
+  blocked = undefined;
+  message('A seta iluminada tem caminho livre.');
+  redraw();
+};
+redraw();
+message('Toque para soltar. Segure uma seta para conferir o caminho.');
+</script>
+</body>
+</html>
